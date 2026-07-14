@@ -1,6 +1,6 @@
 # Maths au collège
 
-Squelette d’une application web destinée aux élèves de 6e et de 4e. Elle est responsive, installable et utilisable hors connexion après une première visite.
+Squelette d’une application web destinée aux élèves de 6e et de 4e. Elle est responsive, installable et utilisable hors connexion après une première visite. Les espaces pédagogiques sont volontairement vides : leurs contenus seront définis progressivement.
 
 ## Lancer le projet en local
 
@@ -14,7 +14,6 @@ Ouvrir ensuite <http://localhost:8000>.
 
 ## Modifier les contenus
 
-- Les chapitres de démonstration se trouvent au début de `app.js`.
 - Les textes des pages se trouvent dans `index.html`.
 - Les couleurs et la mise en page se trouvent dans `styles.css`.
 

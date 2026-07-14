@@ -1,4 +1,4 @@
-const CACHE_NAME = "maths-college-v1";
+const CACHE_NAME = "maths-college-v2";
 const APP_SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./assets/logo.svg"];
 
 self.addEventListener("install", (event) => {
