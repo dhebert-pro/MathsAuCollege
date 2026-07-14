@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Logo Maths au collège">
+  <rect width="64" height="64" rx="18" fill="#173f5f"/>
+  <circle cx="45" cy="19" r="8" fill="#ee8a5b"/>
+  <path d="M15 46V18h7.5l9.5 16 9.5-16H49v28h-8V31l-7 11h-4l-7-11v15z" fill="#fffefa"/>
+</svg>
