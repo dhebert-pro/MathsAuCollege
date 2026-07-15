@@ -3,20 +3,18 @@
 
   const escapeHtml = (value) => String(value || "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
   const normalize = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  const dialog = document.querySelector("#course-dialog");
-  let currentCourse = null;
 
   function renderCourses(level, query = "") {
     const all = CourseStore.published(level);
-    const filtered = all.filter((course) => normalize(`${course.title} ${course.category} ${course.summary}`).includes(normalize(query)));
+    const filtered = all.filter((course) => normalize(`${course.chapterNumber} ${course.title}`).includes(normalize(query)));
     const container = document.querySelector(`[data-student-courses="${level}"]`);
     const empty = document.querySelector(`[data-student-empty="${level}"]`);
     document.querySelector(`#count-${level}`).textContent = `${all.length} cours`;
     container.innerHTML = filtered.map((course) => `
       <article class="student-course-card">
-        <div class="course-card-top"><span class="course-level">${course.level}e</span><span class="course-category">${escapeHtml(course.category)}</span></div>
-        <h2>${escapeHtml(course.title)}</h2>
-        <p>${escapeHtml(course.summary || "Ressource publiée par le professeur.")}</p>
+        <div class="course-card-top"><span class="course-level">${course.level}e</span><span class="course-category">${course.chapterNumber ? `Chapitre ${escapeHtml(course.chapterNumber)}` : "Cours"}</span></div>
+        <h2>${escapeHtml(CourseContent.displayTitle(course))}</h2>
+        <p>${course.slideCount} diapositive${course.slideCount > 1 ? "s" : ""} · Présentation et PDF</p>
         <div class="course-card-actions">
           <button type="button" class="text-button" data-read-course="${course.id}">Consulter</button>
           <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> PDF</button>
@@ -48,16 +46,6 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function openCourse(id) {
-    currentCourse = await CourseStore.getPublished(id);
-    if (!currentCourse) return;
-    document.querySelector("#dialog-meta").textContent = `${currentCourse.level}e · ${currentCourse.category}`;
-    document.querySelector("#dialog-title").textContent = currentCourse.title;
-    document.querySelector("#dialog-summary").textContent = currentCourse.summary;
-    document.querySelector("#dialog-content").innerHTML = escapeHtml(currentCourse.content).replace(/\n/g, "<br>");
-    dialog.showModal();
-  }
-
   document.querySelector(".menu-button").addEventListener("click", (event) => {
     const open = document.querySelector(".navigation").classList.toggle("open");
     event.currentTarget.setAttribute("aria-expanded", String(open));
@@ -66,20 +54,17 @@
   document.addEventListener("click", async (event) => {
     const readButton = event.target.closest("[data-read-course]");
     const pdfButton = event.target.closest("[data-pdf-course]");
-    if (readButton) await openCourse(readButton.dataset.readCourse);
+    if (readButton) window.location.href = `presentation.html?course=${encodeURIComponent(readButton.dataset.readCourse)}`;
     if (pdfButton) {
       pdfButton.disabled = true;
       try {
         const course = await CourseStore.getPublished(pdfButton.dataset.pdfCourse);
-        if (course) CoursePdf.download(course);
+        if (course) await CoursePdf.download(course);
       } finally {
         pdfButton.disabled = false;
       }
     }
   });
-  document.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
-  document.querySelector("#dialog-pdf").addEventListener("click", () => currentCourse && CoursePdf.download(currentCourse));
-  dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
 
   function updateNetworkStatus() {
     const online = navigator.onLine;

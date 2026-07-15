@@ -5,33 +5,21 @@
   let courses = [];
   let subscriptions = [];
   const publishedContents = new Map();
+  const images = new Map();
 
-  const sort = (items) => [...items].sort((a, b) => a.sortOrder - b.sortOrder || new Date(b.updatedAt) - new Date(a.updatedAt));
+  const sort = (items) => CourseContent.sortCourses(items);
 
   function notify(detail = {}) {
     window.dispatchEvent(new CustomEvent("courses:changed", { detail }));
   }
 
-  function slugify(value) {
-    return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  }
-
   function normalize(input) {
-    const now = new Date().toISOString();
     const existing = courses.find((course) => course.id === input.id);
-    return {
-      id: input.id || (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `course-${Date.now()}`),
-      title: input.title.trim(),
-      slug: slugify(input.title),
-      level: String(input.level),
-      category: input.category.trim() || "À définir",
-      summary: input.summary.trim(),
-      content: input.content.trim(),
-      status: input.status === "published" ? "published" : "draft",
-      sortOrder: Number(input.sortOrder) || 0,
-      updatedAt: now,
-      createdAt: existing?.createdAt || now,
-    };
+    return CourseContent.normalizeCourse({
+      ...input,
+      createdAt: existing?.createdAt || input.createdAt,
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   function replaceLevel(level, nextCourses, fromCache) {
@@ -56,6 +44,28 @@
       const course = await FirebaseBackend.getPublished(id);
       if (course) publishedContents.set(id, course);
       return course;
+    },
+    async getPrivate(id) {
+      if (!firebaseMode) return null;
+      return FirebaseBackend.getPrivate(id);
+    },
+    async getImage(id) {
+      if (images.has(id)) return images.get(id);
+      if (!firebaseMode) return null;
+      const image = await FirebaseBackend.getCourseImage(id);
+      if (image) images.set(id, image);
+      return image;
+    },
+    async saveImage(image) {
+      if (!firebaseMode) throw new Error("Firebase is not configured");
+      const saved = await FirebaseBackend.saveImage(image);
+      images.set(saved.id, saved);
+      return saved;
+    },
+    async deleteImage(id) {
+      if (!firebaseMode) return;
+      images.delete(id);
+      await FirebaseBackend.deleteCourseImage(id);
     },
     startPublic() {
       if (!firebaseMode || subscriptions.length) return;
@@ -84,7 +94,25 @@
     async duplicate(id) {
       const source = this.get(id);
       if (!source) return null;
-      return this.save({ ...source, id: "", title: `${source.title} — copie`, status: "draft" });
+      const nextId = CourseContent.id("course");
+      const imageIds = [...new Set(source.blocks.flatMap((block) => block.imageIds))];
+      const pairs = await Promise.all(imageIds.map(async (imageId) => {
+        const image = await this.getImage(imageId);
+        if (!image) return [imageId, ""];
+        const copy = await this.saveImage({ ...image, id: CourseContent.id("image"), courseId: nextId, published: false, createdAt: new Date().toISOString() });
+        return [imageId, copy.id];
+      }));
+      const mapping = new Map(pairs);
+      return this.save({
+        ...source,
+        id: nextId,
+        title: `${source.title} \u2014 copie`,
+        chapterNumber: "",
+        manualOrder: null,
+        status: "draft",
+        createdAt: new Date().toISOString(),
+        blocks: source.blocks.map((block) => ({ ...block, id: CourseContent.id("block"), imageIds: block.imageIds.map((imageId) => mapping.get(imageId)).filter(Boolean) })),
+      });
     },
     async remove(id) {
       if (!firebaseMode) throw new Error("Firebase is not configured");
@@ -95,6 +123,24 @@
       const course = this.get(id);
       if (!course) return null;
       return this.save({ ...course, status: course.status === "published" ? "draft" : "published" });
+    },
+    async move(id, direction) {
+      const course = this.get(id);
+      if (!course) return false;
+      const levelCourses = this.all().filter((item) => item.level === course.level);
+      const index = levelCourses.findIndex((item) => item.id === id);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= levelCourses.length) return false;
+      [levelCourses[index], levelCourses[target]] = [levelCourses[target], levelCourses[index]];
+      const updated = levelCourses.map((item, manualOrder) => normalize({ ...item, manualOrder }));
+      await FirebaseBackend.updateOrder(updated);
+      return true;
+    },
+    async resetOrder(level = "all") {
+      const updated = this.all()
+        .filter((course) => level === "all" || course.level === level)
+        .map((course) => normalize({ ...course, manualOrder: null }));
+      if (updated.length) await FirebaseBackend.updateOrder(updated);
     },
   };
 })();

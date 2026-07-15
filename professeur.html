@@ -7,8 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.3.0" />
-    <link rel="stylesheet" href="professeur.css?v=0.3.0" />
+    <link rel="stylesheet" href="styles.css?v=0.4.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.4.0" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -68,13 +68,15 @@
             <div class="admin-heading"><div><p class="eyebrow">Organisation</p><h1>Tous les cours</h1><p>Classez, publiez et mettez à jour vos contenus.</p></div><button class="admin-button primary" type="button" data-go-editor>＋ Nouveau cours</button></div>
             <section class="admin-panel table-panel">
               <div class="table-toolbar">
-                <label class="admin-search">Rechercher<input id="admin-search" type="search" placeholder="Titre ou catégorie" /></label>
+                <label class="admin-search">Rechercher<input id="admin-search" type="search" placeholder="Numéro ou nom du chapitre" /></label>
                 <label>Filtrer par niveau<select id="level-filter"><option value="all">Tous</option><option value="6">6e</option><option value="4">4e</option></select></label>
                 <label>Filtrer par statut<select id="status-filter"><option value="all">Tous</option><option value="published">Publié</option><option value="draft">Brouillon</option></select></label>
+                <button id="reset-order" class="admin-button secondary" type="button">Tri automatique</button>
               </div>
+              <p class="order-help">Tri automatique : numéro de chapitre, puis nom. Les flèches permettent de personnaliser l’ordre dans chaque niveau.</p>
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th scope="col">Cours</th><th scope="col">Niveau</th><th scope="col">Catégorie</th><th scope="col">Statut</th><th scope="col">Ordre</th><th scope="col">Modification</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                  <thead><tr><th scope="col">Chapitre</th><th scope="col">Nom</th><th scope="col">Niveau</th><th scope="col">Statut</th><th scope="col">Classement</th><th scope="col">Modification</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
                   <tbody id="course-table-body"></tbody>
                 </table>
               </div>
@@ -83,23 +85,43 @@
           </section>
 
           <section class="admin-view" data-admin-page="editor" hidden>
-            <div class="admin-heading"><div><p class="eyebrow">Édition</p><h1 id="editor-title">Nouveau cours</h1><p>Le format détaillé du cours sera affiné ultérieurement.</p></div></div>
+            <div class="admin-heading"><div><p class="eyebrow">Édition</p><h1 id="editor-title">Nouveau cours</h1><p>Composez le cours bloc après bloc, dans l’ordre de la présentation.</p></div></div>
             <form id="course-form" class="editor-layout">
               <input type="hidden" name="id" />
+              <input type="hidden" name="status" value="draft" />
               <div class="admin-panel form-main">
-                <label>Titre du cours <span aria-hidden="true">*</span><input name="title" required maxlength="120" placeholder="Ex. Fractions et calculs" /></label>
-                <label>Résumé <textarea name="summary" rows="3" maxlength="300" placeholder="Une courte présentation visible dans la liste élève"></textarea></label>
-                <label>Contenu du cours <textarea name="content" rows="14" placeholder="Le futur éditeur de cours prendra place ici."></textarea></label>
+                <div class="chapter-fields">
+                  <label>Numéro du chapitre <span class="optional">facultatif</span><input name="chapterNumber" maxlength="20" placeholder="Ex. 3" /></label>
+                  <label>Nom du chapitre <span aria-hidden="true">*</span><input name="title" required maxlength="120" placeholder="Ex. Fractions et calculs" /></label>
+                </div>
+                <section class="block-composer" aria-labelledby="blocks-title">
+                  <div class="block-composer-heading"><div><h2 id="blocks-title">Contenu du cours</h2><p>Ajoutez les blocs dans l’ordre où ils devront apparaître.</p></div><span id="block-count">0 bloc</span></div>
+                  <div id="block-list" class="block-list"></div>
+                  <div class="block-palette" aria-label="Ajouter un bloc">
+                    <p>Ajouter un bloc</p>
+                    <button type="button" data-add-block="text">¶ Texte</button>
+                    <button type="button" data-add-block="definition">D Définition</button>
+                    <button type="button" data-add-block="property">P Propriété</button>
+                    <button type="button" data-add-block="example">Ex Exemple</button>
+                    <button type="button" data-add-block="takeaway">★ À retenir</button>
+                    <button type="button" data-add-block="warning">! Attention</button>
+                    <button type="button" data-add-block="method">M Méthode</button>
+                    <button type="button" data-add-block="reminder">↺ Rappel</button>
+                  </div>
+                </section>
               </div>
               <aside class="editor-options">
                 <div class="admin-panel">
-                  <h2>Publication</h2>
-                  <label>Statut<select name="status"><option value="draft">Brouillon</option><option value="published">Publié</option></select></label>
+                  <h2>Paramètres</h2>
                   <label>Niveau<select name="level" required><option value="6">6e</option><option value="4">4e</option></select></label>
-                  <label>Catégorie<input name="category" maxlength="60" placeholder="À définir" /></label>
-                  <label>Ordre d’affichage<input name="sortOrder" type="number" min="0" max="999" value="0" /></label>
+                  <div class="editor-status"><span>État actuel</span><strong id="editor-status-label" class="status draft">Brouillon</strong></div>
                 </div>
-                <div class="editor-actions"><button class="admin-button primary wide" type="submit">Enregistrer le cours</button><button id="cancel-editor" class="admin-button secondary wide" type="button">Annuler</button></div>
+                <div class="editor-actions">
+                  <button id="save-course" class="admin-button secondary wide" type="submit">Enregistrer le brouillon</button>
+                  <button id="publish-course" class="admin-button publish wide" type="button">Publier le cours</button>
+                  <button id="unpublish-course" class="admin-button warning wide" type="button" hidden>Dépublier</button>
+                  <button id="cancel-editor" class="admin-button ghost wide" type="button">Annuler</button>
+                </div>
               </aside>
             </form>
           </section>
@@ -108,11 +130,12 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.3.0" defer></script>
-    <script src="firebase-config.js?v=0.3.0" defer></script>
-    <script src="firebase-bundle.js?v=0.3.0" defer></script>
-    <script src="course-store.js?v=0.3.0" defer></script>
-    <script src="pdf-export.js?v=0.3.0" defer></script>
-    <script src="professeur.js?v=0.3.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.4.0" defer></script>
+    <script src="course-content.js?v=0.4.0" defer></script>
+    <script src="firebase-config.js?v=0.4.0" defer></script>
+    <script src="firebase-bundle.js?v=0.4.0" defer></script>
+    <script src="course-store.js?v=0.4.0" defer></script>
+    <script src="pdf-export.js?v=0.4.0" defer></script>
+    <script src="professeur.js?v=0.4.0" defer></script>
   </body>
 </html>

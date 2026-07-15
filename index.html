@@ -9,7 +9,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=0.3.0" />
+    <link rel="stylesheet" href="styles.css?v=0.4.0" />
     <title>Maths au collège</title>
   </head>
   <body>
@@ -78,7 +78,7 @@
         </div>
         <div class="course-toolbar">
           <div><strong id="count-6">0 cours</strong><span> publié(s)</span></div>
-          <label class="search-field">Rechercher <input type="search" data-course-search="6" placeholder="Titre ou catégorie" /></label>
+          <label class="search-field">Rechercher <input type="search" data-course-search="6" placeholder="Numéro ou nom du chapitre" /></label>
         </div>
         <div class="student-course-grid" data-student-courses="6"></div>
         <div class="empty-space" data-student-empty="6" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2><p>Les prochaines ressources apparaîtront ici.</p></div>
@@ -91,7 +91,7 @@
         </div>
         <div class="course-toolbar">
           <div><strong id="count-4">0 cours</strong><span> publié(s)</span></div>
-          <label class="search-field">Rechercher <input type="search" data-course-search="4" placeholder="Titre ou catégorie" /></label>
+          <label class="search-field">Rechercher <input type="search" data-course-search="4" placeholder="Numéro ou nom du chapitre" /></label>
         </div>
         <div class="student-course-grid" data-student-courses="4"></div>
         <div class="empty-space" data-student-empty="4" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2><p>Les prochaines ressources apparaîtront ici.</p></div>
@@ -108,25 +108,17 @@
       </section>
     </main>
 
-    <dialog id="course-dialog" class="course-dialog">
-      <button class="dialog-close" type="button" aria-label="Fermer">×</button>
-      <p class="eyebrow" id="dialog-meta"></p>
-      <h2 id="dialog-title"></h2>
-      <p id="dialog-summary" class="dialog-summary"></p>
-      <div id="dialog-content" class="course-body"></div>
-      <button id="dialog-pdf" class="button primary" type="button">Télécharger en PDF</button>
-    </dialog>
-
     <footer>
       <p>Maths au collège · Espace élève</p>
       <p><span id="network-status" class="status-dot"></span> <span id="network-label">En ligne</span></p>
     </footer>
 
-    <script src="vendor/jspdf.umd.min.js?v=0.3.0" defer></script>
-    <script src="firebase-config.js?v=0.3.0" defer></script>
-    <script src="firebase-bundle.js?v=0.3.0" defer></script>
-    <script src="course-store.js?v=0.3.0" defer></script>
-    <script src="pdf-export.js?v=0.3.0" defer></script>
-    <script src="app.js?v=0.3.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.4.0" defer></script>
+    <script src="course-content.js?v=0.4.0" defer></script>
+    <script src="firebase-config.js?v=0.4.0" defer></script>
+    <script src="firebase-bundle.js?v=0.4.0" defer></script>
+    <script src="course-store.js?v=0.4.0" defer></script>
+    <script src="pdf-export.js?v=0.4.0" defer></script>
+    <script src="app.js?v=0.4.0" defer></script>
   </body>
 </html>
