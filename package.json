@@ -1,13 +1,19 @@
 {
   "name": "maths-au-college",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Application de ressources de mathématiques pour les élèves de 6e et de 4e.",
   "scripts": {
     "vendor": "node scripts/copy-vendor.mjs",
+    "build:firebase": "esbuild firebase-source.js --bundle --format=iife --global-name=MathsFirebaseBundle --outfile=firebase-bundle.js --minify",
     "check": "node --check app.js && node --check professeur.js && node --check course-store.js && node --check pdf-export.js && node --check sw.js"
   },
   "dependencies": {
+    "firebase": "12.16.0",
     "jspdf": "4.2.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "firebase-tools": "15.23.0"
   }
 }

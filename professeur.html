@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Administration de Maths au collège." />
     <meta name="referrer" content="no-referrer" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.2.0" />
-    <link rel="stylesheet" href="professeur.css?v=0.2.0" />
+    <link rel="stylesheet" href="styles.css?v=0.3.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.3.0" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -23,18 +23,9 @@
         <div class="login-card">
           <p class="eyebrow">Accès réservé</p>
           <h1 id="login-title">Espace professeur</h1>
-          <p>La connexion définitive utilisera une authentification sécurisée et des droits vérifiés côté base de données.</p>
-          <form id="login-form">
-            <label>Adresse électronique<input type="email" name="email" autocomplete="username" required placeholder="professeur@exemple.fr" /></label>
-            <label>Mot de passe<input type="password" name="password" autocomplete="current-password" required minlength="12" /></label>
-            <button class="admin-button primary wide" type="submit">Se connecter</button>
-          </form>
+          <p>Connectez-vous avec le compte Google professionnel autorisé. Aucun mot de passe n’est géré par l’application.</p>
+          <button id="google-login" class="admin-button google wide" type="button"><span aria-hidden="true">G</span> Se connecter avec Google</button>
           <div id="login-message" class="form-message" role="status"></div>
-          <div class="demo-access">
-            <strong>Maquette en cours de construction</strong>
-            <p>Les données de démonstration restent uniquement dans ce navigateur et ne sont pas partagées avec les élèves.</p>
-            <button id="demo-login" class="admin-button secondary wide" type="button">Ouvrir la maquette du back-office</button>
-          </div>
         </div>
         <a class="back-link" href="index.html">← Retour à l’espace élève</a>
       </section>
@@ -59,7 +50,7 @@
         <div class="admin-workspace">
           <header class="admin-topbar">
             <button id="sidebar-toggle" type="button" aria-label="Ouvrir le menu">☰</button>
-            <div><span class="demo-badge">Mode démonstration</span><strong>Compte professeur</strong></div>
+            <div><span class="secure-badge">Connexion sécurisée</span><strong id="account-label">Compte professeur</strong></div>
           </header>
 
           <section class="admin-view active" data-admin-page="dashboard">
@@ -96,9 +87,9 @@
             <form id="course-form" class="editor-layout">
               <input type="hidden" name="id" />
               <div class="admin-panel form-main">
-                <label>Titre du cours <span aria-hidden="true">*</span><input name="title" required maxlength="120" placeholder="Ex. Cours de démonstration" /></label>
+                <label>Titre du cours <span aria-hidden="true">*</span><input name="title" required maxlength="120" placeholder="Ex. Fractions et calculs" /></label>
                 <label>Résumé <textarea name="summary" rows="3" maxlength="300" placeholder="Une courte présentation visible dans la liste élève"></textarea></label>
-                <label>Contenu de démonstration <textarea name="content" rows="14" placeholder="Le futur éditeur de cours prendra place ici."></textarea></label>
+                <label>Contenu du cours <textarea name="content" rows="14" placeholder="Le futur éditeur de cours prendra place ici."></textarea></label>
               </div>
               <aside class="editor-options">
                 <div class="admin-panel">
@@ -117,9 +108,11 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.2.0" defer></script>
-    <script src="course-store.js?v=0.2.0" defer></script>
-    <script src="pdf-export.js?v=0.2.0" defer></script>
-    <script src="professeur.js?v=0.2.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.3.0" defer></script>
+    <script src="firebase-config.js?v=0.3.0" defer></script>
+    <script src="firebase-bundle.js?v=0.3.0" defer></script>
+    <script src="course-store.js?v=0.3.0" defer></script>
+    <script src="pdf-export.js?v=0.3.0" defer></script>
+    <script src="professeur.js?v=0.3.0" defer></script>
   </body>
 </html>

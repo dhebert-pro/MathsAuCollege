@@ -3,7 +3,12 @@
 
   const loginView = document.querySelector("#login-view");
   const adminApp = document.querySelector("#admin-app");
+  const loginButton = document.querySelector("#google-login");
+  const loginMessage = document.querySelector("#login-message");
   const courseForm = document.querySelector("#course-form");
+  const submitButton = courseForm.querySelector('button[type="submit"]');
+  let accessGranted = false;
+
   const escapeHtml = (value) => String(value || "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
   const normalize = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const formatDate = (value) => new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
@@ -15,9 +20,34 @@
     window.setTimeout(() => element.classList.remove("visible"), 2600);
   }
 
-  function showAdmin() {
+  function readableError(error) {
+    const code = error?.code || "";
+    if (code.includes("popup-closed") || code.includes("cancelled-popup")) return "Connexion annulée.";
+    if (code.includes("popup-blocked")) return "La fenêtre de connexion a été bloquée par le navigateur.";
+    if (code.includes("unauthorized-domain")) return "Ce site doit encore être autorisé dans Firebase.";
+    if (code.includes("permission-denied")) return "Ce compte Google n’est pas autorisé à accéder au back-office.";
+    if (code.includes("network-request-failed") || !navigator.onLine) return "Connexion impossible. Vérifiez votre accès à Internet.";
+    return "Une erreur est survenue. Veuillez réessayer.";
+  }
+
+  function showLogin(message = "") {
+    accessGranted = false;
+    CourseStore.stopSubscriptions();
+    adminApp.hidden = true;
+    loginView.hidden = false;
+    loginMessage.textContent = message;
+    loginButton.disabled = false;
+  }
+
+  function showAdmin(user) {
+    accessGranted = true;
     loginView.hidden = true;
     adminApp.hidden = false;
+    document.querySelector("#account-label").textContent = user.email;
+    CourseStore.startAdmin((error) => {
+      showLogin(readableError(error));
+      FirebaseBackend.signOut().catch(() => {});
+    });
     renderAll();
   }
 
@@ -103,30 +133,53 @@
     renderTable();
   }
 
-  document.querySelector("#login-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    document.querySelector("#login-message").textContent = "La connexion sécurisée sera activée après la création du projet Supabase. Aucun identifiant n’a été envoyé.";
-    event.currentTarget.reset();
+  async function runMutation(action, successMessage) {
+    try {
+      await action();
+      toast(successMessage);
+    } catch (error) {
+      toast(readableError(error));
+    }
+  }
+
+  loginButton.addEventListener("click", async () => {
+    loginButton.disabled = true;
+    loginMessage.textContent = "Ouverture de la connexion Google…";
+    try {
+      await FirebaseBackend.signIn();
+    } catch (error) {
+      loginMessage.textContent = readableError(error);
+      loginButton.disabled = false;
+    }
   });
-  document.querySelector("#demo-login").addEventListener("click", showAdmin);
-  document.querySelector("#logout").addEventListener("click", () => { adminApp.hidden = true; loginView.hidden = false; });
+
+  document.querySelector("#logout").addEventListener("click", async () => {
+    await FirebaseBackend.signOut();
+  });
   document.querySelector("#sidebar-toggle").addEventListener("click", () => document.querySelector(".admin-sidebar").classList.toggle("open"));
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => button.dataset.adminView === "editor" ? openEditor() : showView(button.dataset.adminView)));
   document.querySelectorAll("[data-go-editor]").forEach((button) => button.addEventListener("click", () => openEditor()));
   document.querySelectorAll("[data-go-courses]").forEach((button) => button.addEventListener("click", () => showView("courses")));
   document.querySelector("#cancel-editor").addEventListener("click", () => showView("courses"));
   ["#admin-search", "#level-filter", "#status-filter"].forEach((selector) => document.querySelector(selector).addEventListener("input", renderTable));
+  window.addEventListener("courses:changed", () => { if (accessGranted) renderAll(); });
 
-  courseForm.addEventListener("submit", (event) => {
+  courseForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const input = Object.fromEntries(new FormData(courseForm).entries());
-    CourseStore.save(input);
-    renderAll();
-    showView("courses");
-    toast(input.id ? "Cours mis à jour." : "Cours créé.");
+    submitButton.disabled = true;
+    try {
+      await CourseStore.save(input);
+      showView("courses");
+      toast(input.id ? "Cours mis à jour." : "Cours créé.");
+    } catch (error) {
+      toast(readableError(error));
+    } finally {
+      submitButton.disabled = false;
+    }
   });
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const edit = event.target.closest("[data-edit-course]");
     const pdf = event.target.closest("[data-pdf-course]");
     const duplicate = event.target.closest("[data-duplicate-course]");
@@ -134,11 +187,33 @@
     const toggle = event.target.closest("[data-toggle-course]");
     if (edit) openEditor(edit.dataset.editCourse);
     if (pdf) CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse));
-    if (duplicate) { CourseStore.duplicate(duplicate.dataset.duplicateCourse); renderAll(); toast("Copie créée en brouillon."); }
-    if (toggle) { CourseStore.toggleStatus(toggle.dataset.toggleCourse); renderAll(); toast("Statut modifié."); }
+    if (duplicate) await runMutation(() => CourseStore.duplicate(duplicate.dataset.duplicateCourse), "Copie créée en brouillon.");
+    if (toggle) await runMutation(() => CourseStore.toggleStatus(toggle.dataset.toggleCourse), "Statut modifié.");
     if (remove) {
       const course = CourseStore.get(remove.dataset.deleteCourse);
-      if (course && window.confirm(`Supprimer définitivement « ${course.title} » ?`)) { CourseStore.remove(course.id); renderAll(); toast("Cours supprimé."); }
+      if (course && window.confirm(`Supprimer définitivement « ${course.title} » ?`)) {
+        await runMutation(() => CourseStore.remove(course.id), "Cours supprimé.");
+      }
     }
   });
+
+  if (!window.FirebaseBackend?.configured) {
+    showLogin("La configuration Firebase est absente.");
+    loginButton.disabled = true;
+  } else {
+    FirebaseBackend.onAuth(async (user) => {
+      if (!user) {
+        showLogin();
+        return;
+      }
+      loginMessage.textContent = "Vérification des autorisations…";
+      try {
+        await FirebaseBackend.verifyProfessor();
+        showAdmin(user);
+      } catch (error) {
+        await FirebaseBackend.signOut().catch(() => {});
+        showLogin(readableError(error));
+      }
+    });
+  }
 })();

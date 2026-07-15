@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isProfessor() {
+      return request.auth != null
+        && request.auth.token.email == 'pro.david.hebert@gmail.com'
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    function validCourse(data) {
+      return data.keys().hasOnly([
+          'id', 'title', 'slug', 'level', 'category', 'summary', 'content',
+          'status', 'sortOrder', 'createdAt', 'updatedAt'
+        ])
+        && data.id is string
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.slug is string
+        && data.level in ['6', '4']
+        && data.category is string && data.category.size() <= 60
+        && data.summary is string && data.summary.size() <= 300
+        && data.content is string && data.content.size() <= 200000
+        && data.status in ['draft', 'published']
+        && data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 999
+        && data.createdAt is string
+        && data.updatedAt is string;
+    }
+
+    match /courses/{courseId} {
+      allow read: if isProfessor();
+      allow create, update: if isProfessor()
+        && request.resource.data.id == courseId
+        && validCourse(request.resource.data);
+      allow delete: if isProfessor();
+    }
+
+    match /catalogs/{level} {
+      allow read: if level in ['6', '4'];
+      allow write: if isProfessor()
+        && level in ['6', '4']
+        && request.resource.data.level == level
+        && request.resource.data.courses is list
+        && request.resource.data.courses.size() <= 100;
+    }
+
+    match /publishedCourses/{courseId} {
+      allow read: if true;
+      allow create, update: if isProfessor()
+        && request.resource.data.id == courseId
+        && request.resource.data.status == 'published'
+        && validCourse(request.resource.data);
+      allow delete: if isProfessor();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

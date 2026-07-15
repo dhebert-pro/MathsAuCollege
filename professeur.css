@@ -11,10 +11,10 @@
 .admin-button { padding: 11px 17px; border: 1px solid transparent; border-radius: 10px; font-weight: 700; cursor: pointer; }
 .admin-button.primary { color: white; background: var(--blue); }
 .admin-button.secondary { color: var(--blue); background: white; border-color: #bdcbd1; }
+.admin-button.google { display: flex; justify-content: center; gap: 11px; align-items: center; color: #263238; background: white; border-color: #bfcbd0; }
+.admin-button.google span { display: grid; place-items: center; width: 24px; height: 24px; color: white; background: #4285f4; border-radius: 50%; font-weight: 800; }
 .admin-button.wide { width: 100%; }
 .form-message { min-height: 25px; margin-top: 10px; color: #8b4a32; font-size: .85rem; }
-.demo-access { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
-.demo-access p { margin: 5px 0 13px; color: var(--muted); font-size: .82rem; }
 .back-link { margin-top: 22px; color: var(--muted); font-size: .88rem; text-decoration: none; }
 .admin-app { min-height: 100vh; }
 .admin-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 10; display: flex; flex-direction: column; width: 260px; padding: 25px 18px; color: white; background: var(--blue); }
@@ -31,7 +31,7 @@
 .admin-topbar { display: flex; justify-content: flex-end; align-items: center; min-height: 70px; padding: 12px clamp(20px, 4vw, 48px); background: white; border-bottom: 1px solid var(--line); }
 .admin-topbar > div { display: flex; gap: 12px; align-items: center; }
 #sidebar-toggle { display: none; color: var(--ink); background: transparent; border: 0; font-size: 1.45rem; }
-.demo-badge { padding: 5px 9px; color: #80522e; background: #f8e6c9; border-radius: 999px; font-size: .7rem; font-weight: 700; }
+.secure-badge { padding: 5px 9px; color: #265e4a; background: #d9eee5; border-radius: 999px; font-size: .7rem; font-weight: 700; }
 .admin-view { padding: clamp(28px, 5vw, 52px); }
 .admin-heading { display: flex; justify-content: space-between; align-items: end; gap: 30px; margin-bottom: 30px; }
 .admin-heading h1 { margin-bottom: 8px; font-size: clamp(2rem, 4vw, 3.2rem); }
@@ -91,5 +91,5 @@ td:first-child { min-width: 220px; }
 @media (max-width: 520px) {
   .stats-grid, .table-toolbar { grid-template-columns: 1fr; }
   .admin-search { grid-column: auto; }
-  .demo-badge { display: none; }
+  .secure-badge { display: none; }
 }

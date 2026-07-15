@@ -1,32 +1,28 @@
 # Sécurité du back-office
 
-Le back-office visible actuellement est une **maquette locale**. Il ne contient aucun mot de passe codé en dur, ne transmet pas les identifiants saisis et ne modifie aucune donnée partagée.
-
-## Architecture prévue
+## Architecture actuelle
 
 - GitHub Pages héberge uniquement les fichiers publics de l’interface.
-- Supabase Auth vérifie l’identité du professeur.
-- PostgreSQL conserve les cours.
-- Les politiques Row Level Security de [`supabase/schema.sql`](supabase/schema.sql) contrôlent chaque lecture et chaque écriture côté serveur.
-- Les élèves peuvent lire uniquement les cours dont le statut est `published`.
-- Seul un utilisateur authentifié dont le rôle a été attribué manuellement dans la base peut créer, modifier ou supprimer un cours.
+- Firebase Authentication vérifie l’identité avec Google.
+- Firestore conserve les cours et applique les autorisations côté serveur.
+- Seul le compte Google professionnel autorisé, vérifié et connecté avec le fournisseur Google peut lire ou modifier la collection privée `courses`.
+- Les élèves peuvent lire uniquement les deux catalogues publics, qui contiennent les cours publiés de 6e et de 4e.
+- Un brouillon ne figure jamais dans ces catalogues publics.
 
-## Principes non négociables
+Ces restrictions sont définies dans `firestore.rules`. Elles ne dépendent donc pas d’un bouton masqué ou d’un contrôle réalisé uniquement dans le navigateur.
 
-1. Ne jamais placer de clé `service_role`, de mot de passe de base de données ou de secret dans ce dépôt ou dans le navigateur.
-2. Désactiver l’inscription publique : le compte professeur est créé manuellement.
-3. Activer l’authentification multifacteur du compte professeur.
-4. Utiliser un mot de passe unique conservé dans un gestionnaire de mots de passe.
-5. Garder les politiques RLS actives sur toutes les tables exposées.
-6. Tester les refus d’accès avec un utilisateur anonyme et un utilisateur sans rôle professeur avant la mise en production.
-7. Ne stocker aucune donnée personnelle d’élève tant que le cadre RGPD de l’établissement n’a pas été validé.
+## Principes à conserver
+
+1. Ne jamais placer de compte de service, de clé privée ou de secret dans ce dépôt ou dans le navigateur.
+2. Activer la validation en deux étapes sur le compte Google professeur.
+3. Conserver la protection contre la suppression de la base Firestore.
+4. Vérifier les règles Firestore avant chaque changement de structure des données.
+5. Ne stocker aucune donnée personnelle d’élève sans validation du cadre RGPD de l’établissement.
+
+La clé d’API Firebase présente dans `firebase-config.js` identifie l’application web : ce n’est pas un secret. La sécurité des données repose sur Firebase Authentication et sur les règles Firestore.
 
 Documentation officielle :
 
-- <https://supabase.com/docs/guides/auth>
-- <https://supabase.com/docs/guides/database/postgres/row-level-security>
-- <https://supabase.com/docs/guides/database/secure-data>
-
-## Limite actuelle
-
-Les cours de démonstration sont stockés dans `localStorage`. Ils restent dans le navigateur utilisé et ne sont donc pas partagés entre le professeur et les élèves. Ce mode sert uniquement à valider l’ergonomie avant la configuration du projet Supabase.
+- <https://firebase.google.com/docs/auth>
+- <https://firebase.google.com/docs/firestore/security/get-started>
+- <https://firebase.google.com/docs/firestore/manage-data/enable-offline>

@@ -5,7 +5,6 @@
   const normalize = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const dialog = document.querySelector("#course-dialog");
   let currentCourse = null;
-  let pdfUrls = [];
 
   function renderCourses(level, query = "") {
     const all = CourseStore.published(level);
@@ -20,26 +19,14 @@
         <p>${escapeHtml(course.summary || "Ressource publiée par le professeur.")}</p>
         <div class="course-card-actions">
           <button type="button" class="text-button" data-read-course="${course.id}">Consulter</button>
-          <a class="pdf-button" data-pdf-link="${course.id}" href="#"><span aria-hidden="true">↓</span> PDF</a>
+          <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> PDF</button>
         </div>
       </article>
     `).join("");
-    container.querySelectorAll("[data-pdf-link]").forEach((link) => {
-      try {
-        const download = CoursePdf.createDownload(CourseStore.get(link.dataset.pdfLink));
-        pdfUrls.push(download.url);
-        link.href = download.url;
-        link.download = download.filename;
-      } catch {
-        link.hidden = true;
-      }
-    });
     empty.hidden = filtered.length > 0;
   }
 
   function renderAllCourses() {
-    pdfUrls.forEach((url) => URL.revokeObjectURL(url));
-    pdfUrls = [];
     document.querySelectorAll("[data-course-search]").forEach((input) => renderCourses(input.dataset.courseSearch, input.value));
   }
 
@@ -61,8 +48,8 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openCourse(id) {
-    currentCourse = CourseStore.get(id);
+  async function openCourse(id) {
+    currentCourse = await CourseStore.getPublished(id);
     if (!currentCourse) return;
     document.querySelector("#dialog-meta").textContent = `${currentCourse.level}e · ${currentCourse.category}`;
     document.querySelector("#dialog-title").textContent = currentCourse.title;
@@ -76,9 +63,19 @@
     event.currentTarget.setAttribute("aria-expanded", String(open));
   });
   document.querySelectorAll("[data-course-search]").forEach((input) => input.addEventListener("input", () => renderCourses(input.dataset.courseSearch, input.value)));
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const readButton = event.target.closest("[data-read-course]");
-    if (readButton) openCourse(readButton.dataset.readCourse);
+    const pdfButton = event.target.closest("[data-pdf-course]");
+    if (readButton) await openCourse(readButton.dataset.readCourse);
+    if (pdfButton) {
+      pdfButton.disabled = true;
+      try {
+        const course = await CourseStore.getPublished(pdfButton.dataset.pdfCourse);
+        if (course) CoursePdf.download(course);
+      } finally {
+        pdfButton.disabled = false;
+      }
+    }
   });
   document.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
   document.querySelector("#dialog-pdf").addEventListener("click", () => currentCourse && CoursePdf.download(currentCourse));
@@ -93,6 +90,7 @@
   window.addEventListener("online", updateNetworkStatus);
   window.addEventListener("offline", updateNetworkStatus);
   window.addEventListener("courses:changed", renderAllCourses);
+  CourseStore.startPublic();
   renderAllCourses();
   showPage();
   updateNetworkStatus();

@@ -1,47 +1,48 @@
 # Maths au collège
 
-Application web destinée aux élèves de 6e et de 4e, avec un espace élève et une maquette de back-office professeur. Elle est responsive, installable et utilisable hors connexion après une première visite.
+Application web de ressources de mathématiques destinée aux élèves de 6e et de 4e.
 
-## État du projet
+## Fonctionnement
 
-- L’espace élève affiche uniquement les cours publiés et permet leur export en PDF.
-- La maquette professeur permet de créer, modifier, classer, filtrer, publier, dépublier, dupliquer et supprimer des cours.
-- Les données actuelles sont fictives et conservées uniquement dans le navigateur (`localStorage`).
-- La connexion affichée ne transmet aucun identifiant tant que Supabase n’est pas configuré.
-- Le schéma sécurisé prévu se trouve dans `supabase/schema.sql` et les décisions de sécurité sont détaillées dans `SECURITY.md`.
+- L’espace élève est public et affiche uniquement les cours publiés.
+- Chaque cours peut être consulté en ligne ou téléchargé en PDF.
+- Le back-office professeur permet de créer, modifier, classer, filtrer, publier, dépublier, dupliquer et supprimer les cours.
+- L’accès professeur passe par Google et n’est accordé qu’au compte autorisé par les règles Firestore.
+- GitHub Pages héberge gratuitement l’interface et Firebase conserve les cours.
+- Le cache du navigateur permet de retrouver les contenus déjà chargés en cas de coupure temporaire.
 
 ## Lancer le projet en local
 
-Un petit serveur local est nécessaire pour tester le mode hors connexion :
+Installer les dépendances puis générer le fichier Firebase utilisé par le navigateur :
 
 ```powershell
+npm install
+npm run build:firebase
 python -m http.server 8000
 ```
 
 Ouvrir ensuite <http://localhost:8000>.
 
-## Modifier les contenus
+## Fichiers principaux
 
-- Les textes des pages se trouvent dans `index.html`.
-- Les couleurs et la mise en page se trouvent dans `styles.css`.
-- Le back-office se trouve dans `professeur.html`, `professeur.css` et `professeur.js`.
-- Les données fictives se trouvent dans `course-store.js`.
+- `index.html`, `styles.css` et `app.js` : espace élève.
+- `professeur.html`, `professeur.css` et `professeur.js` : back-office.
+- `course-store.js` et `firebase-source.js` : accès aux cours et à Firebase.
+- `pdf-export.js` : génération des PDF.
+- `firestore.rules` : autorisations appliquées côté serveur.
+- `SECURITY.md` : principes de sécurité du projet.
 
-## Publier gratuitement avec GitHub Pages
+## Déploiement
 
-1. Créer un dépôt vide sur [GitHub](https://github.com/new), sans ajouter de README.
-2. Dans ce dossier, relier le dépôt puis envoyer le code :
+L’envoi sur la branche `main` déclenche le déploiement GitHub Pages. Avant un envoi, exécuter :
 
-   ```powershell
-   git remote add origin https://github.com/VOTRE-COMPTE/maths-au-college.git
-   git push -u origin main
-   ```
+```powershell
+npm run build:firebase
+npm run check
+```
 
-3. Sur GitHub, ouvrir **Settings > Pages**, puis choisir **GitHub Actions** dans **Source**.
-4. Relancer si nécessaire l’action **Déployer sur GitHub Pages** dans l’onglet **Actions**.
+Application publique : <https://dhebert-pro.github.io/MathsAuCollege/>
 
-L’adresse publique prendra la forme `https://VOTRE-COMPTE.github.io/maths-au-college/`.
+## Données personnelles
 
-## Choix techniques
-
-GitHub Pages continue d’héberger gratuitement l’interface publique. La future base Supabase apportera l’authentification et les règles d’autorisation côté serveur ; son forfait gratuit suffit pour la phase de prototype mais peut mettre un projet en pause après une semaine d’inactivité. Aucun compte élève ni aucune donnée personnelle d’élève ne sont prévus à ce stade. Toute évolution vers un suivi individuel devra être validée au regard du RGPD et des règles de l’établissement.
+Aucun compte élève et aucune donnée personnelle d’élève ne sont prévus. Toute évolution vers un suivi individuel devra être validée au regard du RGPD et des règles de l’établissement.

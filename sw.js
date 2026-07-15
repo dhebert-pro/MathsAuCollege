@@ -1,15 +1,17 @@
-const CACHE_NAME = "maths-college-v4";
+const CACHE_NAME = "maths-college-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./professeur.html",
-  "./styles.css?v=0.2.0",
-  "./professeur.css?v=0.2.0",
-  "./app.js?v=0.2.0",
-  "./professeur.js?v=0.2.0",
-  "./course-store.js?v=0.2.0",
-  "./pdf-export.js?v=0.2.0",
-  "./vendor/jspdf.umd.min.js?v=0.2.0",
+  "./styles.css?v=0.3.0",
+  "./professeur.css?v=0.3.0",
+  "./firebase-config.js?v=0.3.0",
+  "./firebase-bundle.js?v=0.3.0",
+  "./app.js?v=0.3.0",
+  "./professeur.js?v=0.3.0",
+  "./course-store.js?v=0.3.0",
+  "./pdf-export.js?v=0.3.0",
+  "./vendor/jspdf.umd.min.js?v=0.3.0",
   "./manifest.webmanifest",
   "./assets/logo.svg",
 ];
