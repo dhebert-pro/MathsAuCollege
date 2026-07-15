@@ -81,10 +81,13 @@
   function render() {
     if (slideIndex === 0) {
       slideElement.className = "slide slide-cover";
-      slideElement.innerHTML = `<div><span class="cover-number">${course.chapterNumber ? `Chapitre ${CourseContent.escapeHtml(course.chapterNumber)}` : `Mathématiques · ${course.level}e`}</span><h1>${CourseContent.escapeHtml(course.title)}</h1></div>`;
+      slideElement.dataset.blockCount = "0";
+      slideElement.innerHTML = `<div class="cover-decoration" aria-hidden="true"><span>π</span><span>x²</span><span>△</span></div><div class="cover-content"><img src="assets/logo.svg" alt="" width="64" height="64" /><span class="cover-number">${course.chapterNumber ? `Chapitre ${CourseContent.escapeHtml(course.chapterNumber)}` : `Mathématiques · ${course.level}e`}</span><h1>${CourseContent.escapeHtml(course.title)}</h1><p>Maths au collège · ${course.level}e</p></div>`;
     } else {
       slideElement.className = "slide";
-      slideElement.innerHTML = stagesFor(slides[slideIndex - 1]).map(({ block, stageNumber }) => blockHtml(block, stageNumber)).join("");
+      const currentSlide = slides[slideIndex - 1];
+      slideElement.dataset.blockCount = String(currentSlide.length);
+      slideElement.innerHTML = `<header class="slide-content-header"><span>Diapositive ${slideIndex}</span><strong>${CourseContent.escapeHtml(CourseContent.displayTitle(course))}</strong></header>${stagesFor(currentSlide).map(({ block, stageNumber }) => blockHtml(block, stageNumber)).join("")}`;
       hydrateImages();
     }
     const total = slides.length + 1;
@@ -108,9 +111,16 @@
     render();
   }
 
-  function showCourse(value) {
+  function showCourse(value, reset = true) {
     course = value;
     slides = CourseContent.groupSlides(course.blocks);
+    if (reset) {
+      slideIndex = 0;
+      revealIndex = 0;
+    } else {
+      slideIndex = Math.min(slideIndex, slides.length);
+      revealIndex = Math.min(revealIndex, maxReveal());
+    }
     document.title = `${CourseContent.displayTitle(course)} · Maths au collège`;
     document.querySelector("#presentation-level").textContent = `${course.level}e`;
     document.querySelector("#presentation-title").textContent = CourseContent.displayTitle(course);
@@ -133,8 +143,9 @@
   document.querySelector("#next-step").addEventListener("click", next);
   document.querySelector("#previous-step").addEventListener("click", previous);
   document.querySelector("#presentation-pdf").addEventListener("click", async (event) => {
-    event.currentTarget.disabled = true;
-    try { await CoursePdf.download(course); } finally { event.currentTarget.disabled = false; }
+    const button = event.currentTarget;
+    button.disabled = true;
+    try { await CoursePdf.download(course); } finally { button.disabled = false; }
   });
   document.querySelector("#fullscreen-button").addEventListener("click", () => document.documentElement.requestFullscreen?.());
   document.querySelector("#teacher-links-toggle").addEventListener("click", () => {
@@ -153,15 +164,40 @@
   if (!courseId) {
     fail("Aucun cours n’a été demandé.");
   } else if (teacherMode) {
+    const timeout = window.setTimeout(() => {
+      if (!course) fail("La vérification du compte professeur prend trop de temps. Rechargez la page depuis le back-office.");
+    }, 10000);
+
+    CourseStore.getPublished(courseId).then((value) => {
+      if (value && !course) {
+        window.clearTimeout(timeout);
+        showCourse(value);
+      }
+    }).catch(() => {});
+
     FirebaseBackend.onAuth(async (user) => {
-      if (!user) { fail("Reconnectez-vous au back-office pour projeter ce cours."); return; }
+      if (!user) {
+        if (!course) {
+          const published = await CourseStore.getPublished(courseId).catch(() => null);
+          if (!published) fail("Reconnectez-vous au back-office pour projeter ce brouillon.");
+        }
+        return;
+      }
       try {
         await FirebaseBackend.verifyProfessor();
         const value = await CourseStore.getPrivate(courseId);
-        if (!value) fail("Ce cours n’existe plus.");
-        else showCourse(value);
+        if (!value) {
+          if (!course) fail("Ce cours n’existe plus.");
+        } else {
+          window.clearTimeout(timeout);
+          showCourse(value, !course);
+        }
       } catch {
-        fail("Vous n’êtes pas autorisé à projeter ce cours.");
+        if (!course) {
+          const published = await CourseStore.getPublished(courseId).catch(() => null);
+          if (published) showCourse(published);
+          else fail("Vous n’êtes pas autorisé à projeter ce cours.");
+        }
       }
     });
   } else {

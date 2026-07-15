@@ -80,11 +80,14 @@
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {
+    const refreshKey = "sw-refreshed-0.5.1";
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (sessionStorage.getItem("sw-refreshed")) return;
-      sessionStorage.setItem("sw-refreshed", "true");
+      if (sessionStorage.getItem(refreshKey)) return;
+      sessionStorage.setItem(refreshKey, "true");
       window.location.reload();
     });
-    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).then((registration) => registration.update()).catch(() => {});
+    });
   }
 })();

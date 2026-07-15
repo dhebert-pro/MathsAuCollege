@@ -5,7 +5,7 @@ Application web de ressources de mathématiques destinée aux élèves de 6e et 
 ## Fonctionnement
 
 - L’espace élève est public et affiche uniquement les cours publiés.
-- Chaque cours est présenté comme un diaporama et peut être téléchargé dans un PDF fidèle à sa structure.
+- Chaque cours est présenté comme un diaporama et peut être téléchargé dans un PDF A4 portrait, fidèle à sa structure et adapté à l’impression.
 - Le back-office compose les cours avec des blocs séquentiels : texte, définition, propriété, exemple, « À retenir », attention, méthode et rappel.
 - Les blocs acceptent la mise en valeur, les images, les césures de révélation et les changements de diapositive.
 - Les cours sont triés automatiquement par numéro de chapitre puis par nom ; des flèches permettent de personnaliser ce classement.

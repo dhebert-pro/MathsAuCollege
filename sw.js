@@ -1,21 +1,21 @@
-const CACHE_NAME = "maths-college-v6";
+const CACHE_NAME = "maths-college-v8";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./professeur.html",
   "./presentation.html",
-  "./styles.css?v=0.4.0",
-  "./professeur.css?v=0.4.0",
-  "./presentation.css?v=0.4.0",
-  "./course-content.js?v=0.4.0",
-  "./firebase-config.js?v=0.4.0",
-  "./firebase-bundle.js?v=0.4.0",
-  "./app.js?v=0.4.0",
-  "./professeur.js?v=0.4.0",
-  "./presentation.js?v=0.4.0",
-  "./course-store.js?v=0.4.0",
-  "./pdf-export.js?v=0.4.0",
-  "./vendor/jspdf.umd.min.js?v=0.4.0",
+  "./styles.css?v=0.5.1",
+  "./professeur.css?v=0.5.1",
+  "./presentation.css?v=0.5.1",
+  "./course-content.js?v=0.5.1",
+  "./firebase-config.js?v=0.5.1",
+  "./firebase-bundle.js?v=0.5.1",
+  "./app.js?v=0.5.1",
+  "./professeur.js?v=0.5.1",
+  "./presentation.js?v=0.5.1",
+  "./course-store.js?v=0.5.1",
+  "./pdf-export.js?v=0.5.1",
+  "./vendor/jspdf.umd.min.js?v=0.5.1",
   "./manifest.webmanifest",
   "./assets/logo.svg",
 ];
@@ -34,13 +34,23 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (!["http:", "https:"].includes(url.protocol) || url.origin !== self.location.origin) return;
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        if (response.ok && response.type === "basic") {
+          const copy = response.clone();
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
+        }
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html"))),
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        if (event.request.mode === "navigate") return caches.match("./index.html");
+        return Response.error();
+      }),
   );
 });
