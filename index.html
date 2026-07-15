@@ -3,14 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Maths au collège : des activités de mathématiques pour les élèves de 6e et de 4e."
-    />
+    <meta name="description" content="Espace de mathématiques pour les élèves de 6e et de 4e." />
     <meta name="theme-color" content="#173f5f" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=0.2.0" />
     <title>Maths au collège</title>
   </head>
   <body>
@@ -21,20 +20,18 @@
         <img src="assets/logo.svg" alt="" width="46" height="46" />
         <span>
           <strong>Maths au collège</strong>
-          <small>Comprendre · S’entraîner · Progresser</small>
+          <small>Espace élève</small>
         </span>
       </a>
-
       <button class="menu-button" type="button" aria-expanded="false" aria-controls="navigation">
-        <span class="sr-only">Ouvrir le menu</span>
-        <span aria-hidden="true">☰</span>
+        <span class="sr-only">Ouvrir le menu</span><span aria-hidden="true">☰</span>
       </button>
-
       <nav id="navigation" class="navigation" aria-label="Navigation principale">
         <a href="#accueil" data-route="accueil">Accueil</a>
         <a href="#sixieme" data-route="sixieme">6e</a>
         <a href="#quatrieme" data-route="quatrieme">4e</a>
         <a href="#aide" data-route="aide">Aide</a>
+        <a class="teacher-link" href="professeur.html">Espace professeur</a>
       </nav>
     </header>
 
@@ -42,124 +39,92 @@
       <section id="accueil" class="page active" data-page="accueil">
         <div class="hero">
           <div class="hero-content">
-            <p class="eyebrow">Ton espace de mathématiques</p>
-            <h1>Les maths deviennent plus claires quand on avance pas à pas.</h1>
-            <p class="hero-text">
-              Cet espace accueillera progressivement les ressources proposées en classe.
-            </p>
+            <p class="eyebrow">Espace élève</p>
+            <h1>Les ressources de mathématiques de la classe.</h1>
+            <p class="hero-text">Choisis ton niveau pour retrouver les cours publiés par ton professeur.</p>
             <div class="hero-actions">
               <a class="button primary" href="#sixieme">Je suis en 6e</a>
               <a class="button secondary" href="#quatrieme">Je suis en 4e</a>
             </div>
           </div>
           <div class="hero-visual" aria-hidden="true">
-            <div class="formula-card card-one">3 × (4 + 2)</div>
-            <div class="formula-card card-two">x² + y²</div>
-            <div class="formula-card card-three">△ ABC</div>
+            <div class="formula-card card-one">6<sup>e</sup></div>
+            <div class="formula-card card-two">4<sup>e</sup></div>
+            <div class="formula-card card-three">PDF</div>
             <div class="orb"></div>
           </div>
         </div>
 
         <div class="section-heading">
-          <div>
-            <p class="eyebrow">Bien démarrer</p>
-            <h2>Choisis ton niveau</h2>
-          </div>
-          <p>Chaque niveau dispose de son propre espace, prêt à recevoir les futurs contenus.</p>
+          <div><p class="eyebrow">Accès rapide</p><h2>Choisis ton niveau</h2></div>
+          <p>Les cours publiés apparaissent automatiquement dans l’espace correspondant.</p>
         </div>
-
         <div class="level-grid">
           <article class="level-card level-six">
             <div class="level-number">6<sup>e</sup></div>
-            <div>
-              <p class="card-label">Cycle 3</p>
-              <h3>Espace 6e</h3>
-              <p>Un espace réservé aux ressources qui seront ajoutées pour les classes de 6e.</p>
-              <a class="text-link" href="#sixieme">Explorer l’espace 6e <span>→</span></a>
-            </div>
+            <div><p class="card-label">Cycle 3</p><h3>Espace 6e</h3><p>Consulter et télécharger les ressources publiées.</p><a class="text-link" href="#sixieme">Voir les cours <span>→</span></a></div>
           </article>
-
           <article class="level-card level-four">
             <div class="level-number">4<sup>e</sup></div>
-            <div>
-              <p class="card-label">Cycle 4</p>
-              <h3>Espace 4e</h3>
-              <p>Un espace réservé aux ressources qui seront ajoutées pour les classes de 4e.</p>
-              <a class="text-link" href="#quatrieme">Explorer l’espace 4e <span>→</span></a>
-            </div>
+            <div><p class="card-label">Cycle 4</p><h3>Espace 4e</h3><p>Consulter et télécharger les ressources publiées.</p><a class="text-link" href="#quatrieme">Voir les cours <span>→</span></a></div>
           </article>
         </div>
-
-        <section class="how-it-works" aria-labelledby="fonctionnement-title">
-          <div class="section-heading compact">
-            <div>
-              <p class="eyebrow">Le projet</p>
-              <h2 id="fonctionnement-title">Un espace qui évoluera</h2>
-            </div>
-          </div>
-          <p class="placeholder-copy">
-            Les rubriques et les contenus pédagogiques seront définis et ajoutés progressivement.
-          </p>
-        </section>
       </section>
 
       <section id="sixieme" class="page" data-page="sixieme" hidden>
         <div class="page-banner sixieme-banner">
-          <div>
-            <p class="eyebrow">Espace élève</p>
-            <h1>Mathématiques — 6e</h1>
-            <p>Cet espace est prêt à accueillir les futurs contenus destinés aux classes de 6e.</p>
-          </div>
+          <div><p class="eyebrow">Espace élève</p><h1>Mathématiques — 6e</h1><p>Les cours disponibles pour ce niveau.</p></div>
           <span class="banner-mark" aria-hidden="true">6<sup>e</sup></span>
         </div>
-        <div class="empty-space">
-          <span aria-hidden="true">＋</span>
-          <h2>Contenus à venir</h2>
-          <p>Les premières ressources seront ajoutées ici ultérieurement.</p>
+        <div class="course-toolbar">
+          <div><strong id="count-6">0 cours</strong><span> publié(s)</span></div>
+          <label class="search-field">Rechercher <input type="search" data-course-search="6" placeholder="Titre ou catégorie" /></label>
         </div>
+        <div class="student-course-grid" data-student-courses="6"></div>
+        <div class="empty-space" data-student-empty="6" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2><p>Les prochaines ressources apparaîtront ici.</p></div>
       </section>
 
       <section id="quatrieme" class="page" data-page="quatrieme" hidden>
         <div class="page-banner quatrieme-banner">
-          <div>
-            <p class="eyebrow">Espace élève</p>
-            <h1>Mathématiques — 4e</h1>
-            <p>Cet espace est prêt à accueillir les futurs contenus destinés aux classes de 4e.</p>
-          </div>
+          <div><p class="eyebrow">Espace élève</p><h1>Mathématiques — 4e</h1><p>Les cours disponibles pour ce niveau.</p></div>
           <span class="banner-mark" aria-hidden="true">4<sup>e</sup></span>
         </div>
-        <div class="empty-space">
-          <span aria-hidden="true">＋</span>
-          <h2>Contenus à venir</h2>
-          <p>Les premières ressources seront ajoutées ici ultérieurement.</p>
+        <div class="course-toolbar">
+          <div><strong id="count-4">0 cours</strong><span> publié(s)</span></div>
+          <label class="search-field">Rechercher <input type="search" data-course-search="4" placeholder="Titre ou catégorie" /></label>
         </div>
+        <div class="student-course-grid" data-student-courses="4"></div>
+        <div class="empty-space" data-student-empty="4" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2><p>Les prochaines ressources apparaîtront ici.</p></div>
       </section>
 
       <section id="aide" class="page" data-page="aide" hidden>
         <div class="simple-page">
-          <p class="eyebrow">Besoin d’un coup de pouce ?</p>
-          <h1>Aide et mode d’emploi</h1>
+          <p class="eyebrow">Mode d’emploi</p><h1>Besoin d’aide ?</h1>
           <div class="help-grid two-columns">
-            <article>
-              <span aria-hidden="true">↗</span>
-              <h2>Accéder à son espace</h2>
-              <p>Choisis simplement ton niveau dans le menu principal.</p>
-            </article>
-            <article>
-              <span aria-hidden="true">↧</span>
-              <h2>Utiliser hors connexion</h2>
-              <p>Installe l’application depuis le menu de ton navigateur pour la retrouver plus facilement.</p>
-            </article>
+            <article><span aria-hidden="true">1</span><h2>Choisir son niveau</h2><p>Ouvre l’espace 6e ou 4e depuis le menu.</p></article>
+            <article><span aria-hidden="true">2</span><h2>Télécharger un cours</h2><p>Utilise le bouton PDF sur la fiche du cours pour conserver le document.</p></article>
           </div>
         </div>
       </section>
     </main>
 
+    <dialog id="course-dialog" class="course-dialog">
+      <button class="dialog-close" type="button" aria-label="Fermer">×</button>
+      <p class="eyebrow" id="dialog-meta"></p>
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-summary" class="dialog-summary"></p>
+      <div id="dialog-content" class="course-body"></div>
+      <button id="dialog-pdf" class="button primary" type="button">Télécharger en PDF</button>
+    </dialog>
+
     <footer>
-      <p>Maths au collège · Un espace de travail pour les élèves de 6e et de 4e</p>
+      <p>Maths au collège · Espace élève</p>
       <p><span id="network-status" class="status-dot"></span> <span id="network-label">En ligne</span></p>
     </footer>
 
-    <script src="app.js" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.2.0" defer></script>
+    <script src="course-store.js?v=0.2.0" defer></script>
+    <script src="pdf-export.js?v=0.2.0" defer></script>
+    <script src="app.js?v=0.2.0" defer></script>
   </body>
 </html>

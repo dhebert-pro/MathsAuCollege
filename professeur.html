@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Administration de Maths au collège." />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=0.2.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.2.0" />
+    <title>Espace professeur · Maths au collège</title>
+  </head>
+  <body class="admin-body">
+    <a class="skip-link" href="#admin-main">Aller au contenu</a>
+
+    <main id="admin-main">
+      <section id="login-view" class="login-view" aria-labelledby="login-title">
+        <a class="brand login-brand" href="index.html">
+          <img src="assets/logo.svg" alt="" width="48" height="48" />
+          <span><strong>Maths au collège</strong><small>Administration</small></span>
+        </a>
+        <div class="login-card">
+          <p class="eyebrow">Accès réservé</p>
+          <h1 id="login-title">Espace professeur</h1>
+          <p>La connexion définitive utilisera une authentification sécurisée et des droits vérifiés côté base de données.</p>
+          <form id="login-form">
+            <label>Adresse électronique<input type="email" name="email" autocomplete="username" required placeholder="professeur@exemple.fr" /></label>
+            <label>Mot de passe<input type="password" name="password" autocomplete="current-password" required minlength="12" /></label>
+            <button class="admin-button primary wide" type="submit">Se connecter</button>
+          </form>
+          <div id="login-message" class="form-message" role="status"></div>
+          <div class="demo-access">
+            <strong>Maquette en cours de construction</strong>
+            <p>Les données de démonstration restent uniquement dans ce navigateur et ne sont pas partagées avec les élèves.</p>
+            <button id="demo-login" class="admin-button secondary wide" type="button">Ouvrir la maquette du back-office</button>
+          </div>
+        </div>
+        <a class="back-link" href="index.html">← Retour à l’espace élève</a>
+      </section>
+
+      <section id="admin-app" class="admin-app" hidden>
+        <aside class="admin-sidebar">
+          <a class="brand admin-brand" href="index.html">
+            <img src="assets/logo.svg" alt="" width="42" height="42" />
+            <span><strong>Maths au collège</strong><small>Administration</small></span>
+          </a>
+          <nav aria-label="Navigation de l’administration">
+            <button type="button" data-admin-view="dashboard" class="active"><span aria-hidden="true">⌂</span> Tableau de bord</button>
+            <button type="button" data-admin-view="courses"><span aria-hidden="true">▤</span> Tous les cours</button>
+            <button type="button" data-admin-view="editor"><span aria-hidden="true">＋</span> Ajouter un cours</button>
+          </nav>
+          <div class="sidebar-bottom">
+            <a href="index.html">Voir l’espace élève ↗</a>
+            <button id="logout" type="button">Se déconnecter</button>
+          </div>
+        </aside>
+
+        <div class="admin-workspace">
+          <header class="admin-topbar">
+            <button id="sidebar-toggle" type="button" aria-label="Ouvrir le menu">☰</button>
+            <div><span class="demo-badge">Mode démonstration</span><strong>Compte professeur</strong></div>
+          </header>
+
+          <section class="admin-view active" data-admin-page="dashboard">
+            <div class="admin-heading"><div><p class="eyebrow">Vue d’ensemble</p><h1>Tableau de bord</h1><p>Gérez les ressources visibles par les élèves.</p></div><button class="admin-button primary" type="button" data-go-editor>＋ Nouveau cours</button></div>
+            <div class="stats-grid">
+              <article><span>Total</span><strong id="stat-total">0</strong><small>cours enregistrés</small></article>
+              <article><span>Publiés</span><strong id="stat-published">0</strong><small>visibles par les élèves</small></article>
+              <article><span>Brouillons</span><strong id="stat-drafts">0</strong><small>à finaliser</small></article>
+              <article><span>Niveaux</span><strong id="stat-levels">0</strong><small>espaces alimentés</small></article>
+            </div>
+            <section class="admin-panel"><div class="panel-heading"><div><h2>Derniers cours modifiés</h2><p>Les cinq mises à jour les plus récentes.</p></div><button class="text-button" type="button" data-go-courses>Voir tout</button></div><div id="recent-courses" class="recent-list"></div></section>
+          </section>
+
+          <section class="admin-view" data-admin-page="courses" hidden>
+            <div class="admin-heading"><div><p class="eyebrow">Organisation</p><h1>Tous les cours</h1><p>Classez, publiez et mettez à jour vos contenus.</p></div><button class="admin-button primary" type="button" data-go-editor>＋ Nouveau cours</button></div>
+            <section class="admin-panel table-panel">
+              <div class="table-toolbar">
+                <label class="admin-search">Rechercher<input id="admin-search" type="search" placeholder="Titre ou catégorie" /></label>
+                <label>Filtrer par niveau<select id="level-filter"><option value="all">Tous</option><option value="6">6e</option><option value="4">4e</option></select></label>
+                <label>Filtrer par statut<select id="status-filter"><option value="all">Tous</option><option value="published">Publié</option><option value="draft">Brouillon</option></select></label>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th scope="col">Cours</th><th scope="col">Niveau</th><th scope="col">Catégorie</th><th scope="col">Statut</th><th scope="col">Ordre</th><th scope="col">Modification</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                  <tbody id="course-table-body"></tbody>
+                </table>
+              </div>
+              <div id="table-empty" class="table-empty" hidden>Aucun cours ne correspond aux filtres.</div>
+            </section>
+          </section>
+
+          <section class="admin-view" data-admin-page="editor" hidden>
+            <div class="admin-heading"><div><p class="eyebrow">Édition</p><h1 id="editor-title">Nouveau cours</h1><p>Le format détaillé du cours sera affiné ultérieurement.</p></div></div>
+            <form id="course-form" class="editor-layout">
+              <input type="hidden" name="id" />
+              <div class="admin-panel form-main">
+                <label>Titre du cours <span aria-hidden="true">*</span><input name="title" required maxlength="120" placeholder="Ex. Cours de démonstration" /></label>
+                <label>Résumé <textarea name="summary" rows="3" maxlength="300" placeholder="Une courte présentation visible dans la liste élève"></textarea></label>
+                <label>Contenu de démonstration <textarea name="content" rows="14" placeholder="Le futur éditeur de cours prendra place ici."></textarea></label>
+              </div>
+              <aside class="editor-options">
+                <div class="admin-panel">
+                  <h2>Publication</h2>
+                  <label>Statut<select name="status"><option value="draft">Brouillon</option><option value="published">Publié</option></select></label>
+                  <label>Niveau<select name="level" required><option value="6">6e</option><option value="4">4e</option></select></label>
+                  <label>Catégorie<input name="category" maxlength="60" placeholder="À définir" /></label>
+                  <label>Ordre d’affichage<input name="sortOrder" type="number" min="0" max="999" value="0" /></label>
+                </div>
+                <div class="editor-actions"><button class="admin-button primary wide" type="submit">Enregistrer le cours</button><button id="cancel-editor" class="admin-button secondary wide" type="button">Annuler</button></div>
+              </aside>
+            </form>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="vendor/jspdf.umd.min.js?v=0.2.0" defer></script>
+    <script src="course-store.js?v=0.2.0" defer></script>
+    <script src="pdf-export.js?v=0.2.0" defer></script>
+    <script src="professeur.js?v=0.2.0" defer></script>
+  </body>
+</html>

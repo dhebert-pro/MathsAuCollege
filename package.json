@@ -1,0 +1,13 @@
+{
+  "name": "maths-au-college",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Application de ressources de mathématiques pour les élèves de 6e et de 4e.",
+  "scripts": {
+    "vendor": "node scripts/copy-vendor.mjs",
+    "check": "node --check app.js && node --check professeur.js && node --check course-store.js && node --check pdf-export.js && node --check sw.js"
+  },
+  "dependencies": {
+    "jspdf": "4.2.1"
+  }
+}
