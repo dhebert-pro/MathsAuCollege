@@ -14,7 +14,7 @@
       <article class="student-course-card">
         <div class="course-card-top"><span class="course-level">${course.level}e</span><span class="course-category">${course.chapterNumber ? `Chapitre ${escapeHtml(course.chapterNumber)}` : "Cours"}</span></div>
         <h2>${escapeHtml(CourseContent.displayTitle(course))}</h2>
-        <p>${course.slideCount} diapositive${course.slideCount > 1 ? "s" : ""} · Présentation et PDF</p>
+        <p>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""} · Lecture et PDF</p>
         <div class="course-card-actions">
           <button type="button" class="text-button" data-read-course="${course.id}">Consulter</button>
           <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> PDF</button>
@@ -80,7 +80,7 @@
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {
-    const refreshKey = "sw-refreshed-0.5.1";
+    const refreshKey = "sw-refreshed-0.6.0";
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (sessionStorage.getItem(refreshKey)) return;
       sessionStorage.setItem(refreshKey, "true");

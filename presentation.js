@@ -68,7 +68,7 @@
     toggle.hidden = !links.length;
     document.querySelector("#teacher-link-count").textContent = links.length;
     const panel = document.querySelector("#teacher-links");
-    panel.innerHTML = `<h2>Ressources de cette diapo</h2>${links.map((link) => `<a href="${CourseContent.safeUrl(link.url)}" target="_blank" rel="noopener noreferrer">${CourseContent.escapeHtml(link.label)} ↗</a>`).join("")}`;
+    panel.innerHTML = `<h2>Ressources disponibles</h2>${links.map((link) => `<a href="${CourseContent.safeUrl(link.url)}" target="_blank" rel="noopener noreferrer">${CourseContent.escapeHtml(link.label)} ↗</a>`).join("")}`;
     if (!links.length) panel.hidden = true;
   }
 
@@ -87,7 +87,7 @@
       slideElement.className = "slide";
       const currentSlide = slides[slideIndex - 1];
       slideElement.dataset.blockCount = String(currentSlide.length);
-      slideElement.innerHTML = `<header class="slide-content-header"><span>Diapositive ${slideIndex}</span><strong>${CourseContent.escapeHtml(CourseContent.displayTitle(course))}</strong></header>${stagesFor(currentSlide).map(({ block, stageNumber }) => blockHtml(block, stageNumber)).join("")}`;
+      slideElement.innerHTML = stagesFor(currentSlide).map(({ block, stageNumber }) => blockHtml(block, stageNumber)).join("");
       hydrateImages();
     }
     const total = slides.length + 1;
@@ -95,7 +95,7 @@
     document.querySelector("#progress-bar").style.width = `${((slideIndex + 1) / total) * 100}%`;
     document.querySelector("#previous-step").disabled = slideIndex === 0 && revealIndex === 0;
     document.querySelector("#next-step").disabled = slideIndex === total - 1 && revealIndex >= maxReveal();
-    document.querySelector("#reveal-hint").textContent = revealIndex < maxReveal() ? "Cliquez pour révéler la suite" : slideIndex < total - 1 ? "Diapo suivante" : "Fin du cours";
+    document.querySelector("#reveal-hint").textContent = revealIndex < maxReveal() ? "Cliquez pour révéler la suite" : slideIndex < total - 1 ? "Continuer" : "Fin du cours";
     renderTeacherLinks();
   }
 
@@ -123,7 +123,6 @@
     }
     document.title = `${CourseContent.displayTitle(course)} · Maths au collège`;
     document.querySelector("#presentation-level").textContent = `${course.level}e`;
-    document.querySelector("#presentation-title").textContent = CourseContent.displayTitle(course);
     document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html#${course.level === "6" ? "sixieme" : "quatrieme"}`;
     loading.hidden = true;
     stage.hidden = false;

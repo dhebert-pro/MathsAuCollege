@@ -165,14 +165,13 @@
 
   function drawBlock(pdf, block, layout, x, y, width, fontSize) {
     const palette = BLOCK_COLORS[block.type];
-    pdf.setFillColor(...palette.fill);
-    pdf.setDrawColor(...COLORS.line);
-    pdf.setLineWidth(.35);
+    pdf.setDrawColor(...palette.border);
+    pdf.setLineWidth(.45);
     if (block.admitted) pdf.setLineDashPattern([2, 1.5], 0);
-    pdf.roundedRect(x, y, width, layout.height, 3, 3, "FD");
+    pdf.roundedRect(x, y, width, layout.height, 3, 3, "S");
     pdf.setLineDashPattern([], 0);
-    pdf.setFillColor(...palette.border);
-    pdf.roundedRect(x, y, 4, layout.height, 3, 0, "F");
+    pdf.setLineWidth(1.5);
+    pdf.line(x + 2.5, y + 3, x + 2.5, y + layout.height - 3);
     let cursorY = y + 8;
     if (block.type !== "text") {
       const type = CourseContent.TYPES[block.type];
@@ -186,66 +185,57 @@
     if (layout.validImages.length) drawImageGrid(pdf, layout.validImages, x + 9, cursorY + 2, width - 18);
   }
 
-  function drawPageHeader(pdf, course, slideNumber, continuation = false) {
-    pdf.setFillColor(...COLORS.blue);
-    pdf.rect(0, 0, 210, 18, "F");
-    pdf.setFillColor(...COLORS.orange);
-    pdf.rect(0, 0, 7, 18, "F");
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text(`MATHS AU COLLÈGE · ${course.level}e`, 15, 8);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(210, 226, 234);
-    pdf.text(`DIAPO ${slideNumber}${continuation ? " · SUITE" : ""}`, 195, 8, { align: "right" });
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(...COLORS.ink);
-    const title = pdf.splitTextToSize(CourseContent.displayTitle(course), 178);
-    pdf.text(title, 15, 29);
+  function drawPageHeader(pdf, course, continuation = false) {
     pdf.setDrawColor(...COLORS.line);
-    pdf.line(15, 35, 195, 35);
+    pdf.setLineWidth(.4);
+    pdf.line(15, 18, 195, 18);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(...COLORS.muted);
+    pdf.text(`MATHÉMATIQUES · ${course.level}e`, 15, 13);
+    pdf.setFont("helvetica", "normal");
+    if (continuation) pdf.text("SUITE", 195, 13, { align: "right" });
   }
 
   function drawCover(pdf, course) {
-    pdf.setFillColor(...COLORS.blue);
-    pdf.rect(0, 0, 210, 297, "F");
-    pdf.setFillColor(...COLORS.orange);
-    pdf.rect(0, 0, 9, 297, "F");
-    pdf.setFillColor(31, 84, 113);
-    pdf.circle(190, 260, 66, "F");
-    pdf.setDrawColor(87, 134, 155);
-    pdf.setLineWidth(1);
-    pdf.circle(190, 260, 80, "S");
-    pdf.circle(190, 260, 94, "S");
     pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(22, 30, 18, 18, 4, 4, "F");
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(15);
-    pdf.setTextColor(...COLORS.blue);
-    pdf.text("M", 31, 42, { align: "center" });
-    pdf.setFontSize(11);
-    pdf.setTextColor(255, 211, 149);
-    pdf.text(course.chapterNumber ? `CHAPITRE ${course.chapterNumber}` : `MATHÉMATIQUES · ${course.level}e`, 22, 78);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(31);
-    pdf.setTextColor(255, 255, 255);
-    const title = pdf.splitTextToSize(course.title, 160);
-    pdf.text(title, 22, 101);
-    const titleBottom = 101 + title.length * 13;
+    pdf.rect(0, 0, 210, 297, "F");
+    pdf.setDrawColor(...COLORS.blue);
+    pdf.setLineWidth(.8);
+    pdf.roundedRect(15, 15, 180, 267, 4, 4, "S");
     pdf.setFillColor(...COLORS.orange);
-    pdf.roundedRect(22, titleBottom + 9, 56, 3, 1.5, 1.5, "F");
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.setTextColor(201, 222, 232);
-    pdf.text(`Cours de mathématiques · Classe de ${course.level}e`, 22, titleBottom + 27);
+    pdf.roundedRect(15, 15, 48, 4, 2, 2, "F");
     pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.setTextColor(...COLORS.blue);
+    pdf.text("MATHS AU COLLÈGE", 25, 36);
+    pdf.setDrawColor(...COLORS.line);
+    pdf.setLineWidth(.4);
+    pdf.roundedRect(164, 27, 20, 13, 2.5, 2.5, "S");
+    pdf.setFontSize(9);
+    pdf.text(`${course.level}e`, 174, 35.5, { align: "center" });
     pdf.setFontSize(10);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("MATHS AU COLLÈGE", 22, 276);
+    pdf.setTextColor(...COLORS.green);
+    pdf.text(course.chapterNumber ? `CHAPITRE ${course.chapterNumber}` : "COURS DE MATHÉMATIQUES", 25, 83);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(29);
+    pdf.setTextColor(...COLORS.ink);
+    const title = pdf.splitTextToSize(course.title, 155);
+    pdf.text(title, 25, 105);
+    const titleBottom = 105 + title.length * 12.5;
+    pdf.setFillColor(...COLORS.orange);
+    pdf.roundedRect(25, titleBottom + 8, 42, 2.2, 1.1, 1.1, "F");
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10.5);
+    pdf.setTextColor(...COLORS.muted);
+    pdf.text(`Cours de mathématiques · Classe de ${course.level}e`, 25, titleBottom + 25);
+    pdf.setDrawColor(...COLORS.line);
+    pdf.line(25, 260, 185, 260);
+    pdf.setFontSize(8.5);
+    pdf.text("Document élève", 25, 268);
   }
 
-  function addFooters(pdf) {
+  function addFooters(pdf, course) {
     const total = pdf.getNumberOfPages();
     for (let page = 2; page <= total; page += 1) {
       pdf.setPage(page);
@@ -254,7 +244,7 @@
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(...COLORS.muted);
-      pdf.text("Maths au collège · Document élève", 15, 288);
+      pdf.text(`Maths au collège · ${course.level}e`, 15, 288);
       pdf.text(`${page} / ${total}`, 195, 288, { align: "right" });
     }
   }
@@ -269,11 +259,11 @@
     pdf.setProperties({ title: CourseContent.displayTitle(normalized), subject: "Cours de mathématiques", author: "Maths au collège" });
     drawCover(pdf, normalized);
 
-    slides.forEach((slide, slideIndex) => {
+    slides.forEach((slide) => {
       pdf.addPage("a4", "portrait");
-      drawPageHeader(pdf, normalized, slideIndex + 1);
+      drawPageHeader(pdf, normalized);
       const width = 180;
-      const availableHeight = 238;
+      const availableHeight = 252;
       let fontSize = 11.5;
       let layouts = slide.map((block) => blockLayout(pdf, block, fontSize, width, imageMap));
       let required = layouts.reduce((sum, layout) => sum + layout.height, 0) + Math.max(0, layouts.length - 1) * 5;
@@ -281,19 +271,19 @@
         fontSize = Math.max(9, fontSize * (availableHeight / required));
         layouts = slide.map((block) => blockLayout(pdf, block, fontSize, width, imageMap));
       }
-      let y = 42;
+      let y = 26;
       slide.forEach((block, index) => {
         const layout = layouts[index];
         if (y + layout.height > 278 && y > 48) {
           pdf.addPage("a4", "portrait");
-          drawPageHeader(pdf, normalized, slideIndex + 1, true);
-          y = 42;
+          drawPageHeader(pdf, normalized, true);
+          y = 26;
         }
         drawBlock(pdf, block, layout, 15, y, width, fontSize);
         y += layout.height + 5;
       });
     });
-    addFooters(pdf);
+    addFooters(pdf, normalized);
     return pdf;
   }
 

@@ -25,7 +25,7 @@ button, a { font: inherit; }
 .presentation-topbar { position: relative; z-index: 4; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 8px 18px; color: white; background: rgba(8, 34, 49, .97); border-bottom: 1px solid rgba(255,255,255,.1); }
 .presentation-topbar > div:first-child { display: flex; align-items: center; gap: 10px; min-width: 0; }
 #presentation-level { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; color: var(--blue-deep); background: var(--orange); border-radius: 10px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.12); font-weight: 900; }
-#presentation-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.presentation-version { color: #8fa7b4; font-size: .64rem; letter-spacing: .08em; }
 .presentation-tools { display: flex; gap: 7px; }
 .presentation-tools button, #presentation-close { padding: 7px 10px; color: white; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.17); border-radius: 9px; cursor: pointer; text-decoration: none; transition: background .2s, transform .2s; }
 .presentation-tools button:hover, #presentation-close:hover { background: rgba(255,255,255,.18); transform: translateY(-1px); }
@@ -34,9 +34,6 @@ button, a { font: inherit; }
 .slide-shell { display: grid; place-items: center; min-height: 0; padding: 18px 36px; overflow: hidden; background-color: #12374d; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px), radial-gradient(circle at 18% 0%, #2b607c, transparent 42%); background-size: 28px 28px, 28px 28px, auto; }
 .slide { position: relative; display: grid; align-content: center; gap: clamp(11px, 1.8vh, 20px); width: min(1180px, 100%); aspect-ratio: 16 / 9; max-height: 100%; padding: clamp(34px, 4.5vw, 70px); overflow: auto; color: var(--ink); background: var(--paper); border: 1px solid rgba(255,255,255,.7); border-radius: 14px; box-shadow: var(--shadow); }
 .slide:not(.slide-cover)::before { position: absolute; inset: 0 0 auto; height: 9px; background: linear-gradient(90deg, var(--orange) 0 18%, var(--green) 18% 36%, var(--blue) 36%); content: ""; }
-.slide-content-header { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin: -6px 0 2px; padding-bottom: 10px; color: var(--muted); border-bottom: 1px solid #dce4e6; font-size: clamp(.65rem, 1vw, .82rem); letter-spacing: .07em; text-transform: uppercase; }
-.slide-content-header span { color: var(--green); font-weight: 900; }
-.slide-content-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slide-cover { place-content: center; overflow: hidden; color: white; background-color: var(--blue); background-image: linear-gradient(135deg, #0f3550, #1d5372 62%, #24697c); border: 0; text-align: left; }
 .slide-cover::before { position: absolute; right: -12%; bottom: -42%; width: 58%; aspect-ratio: 1; border: 2px solid rgba(255,255,255,.12); border-radius: 50%; box-shadow: 0 0 0 48px rgba(255,255,255,.035), 0 0 0 96px rgba(255,255,255,.025); content: ""; }
 .slide-cover::after { position: absolute; inset: 0 auto 0 0; width: 12px; background: var(--orange); content: ""; }
@@ -88,14 +85,12 @@ button, a { font: inherit; }
   .presentation-stage { grid-template-rows: 54px minmax(0, 1fr) 62px; }
   .presentation-tools button { padding: 7px; font-size: .72rem; }
   #fullscreen-button { display: none; }
-  #presentation-title { font-size: .78rem; }
   .slide-shell { padding: 7px; background-image: none; }
   .slide { width: 100%; height: 100%; aspect-ratio: auto; padding: 24px 18px; border-radius: 7px; }
   .slide-cover { padding: 32px 25px; }
   .cover-content { max-width: 95%; }
   .cover-content img { width: 52px; height: 52px; }
   .slide-cover h1 { font-size: clamp(2.45rem, 13vw, 4rem); }
-  .slide-content-header strong { max-width: 58%; }
   .course-block { padding: 16px; border-left-width: 7px; font-size: 1.03rem !important; }
   .course-block h2 { font-size: 1.2rem; }
   .presentation-topbar { padding-inline: 9px; }
@@ -105,8 +100,6 @@ button, a { font: inherit; }
 @media (max-width: 430px) {
   #presentation-pdf { display: none; }
   .presentation-tools { gap: 4px; }
-  .slide-content-header { align-items: start; flex-direction: column; gap: 3px; }
-  .slide-content-header strong { max-width: 100%; white-space: normal; }
   .block-images-view { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .course-block { animation: none; } }

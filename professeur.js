@@ -79,7 +79,7 @@
     document.querySelector("#recent-courses").innerHTML = recent.map((course) => `
       <button type="button" class="recent-item" data-edit-course="${course.id}">
         <span class="recent-level">${course.level}e</span>
-        <span><strong>${escapeHtml(CourseContent.displayTitle(course))}</strong><small>${course.slideCount} diapo${course.slideCount > 1 ? "s" : ""} · ${formatDate(course.updatedAt)}</small></span>
+        <span><strong>${escapeHtml(CourseContent.displayTitle(course))}</strong><small>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""} · ${formatDate(course.updatedAt)}</small></span>
         <span class="status ${course.status}">${course.status === "published" ? "Publié" : "Brouillon"}</span>
       </button>
     `).join("") || '<p class="table-empty">Aucun cours enregistré.</p>';
@@ -101,7 +101,7 @@
     document.querySelector("#course-table-body").innerHTML = courses.map((course) => `
       <tr>
         <td><strong class="chapter-number">${escapeHtml(course.chapterNumber || "—")}</strong></td>
-        <td><strong>${escapeHtml(course.title)}</strong><small>${course.slideCount} diapo${course.slideCount > 1 ? "s" : ""}</small></td>
+        <td><strong>${escapeHtml(course.title)}</strong><small>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""}</small></td>
         <td><span class="level-pill level-${course.level}">${course.level}e</span></td>
         <td><button type="button" class="status-action ${course.status}" data-toggle-course="${course.id}">${course.status === "published" ? "Dépublier" : "Publier"}</button></td>
         <td><div class="order-actions"><button type="button" data-move-course="${course.id}" data-direction="-1" title="Monter">↑</button><button type="button" data-move-course="${course.id}" data-direction="1" title="Descendre">↓</button></div></td>
@@ -151,16 +151,16 @@
         </header>
         <div class="rich-toolbar" aria-label="Mise en forme">
           <button type="button" data-format="bold" title="Gras"><strong>G</strong></button>
-          <span>Mettre en valeur :</span>
-          <button type="button" class="tone yellow" data-format="highlight" data-color="#ffe6a6" aria-label="Jaune"></button>
-          <button type="button" class="tone blue" data-format="highlight" data-color="#dcecf2" aria-label="Bleu"></button>
-          <button type="button" class="tone green" data-format="highlight" data-color="#d9eee5" aria-label="Vert"></button>
-          <button type="button" class="tone pink" data-format="highlight" data-color="#f7deda" aria-label="Rose"></button>
+          <span>Texte sélectionné :</span>
+          <button type="button" class="tone yellow" data-format="highlight" data-color="#ffe6a6"><i aria-hidden="true"></i>Jaune</button>
+          <button type="button" class="tone blue" data-format="highlight" data-color="#dcecf2"><i aria-hidden="true"></i>Bleu</button>
+          <button type="button" class="tone green" data-format="highlight" data-color="#d9eee5"><i aria-hidden="true"></i>Vert</button>
+          <button type="button" class="tone pink" data-format="highlight" data-color="#f7deda"><i aria-hidden="true"></i>Rose</button>
         </div>
         <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
         <div class="block-options">
-          <label><input type="checkbox" data-slide-break ${block.slideBreakBefore ? "checked" : ""} ${index === 0 ? "disabled" : ""} /> Nouvelle diapo avant ce bloc</label>
+          <label><input type="checkbox" data-slide-break ${block.slideBreakBefore ? "checked" : ""} ${index === 0 ? "disabled" : ""} /> Nouvelle page avant ce bloc</label>
           <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Révéler ce bloc au clic</label>
         </div>
         <details class="block-extras">
@@ -422,7 +422,10 @@
       const editor = card.querySelector(".block-richtext");
       editor.focus();
       if (format.dataset.format === "bold") document.execCommand("bold", false);
-      if (format.dataset.format === "highlight") document.execCommand("hiliteColor", false, format.dataset.color);
+      if (format.dataset.format === "highlight") {
+        const applied = document.execCommand("hiliteColor", false, format.dataset.color);
+        if (!applied) document.execCommand("backColor", false, format.dataset.color);
+      }
     }
   });
   blockList.addEventListener("change", async (event) => {
