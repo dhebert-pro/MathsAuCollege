@@ -7,25 +7,24 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="presentation.css?v=0.6.0" />
+    <link rel="stylesheet" href="presentation.css?v=0.7.0" />
     <title>Présentation · Maths au collège</title>
   </head>
   <body>
     <main id="presentation-app" class="presentation-app" aria-live="polite">
       <section id="presentation-loading" class="presentation-message">
-        <img src="assets/logo.svg" alt="" width="54" height="54" />
         <h1>Préparation du cours…</h1>
       </section>
       <section id="presentation-error" class="presentation-message" hidden>
         <h1>Cours indisponible</h1>
         <p id="presentation-error-message">Ce cours ne peut pas être affiché.</p>
-        <a href="index.html">Retour à l’espace élève</a>
+        <a href="index.html">Retour aux cours</a>
       </section>
       <section id="presentation-stage" class="presentation-stage" hidden>
         <header class="presentation-topbar">
-          <div><span id="presentation-level"></span><span class="presentation-version">v0.6.0</span></div>
+          <div><span id="presentation-level"></span><span class="presentation-version">v0.7.0</span></div>
           <div class="presentation-tools">
-            <button id="teacher-links-toggle" type="button" hidden>Ressources prof <span id="teacher-link-count">0</span></button>
+            <button id="teacher-links-toggle" type="button" title="Ouvrir les liens privés (raccourci L)" hidden>Liens du professeur <span id="teacher-link-count">0</span></button>
             <button id="presentation-pdf" type="button">PDF</button>
             <button id="fullscreen-button" type="button">Plein écran</button>
             <a id="presentation-close" href="index.html" aria-label="Quitter la présentation">×</a>
@@ -43,12 +42,12 @@
       </section>
     </main>
 
-    <script src="vendor/jspdf.umd.min.js?v=0.6.0" defer></script>
-    <script src="course-content.js?v=0.6.0" defer></script>
-    <script src="firebase-config.js?v=0.6.0" defer></script>
-    <script src="firebase-bundle.js?v=0.6.0" defer></script>
-    <script src="course-store.js?v=0.6.0" defer></script>
-    <script src="pdf-export.js?v=0.6.0" defer></script>
-    <script src="presentation.js?v=0.6.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.7.0" defer></script>
+    <script src="course-content.js?v=0.7.0" defer></script>
+    <script src="firebase-config.js?v=0.7.0" defer></script>
+    <script src="firebase-bundle.js?v=0.7.0" defer></script>
+    <script src="course-store.js?v=0.7.0" defer></script>
+    <script src="pdf-export.js?v=0.7.0" defer></script>
+    <script src="presentation.js?v=0.7.0" defer></script>
   </body>
 </html>

@@ -12,6 +12,7 @@
   const unpublishButton = document.querySelector("#unpublish-course");
   let accessGranted = false;
   let editorBlocks = [];
+  let editorClassIds = [];
   let uploadedDuringEdit = new Set();
 
   const escapeHtml = CourseContent.escapeHtml;
@@ -103,6 +104,7 @@
         <td><strong class="chapter-number">${escapeHtml(course.chapterNumber || "—")}</strong></td>
         <td><strong>${escapeHtml(course.title)}</strong><small>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""}</small></td>
         <td><span class="level-pill level-${course.level}">${course.level}e</span></td>
+        <td>${course.classIds.length ? course.classIds.map((id) => `<span class="class-code">${escapeHtml(CourseStore.classes().find((item) => item.id === id)?.name || id)}</span>`).join(" ") : "—"}</td>
         <td><button type="button" class="status-action ${course.status}" data-toggle-course="${course.id}">${course.status === "published" ? "Dépublier" : "Publier"}</button></td>
         <td><div class="order-actions"><button type="button" data-move-course="${course.id}" data-direction="-1" title="Monter">↑</button><button type="button" data-move-course="${course.id}" data-direction="1" title="Descendre">↓</button></div></td>
         <td>${formatDate(course.updatedAt)}</td>
@@ -118,6 +120,36 @@
       </tr>
     `).join("");
     document.querySelector("#table-empty").hidden = courses.length > 0;
+  }
+
+  function classLink(id) {
+    const url = new URL("index.html", window.location.href);
+    url.searchParams.set("classe", id);
+    url.hash = "classe";
+    return url.href;
+  }
+
+  function renderClasses() {
+    const classes = CourseStore.classes();
+    document.querySelector("#class-list").innerHTML = classes.map((classroom) => `
+      <article class="class-item">
+        <span class="level-pill level-${classroom.level}">${classroom.level}e</span>
+        <div><strong>${escapeHtml(classroom.name)}</strong><small>${CourseStore.all().filter((course) => course.status === "published" && course.classIds.includes(classroom.id)).length} cours publié(s)</small></div>
+        <code class="class-code">${escapeHtml(classroom.id)}</code>
+        <div class="class-item-actions">
+          <button type="button" data-copy-class="${classroom.id}">Copier le lien</button>
+          <button type="button" class="danger" data-delete-class="${classroom.id}">Supprimer</button>
+        </div>
+      </article>
+    `).join("") || '<p class="table-empty">Aucune classe créée pour le moment.</p>';
+  }
+
+  function renderClassAssignments() {
+    const level = courseForm.elements.level.value;
+    const classes = CourseStore.classes(level);
+    document.querySelector("#course-class-list").innerHTML = classes.map((classroom) => `
+      <label><input type="checkbox" name="classIds" value="${classroom.id}" ${editorClassIds.includes(classroom.id) ? "checked" : ""} /> ${escapeHtml(classroom.name)}</label>
+    `).join("") || `<p class="field-help">Aucune classe de ${level}e. Créez-la d’abord dans « Mes classes ».</p>`;
   }
 
   function updateEditorStatus(status) {
@@ -151,17 +183,15 @@
         </header>
         <div class="rich-toolbar" aria-label="Mise en forme">
           <button type="button" data-format="bold" title="Gras"><strong>G</strong></button>
-          <span>Texte sélectionné :</span>
-          <button type="button" class="tone yellow" data-format="highlight" data-color="#ffe6a6"><i aria-hidden="true"></i>Jaune</button>
-          <button type="button" class="tone blue" data-format="highlight" data-color="#dcecf2"><i aria-hidden="true"></i>Bleu</button>
-          <button type="button" class="tone green" data-format="highlight" data-color="#d9eee5"><i aria-hidden="true"></i>Vert</button>
-          <button type="button" class="tone pink" data-format="highlight" data-color="#f7deda"><i aria-hidden="true"></i>Rose</button>
+          <span>Sélectionnez du texte, puis :</span>
+          <button type="button" class="highlight-button" data-format="highlight" data-color="#ffe6a6">Mettre en valeur</button>
         </div>
         <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
         <div class="block-options">
-          <label><input type="checkbox" data-slide-break ${block.slideBreakBefore ? "checked" : ""} ${index === 0 ? "disabled" : ""} /> Nouvelle page avant ce bloc</label>
-          <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Révéler ce bloc au clic</label>
+          <p class="break-help"><strong>Diapositive</strong> : crée un nouvel écran. <strong>Révélation</strong> : reste sur le même écran et affiche ce bloc plus tard.</p>
+          <label><input type="checkbox" data-slide-break ${block.slideBreakBefore ? "checked" : ""} ${index === 0 ? "disabled" : ""} /> Commencer une nouvelle diapositive avant ce bloc</label>
+          <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Masquer ce bloc jusqu’au prochain clic sur Suivant</label>
         </div>
         <details class="block-extras">
           <summary>Images et lien de projection</summary>
@@ -239,10 +269,12 @@
     courseForm.elements.title.value = course?.title || "";
     courseForm.elements.chapterNumber.value = course?.chapterNumber || "";
     courseForm.elements.level.value = course?.level || "6";
+    editorClassIds = course?.classIds || [];
     editorBlocks = course?.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds] })) || [CourseContent.normalizeBlock({ type: "text" })];
     document.querySelector("#editor-title").textContent = course ? "Modifier le cours" : "Nouveau cours";
     updateEditorStatus(course?.status || "draft");
     renderBlocks();
+    renderClassAssignments();
     showView("editor");
     courseForm.elements.title.focus();
   }
@@ -250,6 +282,8 @@
   function renderAll() {
     renderStats();
     renderTable();
+    renderClasses();
+    if (!document.querySelector('[data-admin-page="editor"]').hidden) renderClassAssignments();
   }
 
   async function runMutation(action, successMessage) {
@@ -350,6 +384,7 @@
         title: courseForm.elements.title.value,
         chapterNumber: courseForm.elements.chapterNumber.value,
         level: courseForm.elements.level.value,
+        classIds: [...courseForm.querySelectorAll("[name='classIds']:checked")].map((input) => input.value),
         status,
         blocks: editorBlocks,
         manualOrder: existing?.manualOrder ?? null,
@@ -382,6 +417,20 @@
   document.querySelectorAll("[data-go-courses]").forEach((button) => button.addEventListener("click", () => showView("courses")));
   document.querySelector("#cancel-editor").addEventListener("click", async () => { await cleanupNewUploads(); showView("courses"); });
   document.querySelector("#reset-order").addEventListener("click", () => runMutation(() => CourseStore.resetOrder(document.querySelector("#level-filter").value), "Tri automatique rétabli."));
+  courseForm.elements.level.addEventListener("change", () => { editorClassIds = []; renderClassAssignments(); });
+  courseForm.addEventListener("change", (event) => {
+    if (event.target.name === "classIds") {
+      editorClassIds = [...courseForm.querySelectorAll("[name='classIds']:checked")].map((input) => input.value);
+    }
+  });
+  document.querySelector("#class-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const name = form.elements.name.value.trim();
+    if (!name) return;
+    await runMutation(() => CourseStore.createClass(name, form.elements.level.value), "Classe créée. Le code d’accès est prêt.");
+    form.reset();
+  });
   ["#admin-search", "#level-filter", "#status-filter"].forEach((selector) => document.querySelector(selector).addEventListener("input", renderTable));
   document.querySelectorAll("[data-add-block]").forEach((button) => button.addEventListener("click", () => addBlock(button.dataset.addBlock)));
   window.addEventListener("courses:changed", () => { if (accessGranted) renderAll(); });
@@ -452,6 +501,18 @@
     const remove = event.target.closest("[data-delete-course]");
     const toggle = event.target.closest("[data-toggle-course]");
     const move = event.target.closest("[data-move-course]");
+    const copyClass = event.target.closest("[data-copy-class]");
+    const deleteClass = event.target.closest("[data-delete-class]");
+    if (copyClass) {
+      await navigator.clipboard.writeText(classLink(copyClass.dataset.copyClass));
+      toast("Lien de la classe copié.");
+    }
+    if (deleteClass) {
+      const classroom = CourseStore.classes().find((item) => item.id === deleteClass.dataset.deleteClass);
+      if (classroom && window.confirm(`Supprimer la classe « ${classroom.name} » et son accès ?`)) {
+        await runMutation(() => CourseStore.removeClass(classroom.id), "Classe supprimée.");
+      }
+    }
     if (edit) openEditor(edit.dataset.editCourse);
     if (present) window.open(`presentation.html?course=${encodeURIComponent(present.dataset.presentCourse)}&mode=teacher`, "_blank", "noopener");
     if (pdf) await runMutation(() => CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse)), "PDF généré.");

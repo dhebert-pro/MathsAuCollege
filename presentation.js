@@ -3,6 +3,7 @@
 
   const parameters = new URLSearchParams(window.location.search);
   const courseId = parameters.get("course");
+  const accessCode = parameters.get("classe") || "";
   const teacherMode = parameters.get("mode") === "teacher";
   const loading = document.querySelector("#presentation-loading");
   const errorView = document.querySelector("#presentation-error");
@@ -55,21 +56,45 @@
     }));
   }
 
+  function teacherLinksFor(slide, index) {
+    return slide
+      .filter((block) => block.teacherUrl)
+      .map((block) => ({ id: block.id, slide: index + 1, label: block.teacherLabel || CourseContent.TYPES[block.type].label, url: block.teacherUrl }));
+  }
+
   function currentTeacherLinks() {
     if (!teacherMode || slideIndex === 0) return [];
-    return slides[slideIndex - 1]
-      .filter((block) => block.teacherUrl)
-      .map((block) => ({ label: block.teacherLabel || CourseContent.TYPES[block.type].label, url: block.teacherUrl }));
+    return teacherLinksFor(slides[slideIndex - 1], slideIndex - 1);
+  }
+
+  function allTeacherLinks() {
+    if (!teacherMode) return [];
+    return slides.flatMap(teacherLinksFor);
+  }
+
+  function teacherLinkHtml(link) {
+    return `<a href="${CourseContent.safeUrl(link.url)}" target="_blank" rel="noopener noreferrer">${CourseContent.escapeHtml(link.label)} <span aria-hidden="true">↗</span></a>`;
   }
 
   function renderTeacherLinks() {
-    const links = currentTeacherLinks();
+    const current = currentTeacherLinks();
+    const all = allTeacherLinks();
     const toggle = document.querySelector("#teacher-links-toggle");
-    toggle.hidden = !links.length;
-    document.querySelector("#teacher-link-count").textContent = links.length;
+    toggle.hidden = !teacherMode;
+    document.querySelector("#teacher-link-count").textContent = all.length;
     const panel = document.querySelector("#teacher-links");
-    panel.innerHTML = `<h2>Ressources disponibles</h2>${links.map((link) => `<a href="${CourseContent.safeUrl(link.url)}" target="_blank" rel="noopener noreferrer">${CourseContent.escapeHtml(link.label)} ↗</a>`).join("")}`;
-    if (!links.length) panel.hidden = true;
+    if (!teacherMode) {
+      panel.hidden = true;
+      return;
+    }
+    const other = all.filter((link) => !current.some((item) => item.id === link.id));
+    panel.innerHTML = `
+      <h2>Liens du professeur</h2>
+      <p class="teacher-links-help">Cliquez sur le bouton en haut de la présentation, ou appuyez sur <kbd>L</kbd>. Ces liens ne sont visibles ni par les élèves ni dans le PDF.</p>
+      <h3>Pour l’écran actuel</h3>
+      ${current.length ? current.map(teacherLinkHtml).join("") : `<p class="teacher-links-empty">Aucun lien associé à cet écran.</p>`}
+      ${other.length ? `<details><summary>Tous les autres liens (${other.length})</summary>${other.map(teacherLinkHtml).join("")}</details>` : ""}
+    `;
   }
 
   function maxReveal() {
@@ -82,7 +107,7 @@
     if (slideIndex === 0) {
       slideElement.className = "slide slide-cover";
       slideElement.dataset.blockCount = "0";
-      slideElement.innerHTML = `<div class="cover-decoration" aria-hidden="true"><span>π</span><span>x²</span><span>△</span></div><div class="cover-content"><img src="assets/logo.svg" alt="" width="64" height="64" /><span class="cover-number">${course.chapterNumber ? `Chapitre ${CourseContent.escapeHtml(course.chapterNumber)}` : `Mathématiques · ${course.level}e`}</span><h1>${CourseContent.escapeHtml(course.title)}</h1><p>Maths au collège · ${course.level}e</p></div>`;
+      slideElement.innerHTML = `<div class="cover-decoration" aria-hidden="true"><span>π</span><span>x²</span><span>△</span></div><div class="cover-content"><span class="cover-number">${course.chapterNumber ? `Chapitre ${CourseContent.escapeHtml(course.chapterNumber)}` : `Classe de ${course.level}e`}</span><h1>${CourseContent.escapeHtml(course.title)}</h1></div>`;
     } else {
       slideElement.className = "slide";
       const currentSlide = slides[slideIndex - 1];
@@ -123,7 +148,7 @@
     }
     document.title = `${CourseContent.displayTitle(course)} · Maths au collège`;
     document.querySelector("#presentation-level").textContent = `${course.level}e`;
-    document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html#${course.level === "6" ? "sixieme" : "quatrieme"}`;
+    document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html?classe=${encodeURIComponent(accessCode)}#classe`;
     loading.hidden = true;
     stage.hidden = false;
     render();
@@ -131,7 +156,7 @@
 
   async function loadPublic() {
     try {
-      const value = await CourseStore.getPublished(courseId);
+      const value = await CourseStore.getPublished(courseId, accessCode);
       if (!value) fail("Ce cours n’est pas publié ou n’existe plus.");
       else showCourse(value);
     } catch {
@@ -154,7 +179,7 @@
   document.addEventListener("keydown", (event) => {
     if (["ArrowRight", "PageDown", "Enter", " "].includes(event.key)) { event.preventDefault(); next(); }
     if (["ArrowLeft", "PageUp", "Backspace"].includes(event.key)) { event.preventDefault(); previous(); }
-    if (teacherMode && event.key.toLowerCase() === "l" && currentTeacherLinks().length) {
+    if (teacherMode && event.key.toLowerCase() === "l") {
       const panel = document.querySelector("#teacher-links");
       panel.hidden = !panel.hidden;
     }
@@ -199,6 +224,8 @@
         }
       }
     });
+  } else if (!teacherMode && !accessCode) {
+    fail("Le code de la classe est absent. Revenez à l’accueil pour ouvrir votre espace.");
   } else {
     loadPublic();
   }

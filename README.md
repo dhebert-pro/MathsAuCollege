@@ -4,10 +4,11 @@ Application web de ressources de mathématiques destinée aux élèves de 6e et 
 
 ## Fonctionnement
 
-- L’espace élève est public et affiche uniquement les cours publiés.
-- Chaque cours est présenté écran par écran et peut être téléchargé dans un PDF A4 portrait, fidèle à sa structure et adapté à l’impression.
+- Chaque classe possède un code d’accès aléatoire et ne voit que les cours qui lui sont attribués.
+- Chaque cours est présenté écran par écran, avec des révélations progressives possibles au sein d’un même écran.
+- Le PDF A4 portrait ignore le découpage de projection et resserre les blocs pour limiter le nombre de pages et la consommation d’encre.
 - Le back-office compose les cours avec des blocs séquentiels : texte, définition, propriété, exemple, « À retenir », attention, méthode et rappel.
-- Les blocs acceptent la mise en valeur, les images, les césures de révélation et les changements de page.
+- Les blocs acceptent une mise en valeur cohérente, les images, les révélations et les changements de diapositive.
 - Les cours sont triés automatiquement par numéro de chapitre puis par nom ; des flèches permettent de personnaliser ce classement.
 - La publication et la dépublication utilisent des boutons explicites.
 - Les liens utiles à la projection restent dans la version privée professeur et sont absents de l’espace élève et du PDF.

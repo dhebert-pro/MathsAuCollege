@@ -12,13 +12,14 @@ service cloud.firestore {
     function validCourse(data) {
       return data.keys().hasOnly([
           'id', 'title', 'slug', 'chapterNumber', 'level', 'blocks',
-          'slideCount', 'status', 'manualOrder', 'createdAt', 'updatedAt'
+          'classIds', 'slideCount', 'status', 'manualOrder', 'createdAt', 'updatedAt'
         ])
         && data.id is string
         && data.title is string && data.title.size() > 0 && data.title.size() <= 120
         && data.slug is string
         && data.chapterNumber is string && data.chapterNumber.size() <= 20
         && data.level in ['6', '4']
+        && data.classIds is list && data.classIds.size() <= 40
         && data.blocks is list && data.blocks.size() <= 200
         && data.slideCount is int && data.slideCount >= 1 && data.slideCount <= 200
         && data.status in ['draft', 'published']
@@ -60,7 +61,7 @@ service cloud.firestore {
     }
 
     match /catalogs/{level} {
-      allow read: if level in ['6', '4'];
+      allow read: if isProfessor();
       allow write: if isProfessor()
         && level in ['6', '4']
         && request.resource.data.level == level
@@ -69,7 +70,7 @@ service cloud.firestore {
     }
 
     match /publishedCourses/{courseId} {
-      allow read: if true;
+      allow read: if isProfessor();
       allow create, update: if isProfessor()
         && request.resource.data.id == courseId
         && request.resource.data.status == 'published'
@@ -78,11 +79,28 @@ service cloud.firestore {
     }
 
     match /courseImages/{imageId} {
-      allow read: if isProfessor() || resource.data.published == true;
+      allow get: if isProfessor() || resource.data.published == true;
+      allow list: if isProfessor();
       allow create, update: if isProfessor()
         && request.resource.data.id == imageId
         && validImage(request.resource.data);
       allow delete: if isProfessor();
+    }
+
+    match /classes/{classId} {
+      allow read, write: if isProfessor();
+    }
+
+    match /classSpaces/{accessCode} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isProfessor();
+
+      match /courses/{courseId} {
+        allow get: if exists(/databases/$(database)/documents/classSpaces/$(accessCode));
+        allow list: if false;
+        allow write: if isProfessor();
+      }
     }
 
     match /{document=**} {

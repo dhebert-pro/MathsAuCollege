@@ -3,6 +3,8 @@
 
   const firebaseMode = Boolean(window.FirebaseBackend?.configured);
   let courses = [];
+  let classrooms = [];
+  let currentClassSpace = null;
   let subscriptions = [];
   const publishedContents = new Map();
   const images = new Map();
@@ -32,17 +34,26 @@
     all() {
       return sort(courses);
     },
+    classes(level) {
+      return [...classrooms]
+        .filter((classroom) => !level || classroom.level === String(level))
+        .sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
+    },
+    currentClass() {
+      return currentClassSpace;
+    },
     published(level) {
       return this.all().filter((course) => course.status === "published" && (!level || course.level === String(level)));
     },
     get(id) {
       return courses.find((course) => course.id === id) || null;
     },
-    async getPublished(id) {
-      if (publishedContents.has(id)) return publishedContents.get(id);
+    async getPublished(id, accessCode = currentClassSpace?.id || "") {
+      const cacheKey = `${accessCode}:${id}`;
+      if (publishedContents.has(cacheKey)) return publishedContents.get(cacheKey);
       if (!firebaseMode) return null;
-      const course = await FirebaseBackend.getPublished(id);
-      if (course) publishedContents.set(id, course);
+      const course = await FirebaseBackend.getPublished(id, accessCode);
+      if (course) publishedContents.set(cacheKey, course);
       return course;
     },
     async getPrivate(id) {
@@ -67,17 +78,32 @@
       images.delete(id);
       await FirebaseBackend.deleteCourseImage(id);
     },
+    async openClass(accessCode) {
+      if (!firebaseMode) return null;
+      const value = await FirebaseBackend.getClassSpace(String(accessCode || "").trim().toUpperCase());
+      if (!value) return null;
+      currentClassSpace = value;
+      courses = sort((value.courses || []).map(CourseContent.normalizeCourse));
+      notify({ source: "class" });
+      return value;
+    },
+    closeClass() {
+      currentClassSpace = null;
+      courses = [];
+      notify({ source: "class" });
+    },
     startPublic() {
-      if (!firebaseMode || subscriptions.length) return;
-      ["6", "4"].forEach((level) => {
-        subscriptions.push(FirebaseBackend.subscribeCatalog(level, (items, fromCache) => replaceLevel(level, items, fromCache), () => notify({ source: "offline" })));
-      });
+      return undefined;
     },
     startAdmin(onError) {
       this.stopSubscriptions();
       if (!firebaseMode) return;
       subscriptions.push(FirebaseBackend.subscribeAll((items, fromCache) => {
         courses = sort(items);
+        notify({ source: fromCache ? "cache" : "server" });
+      }, onError));
+      subscriptions.push(FirebaseBackend.subscribeClasses((items, fromCache) => {
+        classrooms = items;
         notify({ source: fromCache ? "cache" : "server" });
       }, onError));
     },
@@ -88,7 +114,7 @@
     async save(input) {
       if (!firebaseMode) throw new Error("Firebase is not configured");
       const course = normalize(input);
-      publishedContents.delete(course.id);
+      publishedContents.clear();
       return FirebaseBackend.save(course);
     },
     async duplicate(id) {
@@ -116,13 +142,23 @@
     },
     async remove(id) {
       if (!firebaseMode) throw new Error("Firebase is not configured");
-      publishedContents.delete(id);
+      publishedContents.clear();
       return FirebaseBackend.remove(id);
     },
     async toggleStatus(id) {
       const course = this.get(id);
       if (!course) return null;
       return this.save({ ...course, status: course.status === "published" ? "draft" : "published" });
+    },
+    async createClass(name, level) {
+      const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const bytes = new Uint8Array(7);
+      crypto.getRandomValues(bytes);
+      const suffix = [...bytes].map((value) => alphabet[value % alphabet.length]).join("");
+      return FirebaseBackend.saveClass({ id: `${level}E-${suffix}`, name, level });
+    },
+    async removeClass(id) {
+      return FirebaseBackend.removeClass(id);
     },
     async move(id, direction) {
       const course = this.get(id);
