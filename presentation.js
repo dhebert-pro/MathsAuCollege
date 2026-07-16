@@ -9,11 +9,20 @@
   const stage = document.querySelector("#presentation-stage");
   const slideElement = document.querySelector("#slide");
   const teacherToggle = document.querySelector("#teacher-links-toggle");
+  const teacherDock = document.querySelector("#teacher-resource-dock");
   const teacherPanel = document.querySelector("#teacher-links");
+  const zoomOut = document.querySelector("#zoom-out");
+  const zoomIn = document.querySelector("#zoom-in");
+  const zoomLabel = document.querySelector("#zoom-label");
   let course = null;
   let slides = [];
   let slideIndex = 0;
   let revealIndex = 0;
+  let zoomLevel = 1;
+
+  try {
+    zoomLevel = Math.max(.75, Math.min(1.6, Number(localStorage.getItem("maths-presentation-zoom")) || 1));
+  } catch {}
 
   function fail(message) {
     loading.hidden = true;
@@ -58,7 +67,7 @@
     const newlyRevealed = !hidden && stageNumber > 0 && stageNumber === revealedStage;
     return `
       <section class="course-block block-${block.type}${block.admitted ? " admitted" : ""}${hidden ? " reveal-hidden" : ""}${newlyRevealed ? " reveal-new" : ""}" data-block-id="${block.id}">
-        ${block.type === "text" ? "" : `<h2><span>${type.icon}</span>${type.label}${block.admitted ? " · admise" : ""}</h2>`}
+        ${block.type === "text" ? "" : `<h2>${type.label}${block.admitted ? " · admise" : ""}</h2>`}
         <div class="block-content">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.imageIds.length ? `<div class="block-images-view">${block.imageIds.map((id) => `<div data-presentation-image="${id}"></div>`).join("")}</div>` : ""}
       </section>
@@ -95,7 +104,7 @@
   function renderTeacherLinks() {
     const current = currentTeacherLinks();
     teacherPanel.hidden = true;
-    teacherToggle.hidden = !teacherMode;
+    teacherDock.hidden = !teacherMode;
     teacherToggle.disabled = current.length === 0;
     teacherToggle.dataset.singleUrl = current.length === 1 ? current[0].url : "";
     if (!current.length) {
@@ -113,6 +122,39 @@
       <p class="teacher-links-help">Ces commandes sont placées hors de la page à recopier. Elles sont absentes du cours élève et du PDF.</p>
       ${current.map(teacherLinkHtml).join("")}
     `;
+  }
+
+  function updateZoom() {
+    const percent = Math.round(zoomLevel * 100);
+    slideElement.style.setProperty("--presentation-zoom", String(zoomLevel));
+    slideElement.style.setProperty("--presentation-font-size", `${zoomLevel}rem`);
+    slideElement.style.setProperty("--presentation-image-height", `${Math.round(300 * zoomLevel)}px`);
+    zoomLabel.value = `${percent} %`;
+    zoomLabel.textContent = `${percent} %`;
+    zoomOut.disabled = zoomLevel <= .75;
+    zoomIn.disabled = zoomLevel >= 1.6;
+    try { localStorage.setItem("maths-presentation-zoom", String(zoomLevel)); } catch {}
+  }
+
+  function changeZoom(delta) {
+    zoomLevel = Math.max(.75, Math.min(1.6, Math.round((zoomLevel + delta) * 10) / 10));
+    updateZoom();
+  }
+
+  function turnPage(direction) {
+    if (!direction || !slideElement.innerHTML.trim()) return;
+    slideElement.parentElement.querySelector(".page-turn-sheet")?.remove();
+    const sheet = slideElement.cloneNode(true);
+    sheet.removeAttribute("id");
+    sheet.removeAttribute("aria-live");
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.classList.remove("page-under");
+    sheet.classList.add("page-turn-sheet", direction === "next" ? "turn-forward" : "turn-backward");
+    sheet.scrollTop = slideElement.scrollTop;
+    slideElement.parentElement.append(sheet);
+    const removeSheet = () => sheet.remove();
+    sheet.addEventListener("animationend", removeSheet, { once: true });
+    window.setTimeout(removeSheet, 1000);
   }
 
   function openTeacherResource() {
@@ -158,6 +200,7 @@
 
   function render({ direction = "", revealedStage = null } = {}) {
     teacherPanel.hidden = true;
+    turnPage(direction);
     if (slideIndex === 0) {
       slideElement.className = "slide slide-cover";
       slideElement.dataset.blockCount = "0";
@@ -170,10 +213,11 @@
       hydrateImages();
     }
     if (direction) {
-      slideElement.classList.remove("page-turn-next", "page-turn-previous");
-      void slideElement.offsetWidth;
-      slideElement.classList.add(direction === "next" ? "page-turn-next" : "page-turn-previous");
+      slideElement.classList.add("page-under");
+      window.setTimeout(() => slideElement.classList.remove("page-under"), 750);
     }
+    slideElement.scrollTop = 0;
+    updateZoom();
     updateControls();
   }
 
@@ -218,6 +262,7 @@
     document.querySelector("#teacher-mode-badge").hidden = !teacherMode;
     document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html#niveau-${course.level}`;
     loading.hidden = true;
+    errorView.hidden = true;
     stage.hidden = false;
     render();
   }
@@ -235,6 +280,8 @@
   document.querySelector("#next-step").addEventListener("click", next);
   document.querySelector("#previous-step").addEventListener("click", previous);
   document.querySelector("#presentation-restart").addEventListener("click", restart);
+  zoomOut.addEventListener("click", () => changeZoom(-.1));
+  zoomIn.addEventListener("click", () => changeZoom(.1));
   document.querySelector("#presentation-pdf").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
@@ -259,6 +306,9 @@
     if (["ArrowRight", "PageDown", "Enter", " "].includes(event.key)) { event.preventDefault(); next(); }
     if (["ArrowLeft", "PageUp", "Backspace"].includes(event.key)) { event.preventDefault(); previous(); }
     if (teacherMode && event.key.toLowerCase() === "l") openTeacherResource();
+    if (["+", "="].includes(event.key)) { event.preventDefault(); changeZoom(.1); }
+    if (event.key === "-") { event.preventDefault(); changeZoom(-.1); }
+    if (event.key === "0") { event.preventDefault(); zoomLevel = 1; updateZoom(); }
     if (event.key === "Home") { event.preventDefault(); restart(); }
   });
 

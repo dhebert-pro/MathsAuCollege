@@ -85,7 +85,7 @@
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {
-    const refreshKey = "sw-refreshed-0.10.0";
+    const refreshKey = "sw-refreshed-0.11.0";
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (sessionStorage.getItem(refreshKey)) return;
       sessionStorage.setItem(refreshKey, "true");
