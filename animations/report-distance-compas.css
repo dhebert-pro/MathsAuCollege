@@ -18,25 +18,29 @@ header { display: flex; align-items: baseline; gap: 16px; }
 h1 { margin: 0; font: 700 clamp(1.55rem, 3vw, 2.7rem)/1.1 Georgia, serif; }
 .stage { height: clamp(380px, 62vh, 650px); min-height: 0; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 20px 55px rgba(16, 47, 67, .12); }
 svg { display: block; width: 100%; height: 100%; min-height: 0; }
-.figure-label { fill: #627985; font-size: 22px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .geometry-line { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
 .target-line { color: var(--ink); }
 .source-line { stroke: var(--green); }
-.point { fill: var(--ink); }
+.point-mark { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
 .point-label { fill: var(--ink); font: italic 700 30px Georgia, serif; }
 .measure-mark { fill: none; stroke: var(--orange); stroke-width: 4; stroke-linecap: round; }
 .length-label { fill: #a9502c; font: italic 700 26px Georgia, serif; }
-.compass-leg { stroke: #d5dde0; stroke-width: 22; stroke-linecap: round; }
-.compass-leg-left { stroke: #738a94; }
-.compass-leg-right { stroke: #355d70; }
-.compass-needle { stroke: #263e49; stroke-width: 6; stroke-linecap: round; }
-.compass-pencil { fill: var(--orange); stroke: #9d4c2d; stroke-width: 2; }
-.compass-hinge { fill: #f1f4f4; stroke: var(--blue); stroke-width: 7; }
-.compass-screw { fill: var(--orange); }
-.compass-brace { fill: none; stroke: var(--blue); stroke-width: 9; stroke-linecap: round; }
+.compass-handle { fill: none; stroke: #456674; stroke-width: 10; stroke-linecap: round; }
+.compass-leg { stroke: #385866; stroke-width: 2; stroke-linejoin: round; }
+.compass-leg-left { fill: url("#metal-left"); }
+.compass-leg-right { fill: url("#metal-right"); }
+.compass-needle { fill: none; stroke: #263e49; stroke-width: 5; stroke-linecap: round; }
+.compass-pencil { fill: url("#pencil-body"); stroke: #9d4c2d; stroke-width: 2; stroke-linejoin: round; }
+.pencil-tip { fill: #f2d1a4; stroke: #713d29; stroke-width: 1.5; }
+.compass-hinge { fill: #f4f7f7; stroke: #345a6c; stroke-width: 6; }
+.compass-screw { fill: #d8e1e3; stroke: #345a6c; stroke-width: 2; }
+.screw-slot { fill: none; stroke: #345a6c; stroke-width: 2; stroke-linecap: round; }
+.compass-brace { fill: none; stroke: #456674; stroke-width: 5; stroke-linecap: round; }
+.adjustment-rod { fill: none; stroke: #355d70; stroke-width: 4; stroke-linecap: round; }
+.adjustment-screw { fill: var(--orange); stroke: #9d4c2d; stroke-width: 2; }
 .compass-arc { fill: none; stroke: var(--orange); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
 .result-point, .result-label, .result-equality { opacity: 0; }
-.result-point { fill: var(--orange); stroke: #9d4c2d; stroke-width: 3; }
+.result-point { stroke: var(--orange); stroke-width: 7; }
 .result-equality rect { fill: #fdf0e8; stroke: var(--orange); stroke-width: 3; }
 .result-equality text { fill: var(--ink); font: 700 34px Georgia, serif; }
 .explanation { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: baseline; min-height: 58px; padding: 14px 18px; background: white; border: 1px solid var(--line); border-radius: 14px; }

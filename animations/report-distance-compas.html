@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Reporter une distance au compas</title>
-    <link rel="stylesheet" href="report-distance-compas.css?v=0.19.0" />
-    <script src="report-distance-compas.js?v=0.19.0" defer></script>
+    <link rel="stylesheet" href="report-distance-compas.css?v=0.20.0" />
+    <script src="report-distance-compas.js?v=0.20.0" defer></script>
   </head>
   <body>
     <main class="animation-shell">
@@ -23,15 +23,28 @@
               <path d="M0,0 L10,4 L0,8 Z" fill="currentColor" />
             </marker>
             <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-              <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#102f43" flood-opacity=".18" />
+              <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#102f43" flood-opacity=".17" />
             </filter>
+            <linearGradient id="metal-left" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#f6f8f8" />
+              <stop offset=".42" stop-color="#9badb5" />
+              <stop offset="1" stop-color="#526b77" />
+            </linearGradient>
+            <linearGradient id="metal-right" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#edf2f3" />
+              <stop offset=".48" stop-color="#66828f" />
+              <stop offset="1" stop-color="#274d60" />
+            </linearGradient>
+            <linearGradient id="pencil-body" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#f5b074" />
+              <stop offset="1" stop-color="#d96d36" />
+            </linearGradient>
           </defs>
 
           <g class="source-figure">
-            <text x="110" y="78" class="figure-label">Distance à reporter</text>
             <line x1="170" y1="150" x2="390" y2="150" class="geometry-line source-line" />
-            <circle cx="170" cy="150" r="6" class="point" />
-            <circle cx="390" cy="150" r="6" class="point" />
+            <line x1="170" y1="137" x2="170" y2="163" class="point-mark" />
+            <line x1="390" y1="137" x2="390" y2="163" class="point-mark" />
             <text x="152" y="188" class="point-label">A</text>
             <text x="382" y="188" class="point-label">B</text>
             <path d="M170 116 V126 M170 121 H390 M390 116 V126" class="measure-mark" />
@@ -40,21 +53,26 @@
 
           <g class="target-figure">
             <line x1="170" y1="440" x2="850" y2="440" class="geometry-line target-line" marker-end="url(#arrowhead)" />
-            <circle cx="170" cy="440" r="6" class="point" />
+            <line x1="170" y1="427" x2="170" y2="453" class="point-mark" />
             <text x="152" y="480" class="point-label">C</text>
-            <circle id="point-d" cx="390" cy="440" r="7" class="point result-point" />
+            <line id="point-d" x1="390" y1="427" x2="390" y2="453" class="point-mark result-point" />
             <text id="label-d" x="382" y="480" class="point-label result-label">D</text>
             <path id="compass-arc" d="M333.49 292.78 A220 220 0 0 1 390 440" class="compass-arc" pathLength="100" />
           </g>
 
           <g id="compass-motion" class="compass" filter="url(#shadow)">
-            <line x1="280" y1="62" x2="170" y2="150" class="compass-leg compass-leg-left" />
-            <line x1="280" y1="62" x2="390" y2="150" class="compass-leg compass-leg-right" />
-            <line x1="170" y1="146" x2="166" y2="166" class="compass-needle" />
-            <path d="M386 143 L394 151 L390 166 Z" class="compass-pencil" />
-            <circle cx="280" cy="62" r="18" class="compass-hinge" />
-            <circle cx="280" cy="62" r="6" class="compass-screw" />
-            <path d="M257 84 Q280 101 303 84" class="compass-brace" />
+            <path d="M268 49 V34 C268 14 292 14 292 34 V49" class="compass-handle" />
+            <path d="M269 66 L283 77 L180 145 L171 137 Z" class="compass-leg compass-leg-left" />
+            <path d="M289 66 L303 77 L386 132 L378 141 Z" class="compass-leg compass-leg-right" />
+            <path d="M178 141 L170 150" class="compass-needle" />
+            <path d="M378 129 L389 126 L395 142 L390 150 L384 142 Z" class="compass-pencil" />
+            <path d="M384 142 L395 142 L390 150 Z" class="pencil-tip" />
+            <path d="M249 91 Q280 108 311 91" class="compass-brace" />
+            <path d="M256 94 H304" class="adjustment-rod" />
+            <circle cx="280" cy="94" r="6" class="adjustment-screw" />
+            <circle cx="280" cy="62" r="17" class="compass-hinge" />
+            <circle cx="280" cy="62" r="7" class="compass-screw" />
+            <path d="M276 62 H284" class="screw-slot" />
           </g>
 
           <g id="result-equality" class="result-equality">
