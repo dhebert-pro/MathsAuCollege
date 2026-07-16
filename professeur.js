@@ -168,12 +168,12 @@
         <div class="rich-toolbar" aria-label="Mise en forme">
           <span>Sélectionnez la partie importante :</span>
           <button type="button" class="highlight-button" data-format="highlight">Mettre en valeur</button>
-          <details class="math-symbol-picker">
-            <summary>Symboles mathématiques</summary>
+          <div class="math-symbol-picker">
+            <span>Symboles mathématiques :</span>
             <div class="math-symbol-grid" role="group" aria-label="Symboles mathématiques">
               ${mathSymbols.map(([symbol, label]) => `<button type="button" data-insert-symbol="${symbol}" title="${label}" aria-label="${label}">${symbol}</button>`).join("")}
             </div>
-          </details>
+          </div>
         </div>
         <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
@@ -500,7 +500,7 @@
     const buttons = [saveButton, publishButton, unpublishButton];
     buttons.forEach((button) => { button.disabled = true; });
     try {
-      await CourseStore.save({
+      const saved = await CourseStore.save({
         ...existing,
         id: courseForm.elements.id.value,
         title: courseForm.elements.title.value,
@@ -511,8 +511,10 @@
         manualOrder: existing?.manualOrder ?? null,
       });
       uploadedDuringEdit = new Set();
-      showView("courses");
-      toast(status === "published" ? "Cours publié." : existing ? "Cours mis à jour." : "Brouillon enregistré.");
+      editorBlocks = saved.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds] }));
+      updateEditorStatus(saved.status);
+      document.querySelector("#editor-title").textContent = "Modifier le cours";
+      toast(!existing && status === "published" ? "Cours publié." : !existing ? "Brouillon enregistré." : "Modifications enregistrées.");
     } catch (error) {
       toast(readableError(error));
     } finally {

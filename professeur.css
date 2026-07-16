@@ -133,11 +133,9 @@ td:nth-child(2) { min-width: 220px; }
 .rich-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 7px 16px; background: rgba(245,248,248,.9); border-bottom: 1px solid #e1e7e9; }
 .rich-toolbar > span { margin-left: 6px; color: var(--muted); font-size: .72rem; }
 .rich-toolbar .highlight-button { display: inline-flex; width: auto; padding: 5px 11px; color: #7b371f; background: #fff0b8; border: 1px solid #dc9e35; font-size: .72rem; font-weight: 900; }
-.math-symbol-picker { position: relative; margin-left: auto; }
-.math-symbol-picker summary { padding: 6px 10px; color: var(--blue); background: white; border: 1px solid #ccd8db; border-radius: 7px; font-size: .72rem; font-weight: 900; cursor: pointer; list-style: none; }
-.math-symbol-picker summary::-webkit-details-marker { display: none; }
-.math-symbol-picker[open] summary { color: white; background: var(--blue); }
-.math-symbol-grid { position: absolute; z-index: 12; top: calc(100% + 7px); right: 0; display: grid; grid-template-columns: repeat(6, 36px); gap: 5px; width: max-content; max-width: min(300px, 82vw); padding: 10px; background: white; border: 1px solid #cad6d9; border-radius: 11px; box-shadow: 0 14px 34px rgba(16,47,67,.2); }
+.math-symbol-picker { display: flex; flex: 1 0 100%; align-items: center; gap: 9px; padding-top: 7px; border-top: 1px solid #dce4e6; }
+.math-symbol-picker > span { flex: 0 0 auto; color: var(--blue); font-size: .72rem; font-weight: 900; }
+.math-symbol-grid { display: flex; flex-wrap: wrap; gap: 5px; }
 .rich-toolbar .math-symbol-grid button { width: 36px; height: 34px; color: var(--ink); background: #f3f6f6; border: 1px solid #d8e1e3; font: 700 1.05rem Georgia, serif; }
 .rich-toolbar .math-symbol-grid button:hover, .rich-toolbar .math-symbol-grid button:focus-visible { color: white; background: var(--blue); outline: none; }
 .block-richtext { min-height: 90px; padding: 20px; color: var(--ink); background: transparent; outline: none; font-size: 1.05rem; line-height: 1.6; }
