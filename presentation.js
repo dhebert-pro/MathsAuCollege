@@ -3,7 +3,6 @@
 
   const parameters = new URLSearchParams(window.location.search);
   const courseId = parameters.get("course");
-  const accessCode = parameters.get("classe") || "";
   const teacherMode = parameters.get("mode") === "teacher";
   const loading = document.querySelector("#presentation-loading");
   const errorView = document.querySelector("#presentation-error");
@@ -148,7 +147,7 @@
     }
     document.title = `${CourseContent.displayTitle(course)} · Maths au collège`;
     document.querySelector("#presentation-level").textContent = `${course.level}e`;
-    document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html?classe=${encodeURIComponent(accessCode)}#classe`;
+    document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html#${course.level === "6" ? "sixieme" : "quatrieme"}`;
     loading.hidden = true;
     stage.hidden = false;
     render();
@@ -156,7 +155,7 @@
 
   async function loadPublic() {
     try {
-      const value = await CourseStore.getPublished(courseId, accessCode);
+      const value = await CourseStore.getPublished(courseId);
       if (!value) fail("Ce cours n’est pas publié ou n’existe plus.");
       else showCourse(value);
     } catch {
@@ -224,8 +223,6 @@
         }
       }
     });
-  } else if (!teacherMode && !accessCode) {
-    fail("Le code de la classe est absent. Revenez à l’accueil pour ouvrir votre espace.");
   } else {
     loadPublic();
   }

@@ -3,6 +3,8 @@ Thumbs.db
 .idea/
 .vscode/
 node_modules/
+dist/
+.firebase/
 .tools/
 firebase-debug.log
 firebase-debug.*.log

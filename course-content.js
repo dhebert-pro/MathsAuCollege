@@ -99,7 +99,6 @@
       slug: String(course.slug || title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")),
       chapterNumber: String(course.chapterNumber || "").trim().slice(0, 20),
       level: ["6", "4"].includes(String(course.level)) ? String(course.level) : "6",
-      classIds: Array.isArray(course.classIds) ? [...new Set(course.classIds.map(String).filter(Boolean))].slice(0, 40) : [],
       blocks,
       slideCount: blocks.length ? groupSlides(blocks).length : Math.max(1, Number(course.slideCount) || 1),
       status: course.status === "published" ? "published" : "draft",
@@ -137,9 +136,8 @@
 
   function publicCourse(course) {
     const normalized = normalizeCourse(course);
-    const { classIds, ...publicData } = normalized;
     return {
-      ...publicData,
+      ...normalized,
       blocks: normalized.blocks.map(({ teacherLabel, teacherUrl, ...block }) => block),
     };
   }

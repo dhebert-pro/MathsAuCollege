@@ -9,7 +9,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=0.7.0" />
+    <link rel="stylesheet" href="styles.css?v=0.8.0" />
     <title>Maths au collège</title>
   </head>
   <body>
@@ -18,16 +18,15 @@
     <header class="site-header">
       <a class="brand" href="#accueil" aria-label="Maths au collège — accueil">
         <img src="assets/logo.svg" alt="" width="46" height="46" />
-        <span>
-          <strong>Maths au collège</strong>
-        </span>
+        <span><strong>Maths au collège</strong></span>
       </a>
       <button class="menu-button" type="button" aria-expanded="false" aria-controls="navigation">
         <span class="sr-only">Ouvrir le menu</span><span aria-hidden="true">☰</span>
       </button>
       <nav id="navigation" class="navigation" aria-label="Navigation principale">
         <a href="#accueil" data-route="accueil">Accueil</a>
-        <a href="#classe" data-route="classe" data-class-navigation hidden>Mes cours</a>
+        <a href="#sixieme" data-route="sixieme">6e</a>
+        <a href="#quatrieme" data-route="quatrieme">4e</a>
         <a href="#aide" data-route="aide">Aide</a>
         <a class="teacher-link" href="professeur.html">Espace professeur</a>
       </nav>
@@ -35,43 +34,51 @@
 
     <main id="contenu">
       <section id="accueil" class="page active" data-page="accueil">
-        <div class="hero">
+        <div class="hero level-hero">
           <div class="hero-content">
-            <h1>Tes cours de maths, simplement.</h1>
-            <p class="hero-text">Entre le code donné par ton professeur pour retrouver uniquement les cours de ta classe.</p>
-            <form id="class-access-form" class="class-access-form">
-              <label for="class-code">Code de la classe</label>
-              <div><input id="class-code" name="classCode" required autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex. 6E-AB3K7P9" /><button class="button primary" type="submit">Ouvrir mes cours</button></div>
-              <p id="class-access-message" class="class-access-message" role="status"></p>
-            </form>
+            <h1>Tes cours de maths.</h1>
+            <p class="hero-text">Choisis ton niveau.</p>
+            <div class="level-actions">
+              <a class="button primary" href="#sixieme">Je suis en 6e</a>
+              <a class="button secondary" href="#quatrieme">Je suis en 4e</a>
+            </div>
           </div>
-          <aside class="hero-shortcuts class-access-note" aria-label="Accès à la classe">
-            <span class="shortcut-level">→</span>
-            <div><p class="shortcut-heading">Un espace par classe</p><p>Tu n’as pas besoin de compte. Le code suffit et ton navigateur le mémorisera sur cet appareil.</p></div>
-          </aside>
+          <div class="level-choice" aria-hidden="true"><span>6<sup>e</sup></span><span>4<sup>e</sup></span></div>
         </div>
-        <div class="home-note"><strong>Un espace volontairement simple.</strong><span>Entre ton code, puis choisis le chapitre que tu souhaites consulter.</span></div>
       </section>
 
-      <section id="classe" class="page" data-page="classe" hidden>
+      <section id="sixieme" class="page" data-page="sixieme" hidden>
         <div class="page-banner sixieme-banner">
-          <div><p class="eyebrow" id="class-level-label">Classe</p><h1 id="class-name">Mes cours</h1><p>Les cours publiés pour ta classe.</p></div>
-          <span id="class-level-mark" class="banner-mark" aria-hidden="true"></span>
+          <div><p class="eyebrow">Niveau 6e</p><h1>Les cours de 6e</h1></div>
+          <span class="banner-mark" aria-hidden="true">6<sup>e</sup></span>
         </div>
         <div class="course-toolbar">
-          <div><strong id="class-course-count">0 cours</strong><span> publié(s)</span></div>
-          <label class="search-field">Rechercher <input id="class-course-search" type="search" placeholder="Numéro ou nom du chapitre" /></label>
+          <div><strong id="course-count-6">0 cours</strong><span> publié(s)</span></div>
+          <label class="search-field">Rechercher <input type="search" data-course-search="6" placeholder="Numéro ou nom du chapitre" /></label>
         </div>
-        <div id="class-course-grid" class="student-course-grid"></div>
-        <div id="class-course-empty" class="empty-space" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2><p>Les prochaines ressources apparaîtront ici.</p></div>
+        <div id="course-grid-6" class="student-course-grid"></div>
+        <div id="course-empty-6" class="empty-space" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2></div>
+      </section>
+
+      <section id="quatrieme" class="page" data-page="quatrieme" hidden>
+        <div class="page-banner quatrieme-banner">
+          <div><p class="eyebrow">Niveau 4e</p><h1>Les cours de 4e</h1></div>
+          <span class="banner-mark" aria-hidden="true">4<sup>e</sup></span>
+        </div>
+        <div class="course-toolbar">
+          <div><strong id="course-count-4">0 cours</strong><span> publié(s)</span></div>
+          <label class="search-field">Rechercher <input type="search" data-course-search="4" placeholder="Numéro ou nom du chapitre" /></label>
+        </div>
+        <div id="course-grid-4" class="student-course-grid"></div>
+        <div id="course-empty-4" class="empty-space" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2></div>
       </section>
 
       <section id="aide" class="page" data-page="aide" hidden>
         <div class="simple-page">
           <p class="eyebrow">Mode d’emploi</p><h1>Besoin d’aide ?</h1>
           <div class="help-grid two-columns">
-            <article><span aria-hidden="true">1</span><h2>Entrer son code</h2><p>Utilise le code transmis par ton professeur pour ouvrir les cours de ta classe.</p></article>
-            <article><span aria-hidden="true">2</span><h2>Télécharger un cours</h2><p>Utilise le bouton PDF sur la fiche du cours pour conserver le document.</p></article>
+            <article><span aria-hidden="true">1</span><h2>Choisir son niveau</h2><p>Ouvre l’espace 6e ou 4e depuis l’accueil.</p></article>
+            <article><span aria-hidden="true">2</span><h2>Télécharger un cours</h2><p>Utilise le bouton PDF sur la fiche du cours.</p></article>
           </div>
         </div>
       </section>
@@ -80,15 +87,15 @@
     <footer>
       <p>Maths au collège</p>
       <p><span id="network-status" class="status-dot"></span> <span id="network-label">En ligne</span></p>
-      <p class="app-version">v0.7.0</p>
+      <p class="app-version">v0.8.0</p>
     </footer>
 
-    <script src="vendor/jspdf.umd.min.js?v=0.7.0" defer></script>
-    <script src="course-content.js?v=0.7.0" defer></script>
-    <script src="firebase-config.js?v=0.7.0" defer></script>
-    <script src="firebase-bundle.js?v=0.7.0" defer></script>
-    <script src="course-store.js?v=0.7.0" defer></script>
-    <script src="pdf-export.js?v=0.7.0" defer></script>
-    <script src="app.js?v=0.7.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.8.0" defer></script>
+    <script src="course-content.js?v=0.8.0" defer></script>
+    <script src="firebase-config.js?v=0.8.0" defer></script>
+    <script src="firebase-bundle.js?v=0.8.0" defer></script>
+    <script src="course-store.js?v=0.8.0" defer></script>
+    <script src="pdf-export.js?v=0.8.0" defer></script>
+    <script src="app.js?v=0.8.0" defer></script>
   </body>
 </html>

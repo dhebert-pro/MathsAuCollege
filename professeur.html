@@ -7,8 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.7.0" />
-    <link rel="stylesheet" href="professeur.css?v=0.7.0" />
+    <link rel="stylesheet" href="styles.css?v=0.8.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.8.0" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -28,7 +28,7 @@
           <div id="login-message" class="form-message" role="status"></div>
         </div>
         <a class="back-link" href="index.html">← Retour aux cours</a>
-        <span class="app-version login-version">v0.7.0</span>
+        <span class="app-version login-version">v0.8.0</span>
       </section>
 
       <section id="admin-app" class="admin-app" hidden>
@@ -40,13 +40,12 @@
           <nav aria-label="Navigation de l’administration">
             <button type="button" data-admin-view="dashboard" class="active"><span aria-hidden="true">⌂</span> Tableau de bord</button>
             <button type="button" data-admin-view="courses"><span aria-hidden="true">▤</span> Tous les cours</button>
-            <button type="button" data-admin-view="classes"><span aria-hidden="true">⌘</span> Mes classes</button>
             <button type="button" data-admin-view="editor"><span aria-hidden="true">＋</span> Ajouter un cours</button>
           </nav>
           <div class="sidebar-bottom">
             <a href="index.html">Voir les cours ↗</a>
             <button id="logout" type="button">Se déconnecter</button>
-            <span class="app-version">v0.7.0</span>
+            <span class="app-version">v0.8.0</span>
           </div>
         </aside>
 
@@ -79,24 +78,11 @@
               <p class="order-help">Tri automatique : numéro de chapitre, puis nom. Les flèches permettent de personnaliser l’ordre dans chaque niveau.</p>
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th scope="col">Chapitre</th><th scope="col">Nom</th><th scope="col">Niveau</th><th scope="col">Classes</th><th scope="col">Statut</th><th scope="col">Classement</th><th scope="col">Modification</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                  <thead><tr><th scope="col">Chapitre</th><th scope="col">Nom</th><th scope="col">Niveau</th><th scope="col">Statut</th><th scope="col">Classement</th><th scope="col">Modification</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
                   <tbody id="course-table-body"></tbody>
                 </table>
               </div>
               <div id="table-empty" class="table-empty" hidden>Aucun cours ne correspond aux filtres.</div>
-            </section>
-          </section>
-
-          <section class="admin-view" data-admin-page="classes" hidden>
-            <div class="admin-heading"><div><p class="eyebrow">Accès des élèves</p><h1>Mes classes</h1><p>Chaque classe dispose de son propre code et ne voit que les cours qui lui sont attribués.</p></div></div>
-            <section class="admin-panel class-manager">
-              <form id="class-form" class="class-form">
-                <label>Nom de la classe<input name="name" required maxlength="60" placeholder="Ex. 6e A" /></label>
-                <label>Niveau<select name="level"><option value="6">6e</option><option value="4">4e</option></select></label>
-                <button class="admin-button primary" type="submit">Créer la classe</button>
-              </form>
-              <p class="order-help">Donnez aux élèves le lien ou le code généré. Un code est volontairement difficile à deviner et peut être remplacé en supprimant puis recréant la classe.</p>
-              <div id="class-list" class="class-list"></div>
             </section>
           </section>
 
@@ -130,12 +116,15 @@
                 <div class="admin-panel">
                   <h2>Paramètres</h2>
                   <label>Niveau<select name="level" required><option value="6">6e</option><option value="4">4e</option></select></label>
-                  <fieldset class="class-assignments">
-                    <legend>Classes autorisées</legend>
-                    <div id="course-class-list"></div>
-                    <small>Le cours ne sera visible que dans les classes cochées.</small>
-                  </fieldset>
                   <div class="editor-status"><span>État actuel</span><strong id="editor-status-label" class="status draft">Brouillon</strong></div>
+                </div>
+                <div class="admin-panel live-preview-panel">
+                  <div class="live-preview-heading"><div><h2>Aperçu direct</h2><p>Rendu de la présentation</p></div><span id="preview-counter">1 / 1</span></div>
+                  <div id="course-live-preview" class="course-live-preview" aria-live="polite"></div>
+                  <div class="live-preview-controls">
+                    <button id="preview-previous" type="button" aria-label="Page précédente">←</button>
+                    <button id="preview-next" type="button" aria-label="Page suivante">→</button>
+                  </div>
                 </div>
                 <div class="editor-actions">
                   <button id="save-course" class="admin-button secondary wide" type="submit">Enregistrer le brouillon</button>
@@ -151,12 +140,12 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.7.0" defer></script>
-    <script src="course-content.js?v=0.7.0" defer></script>
-    <script src="firebase-config.js?v=0.7.0" defer></script>
-    <script src="firebase-bundle.js?v=0.7.0" defer></script>
-    <script src="course-store.js?v=0.7.0" defer></script>
-    <script src="pdf-export.js?v=0.7.0" defer></script>
-    <script src="professeur.js?v=0.7.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.8.0" defer></script>
+    <script src="course-content.js?v=0.8.0" defer></script>
+    <script src="firebase-config.js?v=0.8.0" defer></script>
+    <script src="firebase-bundle.js?v=0.8.0" defer></script>
+    <script src="course-store.js?v=0.8.0" defer></script>
+    <script src="pdf-export.js?v=0.8.0" defer></script>
+    <script src="professeur.js?v=0.8.0" defer></script>
   </body>
 </html>

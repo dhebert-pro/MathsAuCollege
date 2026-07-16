@@ -6,7 +6,7 @@
 - Firebase Authentication vérifie l’identité avec Google.
 - Firestore conserve les cours et applique les autorisations côté serveur.
 - Seul le compte Google professionnel autorisé, vérifié et connecté avec le fournisseur Google peut lire ou modifier la collection privée `courses`.
-- Chaque classe dispose d’un code aléatoire qui ouvre uniquement son catalogue ; Firestore interdit d’énumérer les classes et leurs cours.
+- Les cours publiés sont publics et organisés par niveau ; les brouillons et le back-office restent réservés au compte professeur autorisé.
 - Un brouillon ne figure jamais dans un espace de classe.
 - Les liens réservés à la projection sont retirés de la copie publique du cours avant sa publication.
 - Une image n’est lisible par son identifiant non devinable que lorsqu’elle appartient à un cours publié ; la liste des images reste privée.

@@ -10,10 +10,13 @@
   const saveButton = document.querySelector("#save-course");
   const publishButton = document.querySelector("#publish-course");
   const unpublishButton = document.querySelector("#unpublish-course");
+  const livePreview = document.querySelector("#course-live-preview");
   let accessGranted = false;
   let editorBlocks = [];
-  let editorClassIds = [];
   let uploadedDuringEdit = new Set();
+  let previewSlideIndex = 0;
+  let previewFrame = 0;
+  let draggedBlockId = "";
 
   const escapeHtml = CourseContent.escapeHtml;
   const normalizeSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -104,7 +107,6 @@
         <td><strong class="chapter-number">${escapeHtml(course.chapterNumber || "—")}</strong></td>
         <td><strong>${escapeHtml(course.title)}</strong><small>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""}</small></td>
         <td><span class="level-pill level-${course.level}">${course.level}e</span></td>
-        <td>${course.classIds.length ? course.classIds.map((id) => `<span class="class-code">${escapeHtml(CourseStore.classes().find((item) => item.id === id)?.name || id)}</span>`).join(" ") : "—"}</td>
         <td><button type="button" class="status-action ${course.status}" data-toggle-course="${course.id}">${course.status === "published" ? "Dépublier" : "Publier"}</button></td>
         <td><div class="order-actions"><button type="button" data-move-course="${course.id}" data-direction="-1" title="Monter">↑</button><button type="button" data-move-course="${course.id}" data-direction="1" title="Descendre">↓</button></div></td>
         <td>${formatDate(course.updatedAt)}</td>
@@ -120,36 +122,6 @@
       </tr>
     `).join("");
     document.querySelector("#table-empty").hidden = courses.length > 0;
-  }
-
-  function classLink(id) {
-    const url = new URL("index.html", window.location.href);
-    url.searchParams.set("classe", id);
-    url.hash = "classe";
-    return url.href;
-  }
-
-  function renderClasses() {
-    const classes = CourseStore.classes();
-    document.querySelector("#class-list").innerHTML = classes.map((classroom) => `
-      <article class="class-item">
-        <span class="level-pill level-${classroom.level}">${classroom.level}e</span>
-        <div><strong>${escapeHtml(classroom.name)}</strong><small>${CourseStore.all().filter((course) => course.status === "published" && course.classIds.includes(classroom.id)).length} cours publié(s)</small></div>
-        <code class="class-code">${escapeHtml(classroom.id)}</code>
-        <div class="class-item-actions">
-          <button type="button" data-copy-class="${classroom.id}">Copier le lien</button>
-          <button type="button" class="danger" data-delete-class="${classroom.id}">Supprimer</button>
-        </div>
-      </article>
-    `).join("") || '<p class="table-empty">Aucune classe créée pour le moment.</p>';
-  }
-
-  function renderClassAssignments() {
-    const level = courseForm.elements.level.value;
-    const classes = CourseStore.classes(level);
-    document.querySelector("#course-class-list").innerHTML = classes.map((classroom) => `
-      <label><input type="checkbox" name="classIds" value="${classroom.id}" ${editorClassIds.includes(classroom.id) ? "checked" : ""} /> ${escapeHtml(classroom.name)}</label>
-    `).join("") || `<p class="field-help">Aucune classe de ${level}e. Créez-la d’abord dans « Mes classes ».</p>`;
   }
 
   function updateEditorStatus(status) {
@@ -174,7 +146,7 @@
     return `
       <article class="block-editor block-${block.type}" data-block-id="${block.id}">
         <header class="block-editor-header">
-          <div><span class="block-type-icon">${type.icon}</span><strong>${type.label}</strong><small>Bloc ${index + 1}</small></div>
+          <div><button type="button" class="drag-handle" draggable="true" data-drag-block aria-label="Déplacer le bloc ${index + 1}" title="Faire glisser pour déplacer">⋮⋮</button><span class="block-type-icon">${type.icon}</span><strong>${type.label}</strong><small>Bloc ${index + 1}</small></div>
           <div class="block-controls">
             <button type="button" data-move-block="-1" ${index === 0 ? "disabled" : ""} title="Monter le bloc">↑</button>
             <button type="button" data-move-block="1" ${index === editorBlocks.length - 1 ? "disabled" : ""} title="Descendre le bloc">↓</button>
@@ -223,6 +195,50 @@
     });
   }
 
+  function previewBlock(block) {
+    const type = CourseContent.TYPES[block.type];
+    return `
+      <section class="preview-block block-${block.type}${block.admitted ? " admitted" : ""}">
+        ${block.type === "text" ? "" : `<strong class="preview-block-label">${escapeHtml(type.label)}${block.admitted ? " admise" : ""}</strong>`}
+        <div class="preview-block-content">${CourseContent.sanitizeHtml(block.html)}</div>
+        ${block.imageIds.length ? `<div class="preview-images">${block.imageIds.map((id) => `<span data-preview-image="${id}">Image…</span>`).join("")}</div>` : ""}
+      </section>
+    `;
+  }
+
+  async function hydratePreviewImages() {
+    const holders = [...livePreview.querySelectorAll("[data-preview-image]")];
+    await Promise.all(holders.map(async (holder) => {
+      try {
+        const image = await CourseStore.getImage(holder.dataset.previewImage);
+        if (!image || !holder.isConnected) return;
+        const element = document.createElement("img");
+        element.src = image.dataUrl;
+        element.alt = image.alt;
+        holder.replaceWith(element);
+      } catch {
+        if (holder.isConnected) holder.textContent = "Image indisponible";
+      }
+    }));
+  }
+
+  function renderPreview(sync = true) {
+    if (sync && blockList.children.length) syncBlocksFromDom();
+    const slides = CourseContent.groupSlides(editorBlocks);
+    previewSlideIndex = Math.max(0, Math.min(previewSlideIndex, slides.length - 1));
+    const blocks = slides[previewSlideIndex] || [];
+    livePreview.innerHTML = blocks.map(previewBlock).join("") || '<p class="preview-empty">Ajoutez du contenu pour voir le rendu.</p>';
+    document.querySelector("#preview-counter").textContent = `${previewSlideIndex + 1} / ${slides.length}`;
+    document.querySelector("#preview-previous").disabled = previewSlideIndex === 0;
+    document.querySelector("#preview-next").disabled = previewSlideIndex >= slides.length - 1;
+    hydratePreviewImages();
+  }
+
+  function schedulePreview() {
+    cancelAnimationFrame(previewFrame);
+    previewFrame = requestAnimationFrame(() => renderPreview(true));
+  }
+
   async function hydrateImages() {
     const previews = [...blockList.querySelectorAll("[data-image-id]")];
     await Promise.all(previews.map(async (preview) => {
@@ -245,6 +261,7 @@
     const count = editorBlocks.length;
     document.querySelector("#block-count").textContent = `${count} bloc${count > 1 ? "s" : ""}`;
     hydrateImages();
+    renderPreview(false);
   }
 
   function addBlock(type) {
@@ -269,12 +286,11 @@
     courseForm.elements.title.value = course?.title || "";
     courseForm.elements.chapterNumber.value = course?.chapterNumber || "";
     courseForm.elements.level.value = course?.level || "6";
-    editorClassIds = course?.classIds || [];
     editorBlocks = course?.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds] })) || [CourseContent.normalizeBlock({ type: "text" })];
+    previewSlideIndex = 0;
     document.querySelector("#editor-title").textContent = course ? "Modifier le cours" : "Nouveau cours";
     updateEditorStatus(course?.status || "draft");
     renderBlocks();
-    renderClassAssignments();
     showView("editor");
     courseForm.elements.title.focus();
   }
@@ -282,8 +298,6 @@
   function renderAll() {
     renderStats();
     renderTable();
-    renderClasses();
-    if (!document.querySelector('[data-admin-page="editor"]').hidden) renderClassAssignments();
   }
 
   async function runMutation(action, successMessage) {
@@ -384,7 +398,6 @@
         title: courseForm.elements.title.value,
         chapterNumber: courseForm.elements.chapterNumber.value,
         level: courseForm.elements.level.value,
-        classIds: [...courseForm.querySelectorAll("[name='classIds']:checked")].map((input) => input.value),
         status,
         blocks: editorBlocks,
         manualOrder: existing?.manualOrder ?? null,
@@ -417,22 +430,10 @@
   document.querySelectorAll("[data-go-courses]").forEach((button) => button.addEventListener("click", () => showView("courses")));
   document.querySelector("#cancel-editor").addEventListener("click", async () => { await cleanupNewUploads(); showView("courses"); });
   document.querySelector("#reset-order").addEventListener("click", () => runMutation(() => CourseStore.resetOrder(document.querySelector("#level-filter").value), "Tri automatique rétabli."));
-  courseForm.elements.level.addEventListener("change", () => { editorClassIds = []; renderClassAssignments(); });
-  courseForm.addEventListener("change", (event) => {
-    if (event.target.name === "classIds") {
-      editorClassIds = [...courseForm.querySelectorAll("[name='classIds']:checked")].map((input) => input.value);
-    }
-  });
-  document.querySelector("#class-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const name = form.elements.name.value.trim();
-    if (!name) return;
-    await runMutation(() => CourseStore.createClass(name, form.elements.level.value), "Classe créée. Le code d’accès est prêt.");
-    form.reset();
-  });
   ["#admin-search", "#level-filter", "#status-filter"].forEach((selector) => document.querySelector(selector).addEventListener("input", renderTable));
   document.querySelectorAll("[data-add-block]").forEach((button) => button.addEventListener("click", () => addBlock(button.dataset.addBlock)));
+  document.querySelector("#preview-previous").addEventListener("click", () => { previewSlideIndex -= 1; renderPreview(true); });
+  document.querySelector("#preview-next").addEventListener("click", () => { previewSlideIndex += 1; renderPreview(true); });
   window.addEventListener("courses:changed", () => { if (accessGranted) renderAll(); });
 
   blockList.addEventListener("mousedown", (event) => {
@@ -475,7 +476,11 @@
         const applied = document.execCommand("hiliteColor", false, format.dataset.color);
         if (!applied) document.execCommand("backColor", false, format.dataset.color);
       }
+      schedulePreview();
     }
+  });
+  blockList.addEventListener("input", (event) => {
+    if (event.target.matches(".block-richtext, [data-teacher-label], [data-teacher-url]")) schedulePreview();
   });
   blockList.addEventListener("change", async (event) => {
     if (event.target.matches("[data-image-upload]")) await uploadImages(event.target);
@@ -484,6 +489,52 @@
       const image = await CourseStore.getImage(preview.dataset.imageId);
       if (image) await CourseStore.saveImage({ ...image, alt: event.target.value });
     }
+    if (event.target.matches("[data-admitted], [data-slide-break], [data-reveal-break]")) renderPreview(true);
+  });
+
+  function clearDropMarkers() {
+    blockList.querySelectorAll(".drop-before, .drop-after, .dragging").forEach((card) => card.classList.remove("drop-before", "drop-after", "dragging"));
+  }
+
+  blockList.addEventListener("dragstart", (event) => {
+    const handle = event.target.closest("[data-drag-block]");
+    if (!handle) return;
+    const card = handle.closest("[data-block-id]");
+    syncBlocksFromDom();
+    draggedBlockId = card.dataset.blockId;
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", draggedBlockId);
+    requestAnimationFrame(() => card.classList.add("dragging"));
+  });
+  blockList.addEventListener("dragover", (event) => {
+    if (!draggedBlockId) return;
+    const card = event.target.closest("[data-block-id]");
+    if (!card || card.dataset.blockId === draggedBlockId) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    blockList.querySelectorAll(".drop-before, .drop-after").forEach((item) => item.classList.remove("drop-before", "drop-after"));
+    const after = event.clientY > card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2;
+    card.classList.add(after ? "drop-after" : "drop-before");
+  });
+  blockList.addEventListener("drop", (event) => {
+    const targetCard = event.target.closest("[data-block-id]");
+    if (!draggedBlockId || !targetCard || targetCard.dataset.blockId === draggedBlockId) return;
+    event.preventDefault();
+    const after = targetCard.classList.contains("drop-after");
+    const from = editorBlocks.findIndex((block) => block.id === draggedBlockId);
+    let to = editorBlocks.findIndex((block) => block.id === targetCard.dataset.blockId);
+    if (from < 0 || to < 0) return;
+    const [moved] = editorBlocks.splice(from, 1);
+    if (from < to) to -= 1;
+    if (after) to += 1;
+    editorBlocks.splice(Math.max(0, Math.min(to, editorBlocks.length)), 0, moved);
+    draggedBlockId = "";
+    clearDropMarkers();
+    renderBlocks();
+  });
+  blockList.addEventListener("dragend", () => {
+    draggedBlockId = "";
+    clearDropMarkers();
   });
 
   courseForm.addEventListener("submit", (event) => {
@@ -501,18 +552,6 @@
     const remove = event.target.closest("[data-delete-course]");
     const toggle = event.target.closest("[data-toggle-course]");
     const move = event.target.closest("[data-move-course]");
-    const copyClass = event.target.closest("[data-copy-class]");
-    const deleteClass = event.target.closest("[data-delete-class]");
-    if (copyClass) {
-      await navigator.clipboard.writeText(classLink(copyClass.dataset.copyClass));
-      toast("Lien de la classe copié.");
-    }
-    if (deleteClass) {
-      const classroom = CourseStore.classes().find((item) => item.id === deleteClass.dataset.deleteClass);
-      if (classroom && window.confirm(`Supprimer la classe « ${classroom.name} » et son accès ?`)) {
-        await runMutation(() => CourseStore.removeClass(classroom.id), "Classe supprimée.");
-      }
-    }
     if (edit) openEditor(edit.dataset.editCourse);
     if (present) window.open(`presentation.html?course=${encodeURIComponent(present.dataset.presentCourse)}&mode=teacher`, "_blank", "noopener");
     if (pdf) await runMutation(() => CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse)), "PDF généré.");
