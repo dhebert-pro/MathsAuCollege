@@ -40,7 +40,7 @@
     const drawing = phase(progress, .58, .84);
     const reveal = phase(progress, .82, .96);
     const translateY = 290 * moving;
-    const angle = progress < .58 ? -42 * moving : -42 + 42 * drawing;
+    const angle = progress < .58 ? -12 * moving : -12 + 16 * drawing;
     compass.setAttribute("transform", `translate(0 ${translateY.toFixed(2)}) rotate(${angle.toFixed(2)} 170 150)`);
     arc.style.strokeDashoffset = String(100 * (1 - drawing));
     pointD.style.opacity = String(reveal);

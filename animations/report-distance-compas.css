@@ -23,21 +23,19 @@ svg { display: block; width: 100%; height: 100%; min-height: 0; }
 .source-line { stroke: var(--green); }
 .point-mark { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
 .point-label { fill: var(--ink); font: italic 700 30px Georgia, serif; }
-.measure-mark { fill: none; stroke: var(--orange); stroke-width: 4; stroke-linecap: round; }
-.length-label { fill: #a9502c; font: italic 700 26px Georgia, serif; }
-.compass-handle { fill: none; stroke: #456674; stroke-width: 10; stroke-linecap: round; }
+.compass-handle { fill: none; stroke: #365b6d; stroke-width: 7; stroke-linecap: round; }
+.compass-cap { fill: #d8e1e3; stroke: #365b6d; stroke-width: 4; }
 .compass-leg { stroke: #385866; stroke-width: 2; stroke-linejoin: round; }
 .compass-leg-left { fill: url("#metal-left"); }
 .compass-leg-right { fill: url("#metal-right"); }
-.compass-needle { fill: none; stroke: #263e49; stroke-width: 5; stroke-linecap: round; }
-.compass-pencil { fill: url("#pencil-body"); stroke: #9d4c2d; stroke-width: 2; stroke-linejoin: round; }
+.compass-needle { fill: none; stroke: #263e49; stroke-width: 4; stroke-linecap: round; }
+.pencil-shaft { fill: #e98443; stroke: #b9582e; stroke-width: 1.5; }
+.pencil-clamp { fill: #365b6d; stroke: #173f53; stroke-width: 2; }
 .pencil-tip { fill: #f2d1a4; stroke: #713d29; stroke-width: 1.5; }
+.pencil-lead { fill: #263e49; }
 .compass-hinge { fill: #f4f7f7; stroke: #345a6c; stroke-width: 6; }
 .compass-screw { fill: #d8e1e3; stroke: #345a6c; stroke-width: 2; }
 .screw-slot { fill: none; stroke: #345a6c; stroke-width: 2; stroke-linecap: round; }
-.compass-brace { fill: none; stroke: #456674; stroke-width: 5; stroke-linecap: round; }
-.adjustment-rod { fill: none; stroke: #355d70; stroke-width: 4; stroke-linecap: round; }
-.adjustment-screw { fill: var(--orange); stroke: #9d4c2d; stroke-width: 2; }
 .compass-arc { fill: none; stroke: var(--orange); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
 .result-point, .result-label, .result-equality { opacity: 0; }
 .result-point { stroke: var(--orange); stroke-width: 7; }
