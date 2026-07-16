@@ -136,11 +136,7 @@
   }
 
   function publicCourse(course) {
-    const normalized = normalizeCourse(course);
-    return {
-      ...normalized,
-      blocks: normalized.blocks.map(({ teacherLabel, teacherUrl, ...block }) => block),
-    };
+    return normalizeCourse(course);
   }
 
   function catalogCourse(course) {

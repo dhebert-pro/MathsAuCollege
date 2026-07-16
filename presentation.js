@@ -8,9 +8,6 @@
   const errorView = document.querySelector("#presentation-error");
   const stage = document.querySelector("#presentation-stage");
   const slideElement = document.querySelector("#slide");
-  const teacherToggle = document.querySelector("#teacher-links-toggle");
-  const teacherDock = document.querySelector("#teacher-resource-dock");
-  const teacherPanel = document.querySelector("#teacher-links");
   const zoomOut = document.querySelector("#zoom-out");
   const zoomIn = document.querySelector("#zoom-in");
   const zoomLabel = document.querySelector("#zoom-label");
@@ -21,7 +18,8 @@
   let zoomLevel = 1;
 
   try {
-    zoomLevel = Math.max(.75, Math.min(1.6, Number(localStorage.getItem("maths-presentation-zoom")) || 1));
+    const savedZoom = Number(localStorage.getItem("maths-presentation-zoom"));
+    if (Number.isFinite(savedZoom) && savedZoom > 0) zoomLevel = savedZoom;
   } catch {}
 
   function fail(message) {
@@ -63,10 +61,13 @@
 
   function blockHtml(block, stageNumber, revealedStage) {
     const type = CourseContent.TYPES[block.type];
+    const resourceUrl = CourseContent.safeUrl(block.teacherUrl);
+    const resourceLabel = CourseContent.escapeHtml(block.teacherLabel || "la ressource associée à ce bloc");
     const hidden = stageNumber > revealIndex;
     const newlyRevealed = !hidden && stageNumber > 0 && stageNumber === revealedStage;
     return `
       <section class="course-block block-${block.type}${block.admitted ? " admitted" : ""}${hidden ? " reveal-hidden" : ""}${newlyRevealed ? " reveal-new" : ""}" data-block-id="${block.id}">
+        ${resourceUrl ? `<a class="block-resource-link" href="${resourceUrl}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir ${resourceLabel}" title="Ouvrir ${resourceLabel}"><span aria-hidden="true">↗</span></a>` : ""}
         ${block.type === "text" ? "" : `<h2>${type.label}${block.admitted ? " · admise" : ""}</h2>`}
         <div class="block-content">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.imageIds.length ? `<div class="block-images-view">${block.imageIds.map((id) => `<div data-presentation-image="${id}"></div>`).join("")}</div>` : ""}
@@ -90,40 +91,6 @@
     }));
   }
 
-  function currentTeacherLinks() {
-    if (!teacherMode || slideIndex === 0) return [];
-    return stagesFor(slides[slideIndex - 1])
-      .filter(({ block, stageNumber }) => block.teacherUrl && stageNumber <= revealIndex)
-      .map(({ block }) => ({ id: block.id, label: block.teacherLabel || CourseContent.TYPES[block.type].label, url: block.teacherUrl }));
-  }
-
-  function teacherLinkHtml(link) {
-    return `<a href="${CourseContent.safeUrl(link.url)}" target="_blank" rel="noopener noreferrer">Ouvrir ${CourseContent.escapeHtml(link.label)} <span aria-hidden="true">↗</span></a>`;
-  }
-
-  function renderTeacherLinks() {
-    const current = currentTeacherLinks();
-    teacherPanel.hidden = true;
-    teacherDock.hidden = !teacherMode;
-    teacherToggle.disabled = current.length === 0;
-    teacherToggle.dataset.singleUrl = current.length === 1 ? current[0].url : "";
-    if (!current.length) {
-      teacherToggle.innerHTML = 'Ressource du bloc <span aria-hidden="true">↗</span>';
-      teacherToggle.title = "Le bouton s’activera lorsqu’un bloc possédant une ressource sera visible.";
-      teacherPanel.innerHTML = "";
-      return;
-    }
-    teacherToggle.title = "Ouvrir la ressource du bloc visible (raccourci L)";
-    teacherToggle.innerHTML = current.length === 1
-      ? `Ressource : ${CourseContent.escapeHtml(current[0].label)} <span aria-hidden="true">↗</span>`
-      : `Ressources disponibles <span>${current.length}</span>`;
-    teacherPanel.innerHTML = `
-      <h2>Ressources du professeur</h2>
-      <p class="teacher-links-help">Ces commandes sont placées hors de la page à recopier. Elles sont absentes du cours élève et du PDF.</p>
-      ${current.map(teacherLinkHtml).join("")}
-    `;
-  }
-
   function updateZoom() {
     const percent = Math.round(zoomLevel * 100);
     slideElement.style.setProperty("--presentation-zoom", String(zoomLevel));
@@ -131,39 +98,51 @@
     slideElement.style.setProperty("--presentation-image-height", `${Math.round(300 * zoomLevel)}px`);
     zoomLabel.value = `${percent} %`;
     zoomLabel.textContent = `${percent} %`;
-    zoomOut.disabled = zoomLevel <= .75;
-    zoomIn.disabled = zoomLevel >= 1.6;
+    zoomOut.disabled = zoomLevel <= .1;
+    zoomIn.disabled = false;
     try { localStorage.setItem("maths-presentation-zoom", String(zoomLevel)); } catch {}
   }
 
   function changeZoom(delta) {
-    zoomLevel = Math.max(.75, Math.min(1.6, Math.round((zoomLevel + delta) * 10) / 10));
+    zoomLevel = Math.max(.1, Math.round((zoomLevel + delta) * 10) / 10);
     updateZoom();
   }
 
-  function turnPage(direction) {
-    if (!direction || !slideElement.innerHTML.trim()) return;
-    slideElement.parentElement.querySelector(".page-turn-sheet")?.remove();
+  function clonePage(className) {
     const sheet = slideElement.cloneNode(true);
     sheet.removeAttribute("id");
     sheet.removeAttribute("aria-live");
     sheet.setAttribute("aria-hidden", "true");
-    sheet.classList.remove("page-under");
-    sheet.classList.add("page-turn-sheet", direction === "next" ? "turn-forward" : "turn-backward");
-    sheet.scrollTop = slideElement.scrollTop;
+    sheet.classList.remove("page-under", "page-return-target");
+    sheet.classList.add("page-turn-sheet", className);
     slideElement.parentElement.append(sheet);
-    const removeSheet = () => sheet.remove();
-    sheet.addEventListener("animationend", removeSheet, { once: true });
-    window.setTimeout(removeSheet, 1000);
+    sheet.scrollTop = slideElement.scrollTop;
+    return sheet;
   }
 
-  function openTeacherResource() {
-    const current = currentTeacherLinks();
-    if (current.length === 1) {
-      window.open(CourseContent.safeUrl(current[0].url), "_blank", "noopener,noreferrer");
-    } else if (current.length > 1) {
-      teacherPanel.hidden = !teacherPanel.hidden;
+  function preparePageTurn(direction) {
+    slideElement.parentElement.querySelectorAll(".page-turn-sheet").forEach((sheet) => sheet.remove());
+    if (!direction || !slideElement.innerHTML.trim() || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return null;
+    const sheet = clonePage(direction === "next" ? "turn-forward" : "page-old-under");
+    if (direction === "next") {
+      sheet.addEventListener("animationend", () => sheet.remove(), { once: true });
+      window.setTimeout(() => sheet.remove(), 1000);
     }
+    return sheet;
+  }
+
+  function finishBackwardTurn(oldSheet) {
+    if (!oldSheet) return;
+    slideElement.classList.add("page-return-target");
+    const returningSheet = clonePage("turn-backward");
+    returningSheet.classList.remove("page-return-target");
+    const finish = () => {
+      returningSheet.remove();
+      oldSheet.remove();
+      slideElement.classList.remove("page-return-target");
+    };
+    returningSheet.addEventListener("animationend", finish, { once: true });
+    window.setTimeout(finish, 1000);
   }
 
   function maxReveal() {
@@ -179,7 +158,6 @@
     document.querySelector("#previous-step").disabled = slideIndex === 0 && revealIndex === 0;
     document.querySelector("#next-step").disabled = slideIndex === total - 1 && revealIndex >= maxReveal();
     document.querySelector("#reveal-hint").textContent = revealIndex < maxReveal() ? "Cliquez pour révéler la suite" : slideIndex < total - 1 ? "Continuer" : "Fin du cours";
-    renderTeacherLinks();
     saveProgress();
   }
 
@@ -199,8 +177,7 @@
   }
 
   function render({ direction = "", revealedStage = null } = {}) {
-    teacherPanel.hidden = true;
-    turnPage(direction);
+    const oldSheet = preparePageTurn(direction);
     if (slideIndex === 0) {
       slideElement.className = "slide slide-cover";
       slideElement.dataset.blockCount = "0";
@@ -212,9 +189,11 @@
       slideElement.innerHTML = stagesFor(currentSlide).map(({ block, stageNumber }) => blockHtml(block, stageNumber, revealedStage)).join("");
       hydrateImages();
     }
-    if (direction) {
+    if (direction === "next" && oldSheet) {
       slideElement.classList.add("page-under");
       window.setTimeout(() => slideElement.classList.remove("page-under"), 750);
+    } else if (direction === "previous") {
+      finishBackwardTurn(oldSheet);
     }
     slideElement.scrollTop = 0;
     updateZoom();
@@ -288,7 +267,6 @@
     try { await CoursePdf.download(course); } finally { button.disabled = false; }
   });
   document.querySelector("#fullscreen-button").addEventListener("click", () => document.documentElement.requestFullscreen?.());
-  teacherToggle.addEventListener("click", openTeacherResource);
   document.querySelector("#presentation-close").addEventListener("click", (event) => {
     if (teacherMode && window.opener) {
       event.preventDefault();
@@ -303,9 +281,9 @@
     } catch {}
   });
   document.addEventListener("keydown", (event) => {
+    if (["Enter", " "].includes(event.key) && event.target.closest("a, button")) return;
     if (["ArrowRight", "PageDown", "Enter", " "].includes(event.key)) { event.preventDefault(); next(); }
     if (["ArrowLeft", "PageUp", "Backspace"].includes(event.key)) { event.preventDefault(); previous(); }
-    if (teacherMode && event.key.toLowerCase() === "l") openTeacherResource();
     if (["+", "="].includes(event.key)) { event.preventDefault(); changeZoom(.1); }
     if (event.key === "-") { event.preventDefault(); changeZoom(-.1); }
     if (event.key === "0") { event.preventDefault(); zoomLevel = 1; updateZoom(); }

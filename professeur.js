@@ -171,7 +171,7 @@
           <label class="image-upload">Ajouter des images<input type="file" data-image-upload accept="image/png,image/jpeg,image/webp" multiple /></label>
           <p class="field-help">Les images sont automatiquement compressées. Maximum 8 par bloc.</p>
           <div class="teacher-link-fields">
-            <label>Nom du lien professeur<input type="text" data-teacher-label maxlength="80" value="${escapeHtml(block.teacherLabel)}" placeholder="Ex. Animation GeoGebra" /></label>
+            <label>Nom de la ressource<input type="text" data-teacher-label maxlength="80" value="${escapeHtml(block.teacherLabel)}" placeholder="Ex. Animation GeoGebra" /></label>
             <label>Adresse du lien<input type="url" data-teacher-url value="${escapeHtml(block.teacherUrl)}" placeholder="https://…" /></label>
             <button type="button" class="admin-button secondary" data-test-teacher-link>Tester le lien ↗</button>
           </div>

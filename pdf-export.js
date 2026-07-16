@@ -122,7 +122,7 @@
   }
 
   function blockLayout(pdf, block, fontSize, width, imageMap) {
-    const labelHeight = block.type === "text" ? 0 : 8;
+    const labelHeight = block.type === "text" ? 0 : 9.5;
     const lineHeight = fontSize * .43;
     const lines = tokenLines(pdf, richTokens(block.html), width - 16, fontSize);
     const validImages = block.imageIds.map((id) => imageMap.get(id)).filter(Boolean);
@@ -133,7 +133,7 @@
       validImages,
       labelHeight,
       lineHeight,
-      height: 12 + labelHeight + Math.max(lineHeight, lines.length * lineHeight) + imagesHeight,
+      height: (block.type === "text" ? 6 : 12) + labelHeight + Math.max(lineHeight, lines.length * lineHeight) + imagesHeight,
     };
   }
 
@@ -159,24 +159,31 @@
 
   function drawBlock(pdf, block, layout, x, y, width, fontSize) {
     const palette = BLOCK_COLORS[block.type];
-    pdf.setDrawColor(...palette.border);
-    pdf.setLineWidth(.45);
-    if (block.admitted) pdf.setLineDashPattern([2, 1.5], 0);
-    pdf.roundedRect(x, y, width, layout.height, 3, 3, "S");
-    pdf.setLineDashPattern([], 0);
-    pdf.setLineWidth(1.5);
-    pdf.line(x + 2.5, y + 3, x + 2.5, y + layout.height - 3);
-    let cursorY = y + 8;
+    const plainTextBlock = block.type === "text";
+    if (!plainTextBlock) {
+      pdf.setDrawColor(...palette.border);
+      pdf.setLineWidth(.45);
+      if (block.admitted) pdf.setLineDashPattern([2, 1.5], 0);
+      pdf.roundedRect(x, y, width, layout.height, 3, 3, "S");
+      pdf.setLineDashPattern([], 0);
+      pdf.setLineWidth(1.5);
+      pdf.line(x + 2.5, y + 3, x + 2.5, y + layout.height - 3);
+    }
+    const contentX = plainTextBlock ? x + 1 : x + 9;
+    let cursorY = y + (plainTextBlock ? 4 : 8);
     if (block.type !== "text") {
       const type = CourseContent.TYPES[block.type];
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9.5);
+      pdf.setFontSize(11);
       pdf.setTextColor(...palette.border);
       pdf.text(`${type.label.toUpperCase()}${block.admitted ? " · ADMISE" : ""}`, x + 9, cursorY);
+      const titleWidth = Math.min(62, pdf.getTextWidth(type.label.toUpperCase()) + 2);
+      pdf.setLineWidth(.8);
+      pdf.line(x + 9, cursorY + 2.1, x + 9 + titleWidth, cursorY + 2.1);
       cursorY += layout.labelHeight;
     }
-    cursorY = drawRichLines(pdf, layout.lines, x + 9, cursorY, fontSize, layout.lineHeight);
-    if (layout.validImages.length) drawImageGrid(pdf, layout.validImages, x + 9, cursorY + 2, width - 18);
+    cursorY = drawRichLines(pdf, layout.lines, contentX, cursorY, fontSize, layout.lineHeight);
+    if (layout.validImages.length) drawImageGrid(pdf, layout.validImages, plainTextBlock ? x + 1 : x + 9, cursorY + 2, plainTextBlock ? width - 2 : width - 18);
   }
 
   function drawDocumentHeader(pdf, course) {
