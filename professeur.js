@@ -17,6 +17,7 @@
   let draggedBlockId = "";
   let savedSelectionRange = null;
   let savedSelectionEditor = null;
+  let blockVisibilityObserver = null;
 
   const escapeHtml = CourseContent.escapeHtml;
   const normalizeSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -137,6 +138,9 @@
 
   function blockCard(block, index, pageIndex, pageCount, localIndex, pageLength) {
     const type = CourseContent.TYPES[block.type];
+    const previewRoot = document.createElement("div");
+    previewRoot.innerHTML = CourseContent.sanitizeHtml(block.html);
+    const preview = previewRoot.textContent.replace(/\s+/g, " ").trim() || "Bloc vide";
     const mathSymbols = [
       ["∈", "Appartient à"], ["∉", "N’appartient pas à"],
       ["≤", "Inférieur ou égal"], ["≥", "Supérieur ou égal"], ["≠", "Différent de"], ["≈", "Environ égal"],
@@ -155,47 +159,54 @@
       </div>
     `).join("");
     return `
-      <article class="block-editor block-${block.type}${block.admitted ? " admitted" : ""}" data-block-id="${block.id}">
+      <article class="block-editor block-${block.type}${block.admitted ? " admitted" : ""}" data-block-id="${block.id}" data-expanded="false">
         <header class="block-editor-header">
-          <div><button type="button" class="drag-handle" draggable="true" data-drag-block aria-label="Déplacer le bloc ${index + 1}" title="Faire glisser pour déplacer">⋮⋮</button><span class="block-type-icon">${type.icon}</span><strong>${type.label}</strong><small>Bloc ${index + 1}</small></div>
+          <button type="button" class="drag-handle" draggable="true" data-drag-block aria-label="Réordonner le bloc ${index + 1} dans cette page" title="Faire glisser pour réordonner dans cette page">⋮⋮</button>
+          <button type="button" class="block-collapse-toggle" data-toggle-block aria-expanded="false">
+            <span class="block-type-icon">${type.icon}</span><strong>${type.label}</strong><small>Bloc ${index + 1}</small><span class="block-summary-preview">${escapeHtml(preview)}</span><span class="block-chevron" aria-hidden="true">⌄</span>
+          </button>
           <div class="block-controls">
-            <select data-move-to-page aria-label="Déplacer le bloc vers une autre page" ${pageCount < 2 ? "disabled" : ""}>${Array.from({ length: pageCount }, (_, target) => `<option value="${target}" ${target === pageIndex ? "selected" : ""}>Vers page ${target + 1}</option>`).join("")}</select>
-            <button type="button" data-move-block="-1" ${localIndex === 0 ? "disabled" : ""} title="Monter le bloc dans cette page">↑</button>
-            <button type="button" data-move-block="1" ${localIndex === pageLength - 1 ? "disabled" : ""} title="Descendre le bloc dans cette page">↓</button>
+            <span class="block-controls-label">Dans la page</span>
+            <button type="button" data-move-block="-1" ${localIndex === 0 ? "disabled" : ""} title="Monter dans cette page" aria-label="Monter ce bloc dans cette page">↑</button>
+            <button type="button" data-move-block="1" ${localIndex === pageLength - 1 ? "disabled" : ""} title="Descendre dans cette page" aria-label="Descendre ce bloc dans cette page">↓</button>
+            <label class="move-page-control"><span>Changer de page</span><select data-move-to-page aria-label="Déplacer le bloc vers une autre page" ${pageCount < 2 ? "disabled" : ""}><option value="">Choisir…</option>${Array.from({ length: pageCount }, (_, target) => target === pageIndex ? "" : `<option value="${target}">Page ${target + 1}</option>`).join("")}</select></label>
             <button type="button" class="danger" data-remove-block title="Supprimer le bloc">×</button>
           </div>
         </header>
-        <div class="rich-toolbar" aria-label="Mise en forme">
-          <span>Sélectionnez la partie importante :</span>
-          <button type="button" class="highlight-button" data-format="highlight">Mettre en valeur</button>
-          <div class="math-symbol-picker">
-            <span>Symboles mathématiques :</span>
+        <div class="block-editor-body" hidden>
+          <div class="rich-toolbar" aria-label="Mise en forme">
+            <span>Sélectionnez la partie importante :</span>
+            <button type="button" class="highlight-button" data-format="highlight">Mettre en valeur</button>
+            <details class="math-symbol-picker">
+              <summary>Symboles mathématiques</summary>
             <div class="math-symbol-grid" role="group" aria-label="Symboles mathématiques">
               ${mathSymbols.map(([symbol, label]) => {
                 const preview = symbol === "root" ? '<span class="math-root">a</span>' : symbol === "angle" ? '<span class="math-angle">ABC</span>' : symbol;
                 return `<button type="button" data-insert-symbol="${symbol}" title="${label}" aria-label="${label}">${preview}</button>`;
               }).join("")}
             </div>
+            <small class="math-symbol-help">Pour une racine ou un angle, sélectionnez d’abord le texte à couvrir. Utilisez → ou Espace pour en sortir.</small>
+            </details>
           </div>
+          <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
+          ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
+          <details class="block-settings">
+            <summary>Réglages, images et ressource professeur</summary>
+            <div class="block-options">
+              <p class="break-help"><strong>Apparition différée</strong> : réserve la place du bloc et le révèle au clic. La création et la navigation entre les pages se font au-dessus du document.</p>
+              <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Faire apparaître ce bloc au clic suivant</label>
+            </div>
+            <div class="block-images">${imagePreviews}</div>
+            <label class="image-upload">Ajouter des images<input type="file" data-image-upload accept="image/png,image/jpeg,image/webp" multiple /></label>
+            <p class="field-help">Les images sont automatiquement compressées. Maximum 8 par bloc.</p>
+            <div class="teacher-link-fields">
+              <label>Nom de la ressource<input type="text" data-teacher-label maxlength="80" value="${escapeHtml(block.teacherLabel)}" placeholder="Ex. Animation GeoGebra" /></label>
+              <label>Adresse du lien<input type="url" data-teacher-url value="${escapeHtml(block.teacherUrl)}" placeholder="https://…" /></label>
+              <button type="button" class="admin-button secondary" data-test-teacher-link>Tester le lien ↗</button>
+            </div>
+            <p class="field-help">La ressource sera proposée dans la barre du professeur uniquement lorsque ce bloc sera visible. Elle ne figurera jamais sur la page du cours ni dans le PDF.</p>
+          </details>
         </div>
-        <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
-        ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
-        <details class="block-settings" open>
-          <summary>Réglages, images et ressource professeur</summary>
-          <div class="block-options">
-            <p class="break-help"><strong>Apparition différée</strong> : réserve la place du bloc et le révèle au clic. La création et la navigation entre les pages se font au-dessus du document.</p>
-            <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Faire apparaître ce bloc au clic suivant</label>
-          </div>
-          <div class="block-images">${imagePreviews}</div>
-          <label class="image-upload">Ajouter des images<input type="file" data-image-upload accept="image/png,image/jpeg,image/webp" multiple /></label>
-          <p class="field-help">Les images sont automatiquement compressées. Maximum 8 par bloc.</p>
-          <div class="teacher-link-fields">
-            <label>Nom de la ressource<input type="text" data-teacher-label maxlength="80" value="${escapeHtml(block.teacherLabel)}" placeholder="Ex. Animation GeoGebra" /></label>
-            <label>Adresse du lien<input type="url" data-teacher-url value="${escapeHtml(block.teacherUrl)}" placeholder="https://…" /></label>
-            <button type="button" class="admin-button secondary" data-test-teacher-link>Tester le lien ↗</button>
-          </div>
-          <p class="field-help">La ressource sera proposée dans la barre du professeur uniquement lorsque ce bloc sera visible. Elle ne figurera jamais sur la page du cours ni dans le PDF.</p>
-        </details>
       </article>
     `;
   }
@@ -256,11 +267,8 @@
     const page = pages[editorPageIndex];
     blockList.innerHTML = `
       <div class="editor-page-navigation">
-        <button type="button" data-editor-page="previous" ${editorPageIndex === 0 ? "disabled" : ""} aria-label="Page précédente">←</button>
-        <select data-editor-page-select aria-label="Page affichée">${pages.map((_, index) => `<option value="${index}" ${index === editorPageIndex ? "selected" : ""}>Page ${index + 1} sur ${pages.length}</option>`).join("")}</select>
-        <button type="button" data-editor-page="next" ${editorPageIndex === pages.length - 1 ? "disabled" : ""} aria-label="Page suivante">→</button>
-        <button type="button" class="insert-page" data-insert-page="before">＋ Page avant</button>
-        <button type="button" class="insert-page" data-insert-page="after">＋ Page après</button>
+        <div class="page-navigation-group"><strong>Naviguer entre les pages</strong><button type="button" data-editor-page="previous" ${editorPageIndex === 0 ? "disabled" : ""}>← Précédente</button><select data-editor-page-select aria-label="Page affichée">${pages.map((_, index) => `<option value="${index}" ${index === editorPageIndex ? "selected" : ""}>Page ${index + 1} sur ${pages.length}</option>`).join("")}</select><button type="button" data-editor-page="next" ${editorPageIndex === pages.length - 1 ? "disabled" : ""}>Suivante →</button></div>
+        <div class="page-insert-group"><strong>Insérer une page</strong><button type="button" class="insert-page" data-insert-page="before">＋ Avant</button><button type="button" class="insert-page" data-insert-page="after">＋ Après</button></div>
       </div>
       <section class="editor-page">
         <div class="editor-page-label"><span>Page ${editorPageIndex + 1}</span><small>Une seule page à l’écran pour éviter les longs défilements</small></div>
@@ -269,7 +277,27 @@
     `;
     const count = editorBlocks.length;
     document.querySelector("#block-count").textContent = `${count} bloc${count > 1 ? "s" : ""}`;
+    if (blockVisibilityObserver) blockVisibilityObserver.disconnect();
+    if ("IntersectionObserver" in window) {
+      blockVisibilityObserver = new IntersectionObserver((entries) => entries.forEach((entry) => {
+        if (!entry.isIntersecting && entry.target.dataset.expanded === "true") setBlockExpanded(entry.target, false);
+      }), { rootMargin: "80px 0px" });
+      blockList.querySelectorAll("[data-block-id]").forEach((card) => blockVisibilityObserver.observe(card));
+    }
     hydrateImages();
+  }
+
+  function setBlockExpanded(card, expanded) {
+    card.dataset.expanded = String(expanded);
+    card.querySelector(".block-editor-body").hidden = !expanded;
+    const toggle = card.querySelector("[data-toggle-block]");
+    toggle.setAttribute("aria-expanded", String(expanded));
+    if (!expanded) card.querySelectorAll("details[open]").forEach((details) => details.removeAttribute("open"));
+    if (expanded) {
+      blockList.querySelectorAll('[data-block-id][data-expanded="true"]').forEach((other) => {
+        if (other !== card) setBlockExpanded(other, false);
+      });
+    }
   }
 
   function addBlock(type) {
@@ -279,7 +307,9 @@
     pages[editorPageIndex].push(block);
     applyEditorPages(pages);
     renderBlocks();
-    blockList.querySelector(`[data-block-id="${block.id}"] .block-richtext`).focus();
+    const card = blockList.querySelector(`[data-block-id="${block.id}"]`);
+    setBlockExpanded(card, true);
+    card.querySelector(".block-richtext").focus();
   }
 
   function insertPage(position) {
@@ -291,7 +321,9 @@
     applyEditorPages(pages);
     editorPageIndex = target;
     renderBlocks();
-    blockList.querySelector(`[data-block-id="${block.id}"] .block-richtext`)?.focus();
+    const card = blockList.querySelector(`[data-block-id="${block.id}"]`);
+    setBlockExpanded(card, true);
+    card.querySelector(".block-richtext")?.focus();
   }
 
   function moveBlockToPage(blockId, targetPage) {
@@ -590,17 +622,20 @@
       range.selectNodeContents(editor);
       range.collapse(false);
     }
-    range.deleteContents();
     const structured = ["root", "angle"].includes(symbol);
+    const selectedContent = structured && !range.collapsed ? range.extractContents() : null;
+    const hasSelectedContent = Boolean(selectedContent?.textContent.trim());
+    if (!structured) range.deleteContents();
     const node = structured ? document.createElement("span") : document.createTextNode(symbol);
     if (structured) {
       node.className = symbol === "root" ? "math-root" : "math-angle";
-      node.textContent = symbol === "root" ? "a" : "ABC";
+      if (hasSelectedContent) node.append(selectedContent);
+      else node.textContent = symbol === "root" ? "a" : "ABC";
     }
     range.insertNode(node);
     const selection = window.getSelection();
     selection.removeAllRanges();
-    if (structured) range.selectNodeContents(node);
+    if (structured && !hasSelectedContent) range.selectNodeContents(node);
     else {
       range.setStartAfter(node);
       range.collapse(true);
@@ -609,6 +644,41 @@
     savedSelectionRange = range.cloneRange();
     savedSelectionEditor = editor;
     editor.focus();
+  }
+
+  function mathNodeAtCaret(range, editor) {
+    const element = range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer : range.startContainer.parentElement;
+    const math = element?.closest?.(".math-root, .math-angle");
+    return math && editor.contains(math) ? math : null;
+  }
+
+  function caretIsAtEnd(range, node) {
+    if (!range.collapsed) return false;
+    const remainder = document.createRange();
+    remainder.selectNodeContents(node);
+    try {
+      remainder.setStart(range.startContainer, range.startOffset);
+      return remainder.toString() === "";
+    } catch {
+      return false;
+    }
+  }
+
+  function placeCaretAfterMath(editor, math, addSpace = false) {
+    const range = document.createRange();
+    range.setStartAfter(math);
+    range.collapse(true);
+    if (addSpace) {
+      const space = document.createTextNode(" ");
+      range.insertNode(space);
+      range.setStartAfter(space);
+      range.collapse(true);
+    }
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    savedSelectionRange = range.cloneRange();
+    savedSelectionEditor = editor;
   }
 
   blockList.addEventListener("mousedown", (event) => {
@@ -632,6 +702,11 @@
     }
     const card = event.target.closest("[data-block-id]");
     if (!card) return;
+    const toggle = event.target.closest("[data-toggle-block]");
+    if (toggle) {
+      setBlockExpanded(card, card.dataset.expanded !== "true");
+      return;
+    }
     const move = event.target.closest("[data-move-block]");
     const remove = event.target.closest("[data-remove-block]");
     const removeImage = event.target.closest("[data-remove-image]");
@@ -679,6 +754,17 @@
       else window.open(url, "_blank", "noopener,noreferrer");
     }
   });
+  blockList.addEventListener("keydown", (event) => {
+    if (!["ArrowRight", " "].includes(event.key)) return;
+    const editor = event.target.closest(".block-richtext");
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const math = mathNodeAtCaret(range, editor);
+    if (!math || !caretIsAtEnd(range, math)) return;
+    event.preventDefault();
+    placeCaretAfterMath(editor, math, event.key === " ");
+  });
   document.addEventListener("selectionchange", () => rememberSelection());
   blockList.addEventListener("change", async (event) => {
     if (event.target.matches("[data-editor-page-select]")) {
@@ -688,7 +774,7 @@
       return;
     }
     if (event.target.matches("[data-move-to-page]")) {
-      moveBlockToPage(event.target.closest("[data-block-id]").dataset.blockId, Number(event.target.value));
+      if (event.target.value !== "") moveBlockToPage(event.target.closest("[data-block-id]").dataset.blockId, Number(event.target.value));
       return;
     }
     if (event.target.matches("[data-image-upload]")) await uploadImages(event.target);

@@ -28,9 +28,16 @@
     const root = document.createElement("div");
     root.innerHTML = CourseContent.sanitizeHtml(html);
     const tokens = [];
+    function pushText(value, style) {
+      value.split(/([∈∉])/).filter(Boolean).forEach((text) => {
+        if (text === "∈") tokens.push({ text, math: "belongs", ...style });
+        else if (text === "∉") tokens.push({ text, math: "not-belongs", ...style });
+        else tokens.push({ text, ...style });
+      });
+    }
     function visit(node, style = {}) {
       if (node.nodeType === Node.TEXT_NODE) {
-        if (node.textContent) tokens.push({ text: node.textContent, ...style });
+        if (node.textContent) pushText(node.textContent, style);
         return;
       }
       if (node.nodeType !== Node.ELEMENT_NODE) return;
@@ -67,7 +74,8 @@
           return;
         }
         applyFont(token);
-        const pieceWidth = pdf.getTextWidth(piece) + (token.math === "root" ? 3 : 0);
+        let pieceWidth = pdf.getTextWidth(piece) + (token.math === "root" ? 3 : 0);
+        if (["belongs", "not-belongs"].includes(token.math)) pieceWidth = Math.max(3, pdf.getTextWidth("C")) + (token.math === "not-belongs" ? .5 : 0);
         if (width + pieceWidth > maxWidth && lines[lines.length - 1].length && !/^\s+$/.test(piece)) {
           lines.push([]);
           width = 0;
@@ -82,8 +90,17 @@
     return lines;
   }
 
+  function mathTopGap(line) {
+    return line.some((token) => ["root", "angle"].includes(token.math)) ? 1.8 : 0;
+  }
+
+  function richLinesHeight(lines, lineHeight) {
+    return lines.reduce((height, line) => height + lineHeight + mathTopGap(line), 0);
+  }
+
   function drawRichLines(pdf, lines, x, y, fontSize, lineHeight) {
     lines.forEach((line) => {
+      y += mathTopGap(line);
       let cursor = x;
       line.forEach((token) => {
         pdf.setFont("helvetica", token.bold || token.highlight ? "bold" : token.italic ? "italic" : "normal");
@@ -107,6 +124,12 @@
           pdf.setLineWidth(.3);
           pdf.line(cursor, y - fontSize * .3, cursor + token.width / 2, y - fontSize * .43);
           pdf.line(cursor + token.width / 2, y - fontSize * .43, cursor + token.width, y - fontSize * .3);
+        } else if (["belongs", "not-belongs"].includes(token.math)) {
+          pdf.text("C", cursor, y);
+          pdf.setDrawColor(...COLORS.ink);
+          pdf.setLineWidth(.3);
+          pdf.line(cursor + .45, y - fontSize * .13, cursor + token.width - .2, y - fontSize * .13);
+          if (token.math === "not-belongs") pdf.line(cursor + .25, y + .55, cursor + token.width - .15, y - fontSize * .42);
         } else pdf.text(token.text, cursor, y);
         cursor += token.width;
       });
@@ -149,7 +172,7 @@
       validImages,
       labelHeight,
       lineHeight,
-      height: (block.type === "text" ? 6 : 12) + labelHeight + Math.max(lineHeight, lines.length * lineHeight) + imagesHeight,
+      height: (block.type === "text" ? 6 : 12) + labelHeight + Math.max(lineHeight, richLinesHeight(lines, lineHeight)) + imagesHeight,
     };
   }
 
