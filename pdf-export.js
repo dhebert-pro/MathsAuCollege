@@ -50,7 +50,7 @@
         italic: style.italic || tag === "em",
         highlight: style.highlight || (tag === "mark" ? node.dataset.tone || "yellow" : ""),
       };
-      if (tag === "li") tokens.push({ text: "• ", bold: true });
+      if (tag === "li") tokens.push({ text: "- ", bold: true });
       [...node.childNodes].forEach((child) => visit(child, nextStyle));
       if (["p", "li", "ul", "ol"].includes(tag)) tokens.push({ text: "\n", ...style });
     }
@@ -58,34 +58,127 @@
     return tokens;
   }
 
+  function normalizePdfText(value) {
+    return String(value || "").replace(/[\u2010-\u2015\u2212]/g, "-").replace(/\u00a0/g, " ");
+  }
+
   function tokenLines(pdf, tokens, maxWidth, fontSize) {
+    const pieces = [];
     const lines = [[]];
     let width = 0;
     function applyFont(token) {
       pdf.setFont("helvetica", token.bold || token.highlight ? "bold" : token.italic ? "italic" : "normal");
       pdf.setFontSize(fontSize);
     }
+    function measure(token, text) {
+      applyFont(token);
+      let measured = pdf.getTextWidth(text) + (token.math === "root" ? 3 : 0);
+      if (["belongs", "not-belongs"].includes(token.math)) measured = Math.max(3, pdf.getTextWidth("C")) + (token.math === "not-belongs" ? .5 : 0);
+      return measured;
+    }
     tokens.forEach((token) => {
-      const pieces = token.math ? [token.text] : token.text.split(/(\s+|\n)/).filter(Boolean);
-      pieces.forEach((piece) => {
-        if (piece.includes("\n")) {
-          if (lines[lines.length - 1].length) lines.push([]);
-          width = 0;
-          return;
-        }
-        applyFont(token);
-        let pieceWidth = pdf.getTextWidth(piece) + (token.math === "root" ? 3 : 0);
-        if (["belongs", "not-belongs"].includes(token.math)) pieceWidth = Math.max(3, pdf.getTextWidth("C")) + (token.math === "not-belongs" ? .5 : 0);
-        if (width + pieceWidth > maxWidth && lines[lines.length - 1].length && !/^\s+$/.test(piece)) {
-          lines.push([]);
-          width = 0;
-        }
-        if (!(width === 0 && /^\s+$/.test(piece))) {
-          lines[lines.length - 1].push({ ...token, text: piece, width: pieceWidth });
-          width += pieceWidth;
-        }
+      const value = ["belongs", "not-belongs"].includes(token.math) ? token.text : normalizePdfText(token.text);
+      const parts = token.math ? [value] : value.split(/(\s+)/).filter(Boolean);
+      parts.forEach((text) => {
+        if (text.includes("\n")) pieces.push({ newline: true });
+        else pieces.push({ ...token, text, width: measure(token, text), space: /^\s+$/.test(text) });
       });
     });
+
+    function mathValue(piece) {
+      return piece.text?.trim().replace(/[.;:!?]+$/, "") || "";
+    }
+    function isRelation(piece) {
+      return ["belongs", "not-belongs"].includes(piece.math) || /^(?:=|<|>|≤|≥|≠|≈)$/.test(mathValue(piece));
+    }
+    function isOperator(piece) {
+      return /^(?:\+|-|×|÷|±|\/\/|⟂)$/.test(mathValue(piece));
+    }
+    function isUnit(piece) {
+      return /^(?:mm|cm|dm|m|dam|hm|km|mm²|cm²|m²|mm³|cm³|m³|°)$/.test(mathValue(piece));
+    }
+    function isOperand(piece) {
+      if (["root", "angle"].includes(piece.math)) return true;
+      const value = mathValue(piece);
+      if (!value || isRelation(piece) || isOperator(piece) || isUnit(piece)) return false;
+      if (/^(?:[A-ZÀ-Ÿ]{1,5}|[a-z]|\d+(?:[,.]\d+)?|\[[^\]]+\]|\([^\)]+\))$/.test(value)) return true;
+      return /^[A-Za-zÀ-ÿ0-9,[\]()²³]+(?:[+\-×÷][A-Za-zÀ-ÿ0-9,[\]()²³]+)+$/.test(value);
+    }
+    function previousContent(index) {
+      let cursor = index - 1;
+      while (cursor >= 0 && pieces[cursor].space) cursor -= 1;
+      return cursor;
+    }
+
+    const formulaEnds = new Map();
+    for (let index = 0; index < pieces.length; index += 1) {
+      if (!isRelation(pieces[index])) continue;
+      const start = previousContent(index);
+      if (start < 0 || !isOperand(pieces[start])) continue;
+      let end = index;
+      let cursor = index + 1;
+      let expectsOperand = true;
+      let hasRightOperand = false;
+      while (cursor < pieces.length && !pieces[cursor].newline) {
+        if (pieces[cursor].space) { cursor += 1; continue; }
+        const piece = pieces[cursor];
+        if (expectsOperand && isOperand(piece)) {
+          end = cursor;
+          expectsOperand = false;
+          hasRightOperand = true;
+          cursor += 1;
+          continue;
+        }
+        if (!expectsOperand && (isOperator(piece) || isRelation(piece))) {
+          end = cursor;
+          expectsOperand = true;
+          cursor += 1;
+          continue;
+        }
+        if (!expectsOperand && isUnit(piece)) end = cursor;
+        break;
+      }
+      if (hasRightOperand) {
+        formulaEnds.set(start, end);
+        index = end;
+      }
+    }
+
+    function lineHasContent() {
+      return lines[lines.length - 1].some((piece) => !piece.space);
+    }
+    function nextLine() {
+      if (lines[lines.length - 1].length) lines.push([]);
+      width = 0;
+    }
+    function append(piece) {
+      if (piece.space && !lineHasContent()) return;
+      if (!piece.space && width + piece.width > maxWidth && lineHasContent()) nextLine();
+      if (!(piece.space && !lineHasContent())) {
+        lines[lines.length - 1].push(piece);
+        width += piece.width;
+      }
+    }
+
+    for (let index = 0; index < pieces.length; index += 1) {
+      const piece = pieces[index];
+      if (piece.newline) {
+        if (lineHasContent()) nextLine();
+        continue;
+      }
+      const formulaEnd = formulaEnds.get(index);
+      if (formulaEnd !== undefined) {
+        const formula = pieces.slice(index, formulaEnd + 1);
+        const formulaWidth = formula.reduce((sum, part) => sum + part.width, 0);
+        if (formulaWidth <= maxWidth) {
+          if (width + formulaWidth > maxWidth && lineHasContent()) nextLine();
+          formula.forEach(append);
+          index = formulaEnd;
+          continue;
+        }
+      }
+      append(piece);
+    }
     while (lines.length > 1 && !lines[lines.length - 1].length) lines.pop();
     return lines;
   }
