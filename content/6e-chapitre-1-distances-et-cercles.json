@@ -1,0 +1,125 @@
+{
+  "id": "6e-chapitre-1-distances-et-cercles",
+  "title": "Distances et cercles",
+  "slug": "distances-et-cercles",
+  "chapterNumber": "1",
+  "level": "6",
+  "status": "draft",
+  "manualOrder": null,
+  "blocks": [
+    {
+      "id": "distance-definition",
+      "type": "definition",
+      "html": "<p>La <mark>distance entre deux points A et B</mark> est la longueur du segment [AB]. Elle se note <mark>AB</mark>.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": false
+    },
+    {
+      "id": "distance-notation",
+      "type": "warning",
+      "html": "<p>(AB) désigne une droite, [AB] désigne un segment et AB désigne une longueur.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "distance-example",
+      "type": "example",
+      "html": "<p>Les points A, C et B sont alignés et C appartient à [AB]. Si AB = 6,4 cm et AC = 2,1 cm, alors CB = AB − AC = <mark>4,3 cm</mark>.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "midpoint-definition",
+      "type": "definition",
+      "html": "<p>Le <mark>milieu</mark> d’un segment est le point de ce segment situé à la même distance de ses deux extrémités.</p><p>M est le milieu de [AB] signifie que M appartient à [AB] et que <mark>AM = MB</mark>.</p>",
+      "slideBreakBefore": true,
+      "revealBreakBefore": false
+    },
+    {
+      "id": "midpoint-example",
+      "type": "example",
+      "html": "<p>Si M est le milieu de [AB] et AB = 7 cm, alors AM = MB = 7 ÷ 2 = <mark>3,5 cm</mark>.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "equal-lengths-reminder",
+      "type": "reminder",
+      "html": "<p>Sur une figure, des segments qui portent le même codage ont la même longueur.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "compass-method",
+      "type": "method",
+      "html": "<ol><li>Placer les pointes du compas sur les extrémités du segment.</li><li>Conserver exactement la même ouverture.</li><li>Placer la pointe sèche au point de départ puis tracer un petit arc.</li></ol><p>Le compas permet de <mark>reporter une longueur sans la mesurer</mark>.</p>",
+      "slideBreakBefore": true,
+      "revealBreakBefore": false
+    },
+    {
+      "id": "compass-warning",
+      "type": "warning",
+      "html": "<p>L’ouverture du compas ne doit pas changer pendant le report.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "circle-definition",
+      "type": "definition",
+      "html": "<p>Le <mark>cercle de centre O et de rayon r</mark> est formé de tous les points situés à la distance r du point O.</p>",
+      "slideBreakBefore": true,
+      "revealBreakBefore": false
+    },
+    {
+      "id": "circle-property",
+      "type": "property",
+      "html": "<p>Si A appartient au cercle de centre O et de rayon r, alors <mark>OA = r</mark>. Réciproquement, si OA = r, alors A appartient à ce cercle.</p>",
+      "admitted": false,
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "disk-definition",
+      "type": "definition",
+      "html": "<p>Le <mark>disque de centre O et de rayon r</mark> est formé de tous les points dont la distance à O est inférieure ou égale à r.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "circle-vocabulary",
+      "type": "definition",
+      "html": "<ul><li>Un <mark>rayon</mark> est un segment qui relie le centre à un point du cercle.</li><li>Une <mark>corde</mark> relie deux points du cercle.</li><li>Un <mark>diamètre</mark> est une corde qui passe par le centre.</li><li>Un <mark>arc de cercle</mark> est une portion du cercle.</li></ul>",
+      "slideBreakBefore": true,
+      "revealBreakBefore": false
+    },
+    {
+      "id": "diameter-property",
+      "type": "property",
+      "html": "<p>La longueur d’un diamètre est égale au double du rayon : <mark>d = 2 × r</mark>.</p>",
+      "admitted": false,
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "diameter-example",
+      "type": "example",
+      "html": "<p>Un cercle de rayon 3,2 cm a un diamètre égal à 2 × 3,2 = <mark>6,4 cm</mark>.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    },
+    {
+      "id": "circle-construction",
+      "type": "method",
+      "html": "<ol><li>À la règle, régler l’écartement du compas sur la longueur du rayon.</li><li>Placer la pointe sèche sur le centre.</li><li>Faire tourner le compas sans modifier son ouverture.</li></ol>",
+      "slideBreakBefore": true,
+      "revealBreakBefore": false
+    },
+    {
+      "id": "chapter-takeaway",
+      "type": "takeaway",
+      "html": "<p>Une distance est une longueur. Le compas permet de la reporter. Tous les points d’un cercle sont à la même distance de son centre.</p>",
+      "slideBreakBefore": false,
+      "revealBreakBefore": true
+    }
+  ]
+}

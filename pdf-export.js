@@ -163,11 +163,24 @@
     if (!plainTextBlock) {
       pdf.setDrawColor(...palette.border);
       pdf.setLineWidth(.45);
-      if (block.admitted) pdf.setLineDashPattern([2, 1.5], 0);
-      pdf.roundedRect(x, y, width, layout.height, 3, 3, "S");
+      if (block.admitted || ["warning", "reminder"].includes(block.type)) pdf.setLineDashPattern([2, 1.5], 0);
+      if (block.type === "example") {
+        pdf.setLineWidth(1.2);
+        pdf.line(x + 2.5, y + 2, x + 2.5, y + layout.height - 2);
+      } else {
+        pdf.roundedRect(x, y, width, layout.height, block.type === "takeaway" ? 1 : 3, block.type === "takeaway" ? 1 : 3, "S");
+      }
       pdf.setLineDashPattern([], 0);
-      pdf.setLineWidth(1.5);
-      pdf.line(x + 2.5, y + 3, x + 2.5, y + layout.height - 3);
+      if (block.type === "property") {
+        pdf.setLineWidth(1.8);
+        pdf.line(x, y + 1.2, x + width, y + 1.2);
+      } else if (block.type === "takeaway") {
+        pdf.setLineWidth(.35);
+        pdf.rect(x + 1.5, y + 1.5, width - 3, layout.height - 3, "S");
+      } else if (block.type !== "example" && block.type !== "reminder") {
+        pdf.setLineWidth(1.5);
+        pdf.line(x + 2.5, y + 3, x + 2.5, y + layout.height - 3);
+      }
     }
     const contentX = plainTextBlock ? x + 1 : x + 9;
     let cursorY = y + (plainTextBlock ? 4 : 8);

@@ -59,14 +59,21 @@ button, a { font: inherit; }
 .block-resource-link { position: absolute; z-index: 2; top: .65em; right: .65em; display: grid; place-items: center; width: 2em; height: 2em; color: var(--blue); background: rgba(255,253,248,.96); border: 1px solid color-mix(in srgb, var(--block-accent) 62%, white); border-radius: 50%; box-shadow: 0 4px 12px rgba(16,47,67,.14); font: 900 .72em/1 system-ui, sans-serif; text-decoration: none; transition: transform .18s, background .18s, box-shadow .18s; }
 .block-resource-link:hover, .block-resource-link:focus-visible { color: white; background: var(--block-accent); box-shadow: 0 6px 16px rgba(16,47,67,.24); outline: none; transform: translateY(-2px) scale(1.06); }
 .block-text { padding: .25em .4em; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
-.block-definition { --block-accent: #347a98; background: linear-gradient(90deg, #eff8fb, white 26%); }
-.block-property { --block-accent: #7053a0; background: linear-gradient(90deg, #f6f1fb, white 26%); }
-.block-property.admitted { border-style: dashed; border-left-style: solid; background: repeating-linear-gradient(135deg, #faf8fd, #faf8fd 13px, #f3eef9 13px, #f3eef9 26px); }
-.block-example { --block-accent: #3f836a; background: linear-gradient(90deg, #eff8f3, white 26%); }
-.block-takeaway { --block-accent: #ca8b20; background: linear-gradient(90deg, #fff7df, white 28%); }
-.block-warning { --block-accent: #ba523a; background: linear-gradient(90deg, #fff0eb, white 28%); }
-.block-method { --block-accent: #286aa2; background: linear-gradient(90deg, #edf5fb, white 28%); }
-.block-reminder { --block-accent: #65727a; background: linear-gradient(90deg, #f1f4f5, white 28%); }
+.block-definition { --block-accent: #347a98; border-width: 1px 1px 1px 10px; border-left-style: double; border-radius: 2px 18px 18px 2px; background: linear-gradient(90deg, #edf7fa, white 34%); }
+.block-definition h2 { border-bottom-style: double; }
+.block-property { --block-accent: #7053a0; padding-top: calc(clamp(15px, 1.8vw, 25px) + 5px); border-width: 7px 1px 1px; border-top-color: var(--block-accent); border-radius: 15px 15px 6px 6px; background: #fff; box-shadow: 0 9px 0 #f3eef9, 0 16px 27px rgba(19, 55, 75, .06); }
+.block-property h2 { border: 0; letter-spacing: .025em; font-variant: small-caps; }
+.block-property.admitted { border-style: dashed; border-top-style: solid; background: repeating-linear-gradient(135deg, white, white 18px, #faf8fd 18px, #faf8fd 36px); }
+.block-example { --block-accent: #3f836a; padding-block: .7em; border: 0; border-left: 5px dotted var(--block-accent); border-radius: 0; background: linear-gradient(90deg, #eff8f3, rgba(255,255,255,0) 58%); box-shadow: none; }
+.block-example h2 { color: #2f6e58; border: 0; font-size: 1.15em; font-style: italic; }
+.block-takeaway { --block-accent: #b77a12; border: 4px double var(--block-accent); border-radius: 4px; background: linear-gradient(90deg, #fff8e4, white 42%); box-shadow: inset 0 0 0 4px white, 0 8px 22px rgba(19,55,75,.06); }
+.block-takeaway h2 { border: 0; text-align: center; text-transform: uppercase; letter-spacing: .08em; }
+.block-warning { --block-accent: #b74d37; border: 2px dashed var(--block-accent); border-left-width: 9px; border-radius: 3px 13px 13px 3px; background: repeating-linear-gradient(-45deg, #fff8f5, #fff8f5 12px, white 12px, white 24px); box-shadow: none; }
+.block-warning h2 { color: #943b2a; border-bottom-style: dashed; }
+.block-method { --block-accent: #286aa2; border: 1px solid #b8cfdf; border-left-width: 1px; border-radius: 18px 5px 18px 5px; background: linear-gradient(180deg, #eaf3f9 0 2.5em, white 2.5em); box-shadow: 0 8px 24px rgba(19,55,75,.07); }
+.block-method h2 { width: max-content; margin-top: -.15em; color: #205982; border: 0; }
+.block-reminder { --block-accent: #65727a; border: 1px dashed #85949b; border-left-width: 1px; border-radius: 1px; background-color: white; background-image: repeating-linear-gradient(180deg, transparent 0 1.72em, rgba(101,114,122,.1) 1.72em calc(1.72em + 1px)); box-shadow: 5px 5px 0 #eef1f2; }
+.block-reminder h2 { border-bottom: 1px solid var(--block-accent); font-size: 1.12em; }
 .slide[data-block-count="3"] .course-block, .slide[data-block-count="4"] .course-block { font-size: 1.2em; }
 .slide[data-block-count="5"] .course-block, .slide[data-block-count="6"] .course-block { padding-block: 12px; font-size: 1em; }
 .block-images-view { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); align-items: center; gap: 12px; margin-top: 14px; }
