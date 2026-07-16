@@ -29,4 +29,4 @@ const files = [
 await rm(destination, { recursive: true, force: true });
 await mkdir(destination, { recursive: true });
 await Promise.all(files.map((file) => cp(resolve(root, file), resolve(destination, file))));
-await Promise.all(["assets", "vendor"].map((directory) => cp(resolve(root, directory), resolve(destination, directory), { recursive: true })));
+await Promise.all(["assets", "animations", "vendor"].map((directory) => cp(resolve(root, directory), resolve(destination, directory), { recursive: true })));

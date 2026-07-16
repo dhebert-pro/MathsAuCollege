@@ -1,0 +1,64 @@
+:root {
+  color-scheme: light;
+  --ink: #102f43;
+  --blue: #174b70;
+  --green: #477d73;
+  --orange: #e98d52;
+  --paper: #fffdf8;
+  --line: #d7e0e2;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); background: #edf2f2; }
+button, input { font: inherit; }
+.animation-shell { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 14px; width: min(1280px, 100%); min-height: 100vh; margin: 0 auto; padding: clamp(16px, 2.5vw, 32px); }
+header { display: flex; align-items: baseline; gap: 16px; }
+.eyebrow { margin: 0; color: var(--orange); font-size: .78rem; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+h1 { margin: 0; font: 700 clamp(1.55rem, 3vw, 2.7rem)/1.1 Georgia, serif; }
+.stage { height: clamp(380px, 62vh, 650px); min-height: 0; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 20px 55px rgba(16, 47, 67, .12); }
+svg { display: block; width: 100%; height: 100%; min-height: 0; }
+.figure-label { fill: #627985; font-size: 22px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.geometry-line { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+.target-line { color: var(--ink); }
+.source-line { stroke: var(--green); }
+.point { fill: var(--ink); }
+.point-label { fill: var(--ink); font: italic 700 30px Georgia, serif; }
+.measure-mark { fill: none; stroke: var(--orange); stroke-width: 4; stroke-linecap: round; }
+.length-label { fill: #a9502c; font: italic 700 26px Georgia, serif; }
+.compass-leg { stroke: #d5dde0; stroke-width: 22; stroke-linecap: round; }
+.compass-leg-left { stroke: #738a94; }
+.compass-leg-right { stroke: #355d70; }
+.compass-needle { stroke: #263e49; stroke-width: 6; stroke-linecap: round; }
+.compass-pencil { fill: var(--orange); stroke: #9d4c2d; stroke-width: 2; }
+.compass-hinge { fill: #f1f4f4; stroke: var(--blue); stroke-width: 7; }
+.compass-screw { fill: var(--orange); }
+.compass-brace { fill: none; stroke: var(--blue); stroke-width: 9; stroke-linecap: round; }
+.compass-arc { fill: none; stroke: var(--orange); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.result-point, .result-label, .result-equality { opacity: 0; }
+.result-point { fill: var(--orange); stroke: #9d4c2d; stroke-width: 3; }
+.result-equality rect { fill: #fdf0e8; stroke: var(--orange); stroke-width: 3; }
+.result-equality text { fill: var(--ink); font: 700 34px Georgia, serif; }
+.explanation { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: baseline; min-height: 58px; padding: 14px 18px; background: white; border: 1px solid var(--line); border-radius: 14px; }
+.explanation p { margin: 0; color: var(--orange); font-size: .75rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.explanation strong { font-size: clamp(.98rem, 1.7vw, 1.3rem); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.controls button { min-height: 42px; padding: 8px 14px; color: var(--blue); background: white; border: 1px solid #c7d5da; border-radius: 9px; font-size: .78rem; font-weight: 850; cursor: pointer; }
+.controls button:hover, .controls button:focus-visible { border-color: var(--blue); outline: 3px solid rgba(23, 75, 112, .15); }
+.controls button.primary { color: white; background: var(--blue); border-color: var(--blue); }
+.timeline { display: flex; flex: 1 1 240px; align-items: center; gap: 10px; margin-left: auto; color: #627985; font-size: .72rem; font-weight: 800; }
+.timeline input { width: 100%; accent-color: var(--orange); }
+
+@media (max-width: 720px) {
+  .animation-shell { padding: 12px; }
+  header { display: block; }
+  .eyebrow { margin-bottom: 4px; }
+  .stage { height: clamp(360px, 58vh, 500px); }
+  .explanation { grid-template-columns: 1fr; gap: 4px; }
+  .controls button { flex: 1 1 calc(50% - 9px); }
+  .timeline { flex-basis: 100%; margin: 3px 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compass, .compass-arc, .result-point, .result-label, .result-equality { transition: none !important; }
+}

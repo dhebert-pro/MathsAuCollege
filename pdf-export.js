@@ -19,6 +19,7 @@
     method: { border: [40, 106, 162], fill: [239, 247, 252] },
     reminder: { border: [101, 114, 122], fill: [245, 247, 248] },
   };
+  const SYMBOL_GLYPHS = { belongs: "\u00ce", "not-belongs": "\u00cf" };
 
   function safeFilename(value) {
     return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_]+/g, "-").replace(/(^-|-$)/g, "").toLowerCase();
@@ -73,7 +74,11 @@
     function measure(token, text) {
       applyFont(token);
       let measured = pdf.getTextWidth(text) + (token.math === "root" ? 3 : 0);
-      if (["belongs", "not-belongs"].includes(token.math)) measured = Math.max(3, pdf.getTextWidth("C")) + (token.math === "not-belongs" ? .5 : 0);
+      if (SYMBOL_GLYPHS[token.math]) {
+        pdf.setFont("symbol", "normal");
+        pdf.setFontSize(fontSize);
+        measured = pdf.getTextWidth(SYMBOL_GLYPHS[token.math]);
+      }
       return measured;
     }
     tokens.forEach((token) => {
@@ -218,11 +223,9 @@
           pdf.line(cursor, y - fontSize * .3, cursor + token.width / 2, y - fontSize * .43);
           pdf.line(cursor + token.width / 2, y - fontSize * .43, cursor + token.width, y - fontSize * .3);
         } else if (["belongs", "not-belongs"].includes(token.math)) {
-          pdf.text("C", cursor, y);
-          pdf.setDrawColor(...COLORS.ink);
-          pdf.setLineWidth(.3);
-          pdf.line(cursor + .45, y - fontSize * .13, cursor + token.width - .2, y - fontSize * .13);
-          if (token.math === "not-belongs") pdf.line(cursor + .25, y + .55, cursor + token.width - .15, y - fontSize * .42);
+          pdf.setFont("symbol", "normal");
+          pdf.setFontSize(fontSize);
+          pdf.text(SYMBOL_GLYPHS[token.math], cursor, y);
         } else pdf.text(token.text, cursor, y);
         cursor += token.width;
       });
