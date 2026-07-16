@@ -137,11 +137,21 @@
 
   function blockCard(block, index, pageIndex, pageCount, localIndex, pageLength) {
     const type = CourseContent.TYPES[block.type];
+    const mathSymbols = [
+      ["∈", "Appartient à"], ["∉", "N’appartient pas à"], ["⊂", "Est inclus dans"], ["∅", "Ensemble vide"],
+      ["≤", "Inférieur ou égal"], ["≥", "Supérieur ou égal"], ["≠", "Différent de"], ["≈", "Environ égal"],
+      ["×", "Multiplication"], ["÷", "Division"], ["±", "Plus ou moins"], ["√", "Racine carrée"],
+      ["π", "Pi"], ["∞", "Infini"], ["°", "Degré"], ["²", "Au carré"], ["³", "Au cube"],
+      ["∥", "Parallèle"], ["⟂", "Perpendiculaire"], ["∠", "Angle"], ["Δ", "Delta"], ["→", "Flèche"], ["↔", "Double flèche"],
+    ];
     const imagePreviews = block.imageIds.map((imageId) => `
       <div class="block-image" data-image-id="${imageId}">
         <div class="image-loading">Chargement…</div>
         <label>Texte alternatif<input type="text" data-image-alt maxlength="160" placeholder="Décrire l’image" /></label>
-        <button type="button" class="remove-image" data-remove-image="${imageId}">Retirer</button>
+        <div class="block-image-actions">
+          <label class="replace-image">Remplacer<input type="file" data-image-replace="${imageId}" accept="image/png,image/jpeg,image/webp" /></label>
+          <button type="button" class="remove-image" data-remove-image="${imageId}">Retirer</button>
+        </div>
       </div>
     `).join("");
     return `
@@ -156,8 +166,14 @@
           </div>
         </header>
         <div class="rich-toolbar" aria-label="Mise en forme">
-          <span>Sélectionnez la partie importante du texte :</span>
+          <span>Sélectionnez la partie importante :</span>
           <button type="button" class="highlight-button" data-format="highlight">Mettre en valeur</button>
+          <details class="math-symbol-picker">
+            <summary>Symboles mathématiques</summary>
+            <div class="math-symbol-grid" role="group" aria-label="Symboles mathématiques">
+              ${mathSymbols.map(([symbol, label]) => `<button type="button" data-insert-symbol="${symbol}" title="${label}" aria-label="${label}">${symbol}</button>`).join("")}
+            </div>
+          </details>
         </div>
         <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
@@ -440,6 +456,39 @@
     }
   }
 
+  async function replaceImage(input) {
+    syncBlocksFromDom();
+    const card = input.closest("[data-block-id]");
+    const block = editorBlocks.find((item) => item.id === card.dataset.blockId);
+    const previousId = input.dataset.imageReplace;
+    const imageIndex = block.imageIds.indexOf(previousId);
+    const file = [...input.files].find((item) => item.type.startsWith("image/"));
+    if (imageIndex < 0 || !file) return;
+    input.disabled = true;
+    try {
+      const [dataUrl, previousImage] = await Promise.all([compressImage(file), CourseStore.getImage(previousId)]);
+      const saved = await CourseStore.saveImage({
+        id: CourseContent.id("image"),
+        courseId: courseForm.elements.id.value,
+        dataUrl,
+        alt: previousImage?.alt || file.name.replace(/\.[^.]+$/, ""),
+        published: false,
+      });
+      uploadedDuringEdit.add(saved.id);
+      block.imageIds[imageIndex] = saved.id;
+      if (uploadedDuringEdit.has(previousId)) {
+        uploadedDuringEdit.delete(previousId);
+        await CourseStore.deleteImage(previousId).catch(() => {});
+      }
+      renderBlocks();
+      toast("Image remplacée. Enregistrez le cours pour confirmer.");
+    } catch (error) {
+      toast(readableError(error));
+      input.disabled = false;
+      input.value = "";
+    }
+  }
+
   async function saveCourse(status) {
     if (!courseForm.reportValidity()) return;
     syncBlocksFromDom();
@@ -495,7 +544,7 @@
 
   function rememberSelection(editor) {
     const selection = window.getSelection();
-    if (!selection?.rangeCount || selection.isCollapsed) return;
+    if (!selection?.rangeCount) return;
     const range = selection.getRangeAt(0);
     const targetEditor = editor || range.commonAncestorContainer.parentElement?.closest?.(".block-richtext") || (range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE ? range.commonAncestorContainer.closest?.(".block-richtext") : null);
     if (!targetEditor || !targetEditor.contains(range.commonAncestorContainer)) return;
@@ -509,6 +558,10 @@
       return;
     }
     const range = savedSelectionRange.cloneRange();
+    if (range.collapsed) {
+      toast("Sélectionnez d’abord les mots à mettre en valeur.");
+      return;
+    }
     const mark = document.createElement("mark");
     mark.dataset.tone = "yellow";
     mark.appendChild(range.extractContents());
@@ -523,8 +576,30 @@
     savedSelectionEditor = editor;
   }
 
+  function insertSymbol(editor, symbol) {
+    let range;
+    if (savedSelectionRange && savedSelectionEditor === editor && editor.contains(savedSelectionRange.commonAncestorContainer)) {
+      range = savedSelectionRange.cloneRange();
+    } else {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+    range.deleteContents();
+    const node = document.createTextNode(symbol);
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    savedSelectionRange = range.cloneRange();
+    savedSelectionEditor = editor;
+    editor.focus();
+  }
+
   blockList.addEventListener("mousedown", (event) => {
-    if (event.target.closest("[data-format]")) {
+    if (event.target.closest("[data-format], [data-insert-symbol]")) {
       rememberSelection(event.target.closest("[data-block-id]")?.querySelector(".block-richtext"));
       event.preventDefault();
     }
@@ -548,6 +623,7 @@
     const remove = event.target.closest("[data-remove-block]");
     const removeImage = event.target.closest("[data-remove-image]");
     const format = event.target.closest("[data-format]");
+    const symbol = event.target.closest("[data-insert-symbol]");
     const testLink = event.target.closest("[data-test-teacher-link]");
     if (move) {
       syncBlocksFromDom();
@@ -583,6 +659,7 @@
       const editor = card.querySelector(".block-richtext");
       if (format.dataset.format === "highlight") highlightSelection(editor);
     }
+    if (symbol) insertSymbol(card.querySelector(".block-richtext"), symbol.dataset.insertSymbol);
     if (testLink) {
       const url = CourseContent.safeUrl(card.querySelector("[data-teacher-url]").value);
       if (!url) toast("Saisissez d’abord une adresse commençant par https://");
@@ -602,6 +679,7 @@
       return;
     }
     if (event.target.matches("[data-image-upload]")) await uploadImages(event.target);
+    if (event.target.matches("[data-image-replace]")) await replaceImage(event.target);
     if (event.target.matches("[data-image-alt]")) {
       const preview = event.target.closest("[data-image-id]");
       const image = await CourseStore.getImage(preview.dataset.imageId);

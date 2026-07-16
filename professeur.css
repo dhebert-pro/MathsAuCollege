@@ -133,6 +133,13 @@ td:nth-child(2) { min-width: 220px; }
 .rich-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 7px 16px; background: rgba(245,248,248,.9); border-bottom: 1px solid #e1e7e9; }
 .rich-toolbar > span { margin-left: 6px; color: var(--muted); font-size: .72rem; }
 .rich-toolbar .highlight-button { display: inline-flex; width: auto; padding: 5px 11px; color: #7b371f; background: #fff0b8; border: 1px solid #dc9e35; font-size: .72rem; font-weight: 900; }
+.math-symbol-picker { position: relative; margin-left: auto; }
+.math-symbol-picker summary { padding: 6px 10px; color: var(--blue); background: white; border: 1px solid #ccd8db; border-radius: 7px; font-size: .72rem; font-weight: 900; cursor: pointer; list-style: none; }
+.math-symbol-picker summary::-webkit-details-marker { display: none; }
+.math-symbol-picker[open] summary { color: white; background: var(--blue); }
+.math-symbol-grid { position: absolute; z-index: 12; top: calc(100% + 7px); right: 0; display: grid; grid-template-columns: repeat(6, 36px); gap: 5px; width: max-content; max-width: min(300px, 82vw); padding: 10px; background: white; border: 1px solid #cad6d9; border-radius: 11px; box-shadow: 0 14px 34px rgba(16,47,67,.2); }
+.rich-toolbar .math-symbol-grid button { width: 36px; height: 34px; color: var(--ink); background: #f3f6f6; border: 1px solid #d8e1e3; font: 700 1.05rem Georgia, serif; }
+.rich-toolbar .math-symbol-grid button:hover, .rich-toolbar .math-symbol-grid button:focus-visible { color: white; background: var(--blue); outline: none; }
 .block-richtext { min-height: 90px; padding: 20px; color: var(--ink); background: transparent; outline: none; font-size: 1.05rem; line-height: 1.6; }
 .block-richtext:focus { box-shadow: inset 0 0 0 2px rgba(71,125,115,.28); }
 .block-richtext:empty::before { color: #93a0a6; content: attr(data-placeholder); }
@@ -155,6 +162,9 @@ td:nth-child(2) { min-width: 220px; }
 .block-image label { font-size: .7rem; }
 .block-image input { padding: 7px 8px; font-size: .75rem; }
 .remove-image { justify-self: start; padding: 0; color: #9c392f; background: transparent; border: 0; font-size: .72rem; font-weight: 700; cursor: pointer; }
+.block-image-actions { display: flex; align-items: center; gap: 10px; }
+.replace-image { display: inline-flex !important; width: auto; padding: 5px 8px; color: var(--blue) !important; background: white; border: 1px solid #c9d6d9; border-radius: 6px; font-size: .7rem !important; font-weight: 800; cursor: pointer; }
+.replace-image input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .image-upload { display: inline-flex !important; width: auto; margin: 12px 16px 0; padding: 8px 11px; color: var(--blue); background: var(--blue-light); border-radius: 8px; cursor: pointer; }
 .image-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .teacher-link-fields { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin: 14px 16px 0; }
