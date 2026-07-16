@@ -18,11 +18,15 @@
       "ignore": ["**/.*", "**/node_modules/**"],
       "redirects": [
         { "source": "/6e/", "destination": "/6e", "type": 301 },
-        { "source": "/4e/", "destination": "/4e", "type": 301 }
+        { "source": "/5e/", "destination": "/5e", "type": 301 },
+        { "source": "/4e/", "destination": "/4e", "type": 301 },
+        { "source": "/3e/", "destination": "/3e", "type": 301 }
       ],
       "rewrites": [
         { "source": "/6e", "destination": "/index.html" },
-        { "source": "/4e", "destination": "/index.html" }
+        { "source": "/5e", "destination": "/index.html" },
+        { "source": "/4e", "destination": "/index.html" },
+        { "source": "/3e", "destination": "/index.html" }
       ],
       "headers": [
         { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public,max-age=300" }] },
@@ -35,11 +39,36 @@
       "ignore": ["**/.*", "**/node_modules/**"],
       "redirects": [
         { "source": "/6e/", "destination": "/6e", "type": 301 },
-        { "source": "/4e/", "destination": "/4e", "type": 301 }
+        { "source": "/5e/", "destination": "/5e", "type": 301 },
+        { "source": "/4e/", "destination": "/4e", "type": 301 },
+        { "source": "/3e/", "destination": "/3e", "type": 301 }
       ],
       "rewrites": [
         { "source": "/6e", "destination": "/index.html" },
-        { "source": "/4e", "destination": "/index.html" }
+        { "source": "/5e", "destination": "/index.html" },
+        { "source": "/4e", "destination": "/index.html" },
+        { "source": "/3e", "destination": "/index.html" }
+      ],
+      "headers": [
+        { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public,max-age=300" }] },
+        { "source": "**/*.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+      ]
+    },
+    {
+      "target": "generic",
+      "public": "dist",
+      "ignore": ["**/.*", "**/node_modules/**"],
+      "redirects": [
+        { "source": "/6e/", "destination": "/6e", "type": 301 },
+        { "source": "/5e/", "destination": "/5e", "type": 301 },
+        { "source": "/4e/", "destination": "/4e", "type": 301 },
+        { "source": "/3e/", "destination": "/3e", "type": 301 }
+      ],
+      "rewrites": [
+        { "source": "/6e", "destination": "/index.html" },
+        { "source": "/5e", "destination": "/index.html" },
+        { "source": "/4e", "destination": "/index.html" },
+        { "source": "/3e", "destination": "/index.html" }
       ],
       "headers": [
         { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public,max-age=300" }] },

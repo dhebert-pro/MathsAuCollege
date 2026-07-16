@@ -12,6 +12,7 @@
   const unpublishButton = document.querySelector("#unpublish-course");
   let accessGranted = false;
   let editorBlocks = [];
+  let editorPageIndex = 0;
   let uploadedDuringEdit = new Set();
   let draggedBlockId = "";
   let savedSelectionRange = null;
@@ -69,6 +70,7 @@
     document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === name));
     document.querySelector(".admin-sidebar").classList.remove("open");
     if (name === "courses") renderTable();
+    if (name === "images") renderImageLibrary();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -111,7 +113,7 @@
         <td>${formatDate(course.updatedAt)}</td>
         <td>
           <div class="row-actions">
-            <button type="button" data-present-course="${course.id}" title="Projeter"><span aria-hidden="true">▶</span><span class="sr-only">Projeter ${escapeHtml(course.title)}</span></button>
+            <button type="button" class="present-course" data-present-course="${course.id}" title="Présenter avec les ressources professeur">▶ Présenter</button>
             <button type="button" data-edit-course="${course.id}" title="Modifier"><span aria-hidden="true">✎</span><span class="sr-only">Modifier ${escapeHtml(course.title)}</span></button>
             <button type="button" data-pdf-course="${course.id}" title="Télécharger en PDF"><span aria-hidden="true">↓</span><span class="sr-only">Télécharger ${escapeHtml(course.title)} en PDF</span></button>
             <button type="button" data-duplicate-course="${course.id}" title="Dupliquer"><span aria-hidden="true">⧉</span><span class="sr-only">Dupliquer ${escapeHtml(course.title)}</span></button>
@@ -133,7 +135,7 @@
     unpublishButton.hidden = status !== "published";
   }
 
-  function blockCard(block, index) {
+  function blockCard(block, index, pageIndex, pageCount, localIndex, pageLength) {
     const type = CourseContent.TYPES[block.type];
     const imagePreviews = block.imageIds.map((imageId) => `
       <div class="block-image" data-image-id="${imageId}">
@@ -147,8 +149,9 @@
         <header class="block-editor-header">
           <div><button type="button" class="drag-handle" draggable="true" data-drag-block aria-label="Déplacer le bloc ${index + 1}" title="Faire glisser pour déplacer">⋮⋮</button><span class="block-type-icon">${type.icon}</span><strong>${type.label}</strong><small>Bloc ${index + 1}</small></div>
           <div class="block-controls">
-            <button type="button" data-move-block="-1" ${index === 0 ? "disabled" : ""} title="Monter le bloc">↑</button>
-            <button type="button" data-move-block="1" ${index === editorBlocks.length - 1 ? "disabled" : ""} title="Descendre le bloc">↓</button>
+            <select data-move-to-page aria-label="Déplacer le bloc vers une autre page" ${pageCount < 2 ? "disabled" : ""}>${Array.from({ length: pageCount }, (_, target) => `<option value="${target}" ${target === pageIndex ? "selected" : ""}>Vers page ${target + 1}</option>`).join("")}</select>
+            <button type="button" data-move-block="-1" ${localIndex === 0 ? "disabled" : ""} title="Monter le bloc dans cette page">↑</button>
+            <button type="button" data-move-block="1" ${localIndex === pageLength - 1 ? "disabled" : ""} title="Descendre le bloc dans cette page">↓</button>
             <button type="button" class="danger" data-remove-block title="Supprimer le bloc">×</button>
           </div>
         </header>
@@ -158,11 +161,10 @@
         </div>
         <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
-        <details class="block-settings">
+        <details class="block-settings" open>
           <summary>Réglages, images et ressource professeur</summary>
           <div class="block-options">
-            <p class="break-help"><strong>Nouvelle page</strong> : commence un nouvel écran. <strong>Apparition différée</strong> : réserve la place du bloc et le révèle au clic.</p>
-            <label><input type="checkbox" data-slide-break ${block.slideBreakBefore ? "checked" : ""} ${index === 0 ? "disabled" : ""} /> Commencer une nouvelle page avant ce bloc</label>
+            <p class="break-help"><strong>Apparition différée</strong> : réserve la place du bloc et le révèle au clic. La création et la navigation entre les pages se font au-dessus du document.</p>
             <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Faire apparaître ce bloc au clic suivant</label>
           </div>
           <div class="block-images">${imagePreviews}</div>
@@ -171,6 +173,7 @@
           <div class="teacher-link-fields">
             <label>Nom du lien professeur<input type="text" data-teacher-label maxlength="80" value="${escapeHtml(block.teacherLabel)}" placeholder="Ex. Animation GeoGebra" /></label>
             <label>Adresse du lien<input type="url" data-teacher-url value="${escapeHtml(block.teacherUrl)}" placeholder="https://…" /></label>
+            <button type="button" class="admin-button secondary" data-test-teacher-link>Tester le lien ↗</button>
           </div>
           <p class="field-help">La ressource sera proposée dans la barre du professeur uniquement lorsque ce bloc sera visible. Elle ne figurera jamais sur la page du cours ni dans le PDF.</p>
         </details>
@@ -179,18 +182,36 @@
   }
 
   function syncBlocksFromDom() {
-    editorBlocks = [...blockList.querySelectorAll("[data-block-id]")].map((card, index) => {
-      const previous = editorBlocks.find((block) => block.id === card.dataset.blockId) || {};
-      return CourseContent.normalizeBlock({
+    [...blockList.querySelectorAll("[data-block-id]")].forEach((card) => {
+      const index = editorBlocks.findIndex((block) => block.id === card.dataset.blockId);
+      if (index < 0) return;
+      const previous = editorBlocks[index];
+      editorBlocks[index] = CourseContent.normalizeBlock({
         ...previous,
         html: card.querySelector(".block-richtext").innerHTML,
         admitted: Boolean(card.querySelector("[data-admitted]")?.checked),
-        slideBreakBefore: index > 0 && card.querySelector("[data-slide-break]").checked,
         revealBreakBefore: card.querySelector("[data-reveal-break]").checked,
         teacherLabel: card.querySelector("[data-teacher-label]").value,
         teacherUrl: card.querySelector("[data-teacher-url]").value,
       });
     });
+  }
+
+  function getEditorPages() {
+    const pages = [];
+    editorBlocks.forEach((block) => {
+      if (!pages.length || (block.slideBreakBefore && pages[pages.length - 1].length)) pages.push([]);
+      pages[pages.length - 1].push(block);
+    });
+    return pages.length ? pages : [[]];
+  }
+
+  function applyEditorPages(pages) {
+    const nonEmpty = pages.filter((page) => page.length);
+    editorBlocks = nonEmpty.flatMap((page, pageIndex) => page.map((block, blockIndex) => CourseContent.normalizeBlock({
+      ...block,
+      slideBreakBefore: pageIndex > 0 && blockIndex === 0,
+    })));
   }
 
   async function hydrateImages() {
@@ -211,17 +232,22 @@
   }
 
   function renderBlocks() {
-    const pages = [];
-    editorBlocks.forEach((block, index) => {
-      if (!pages.length || (block.slideBreakBefore && pages[pages.length - 1].length)) pages.push([]);
-      pages[pages.length - 1].push({ block, index });
-    });
-    blockList.innerHTML = pages.map((page, pageIndex) => `
+    const pages = getEditorPages();
+    editorPageIndex = Math.max(0, Math.min(editorPageIndex, pages.length - 1));
+    const page = pages[editorPageIndex];
+    blockList.innerHTML = `
+      <div class="editor-page-navigation">
+        <button type="button" data-editor-page="previous" ${editorPageIndex === 0 ? "disabled" : ""} aria-label="Page précédente">←</button>
+        <select data-editor-page-select aria-label="Page affichée">${pages.map((_, index) => `<option value="${index}" ${index === editorPageIndex ? "selected" : ""}>Page ${index + 1} sur ${pages.length}</option>`).join("")}</select>
+        <button type="button" data-editor-page="next" ${editorPageIndex === pages.length - 1 ? "disabled" : ""} aria-label="Page suivante">→</button>
+        <button type="button" class="insert-page" data-insert-page="before">＋ Page avant</button>
+        <button type="button" class="insert-page" data-insert-page="after">＋ Page après</button>
+      </div>
       <section class="editor-page">
-        <div class="editor-page-label"><span>Page ${pageIndex + 1}</span><small>Modifiez directement le rendu</small></div>
-        <div class="editor-page-canvas">${page.map(({ block, index }) => blockCard(block, index)).join("")}</div>
+        <div class="editor-page-label"><span>Page ${editorPageIndex + 1}</span><small>Une seule page à l’écran pour éviter les longs défilements</small></div>
+        <div class="editor-page-canvas">${page.map((block, localIndex) => blockCard(block, editorBlocks.findIndex((item) => item.id === block.id), editorPageIndex, pages.length, localIndex, page.length)).join("") || '<p class="table-empty">Cette page est vide. Ajoutez un bloc.</p>'}</div>
       </section>
-    `).join("");
+    `;
     const count = editorBlocks.length;
     document.querySelector("#block-count").textContent = `${count} bloc${count > 1 ? "s" : ""}`;
     hydrateImages();
@@ -230,9 +256,40 @@
   function addBlock(type) {
     syncBlocksFromDom();
     const block = CourseContent.normalizeBlock({ id: CourseContent.id("block"), type });
-    editorBlocks.push(block);
+    const pages = getEditorPages();
+    pages[editorPageIndex].push(block);
+    applyEditorPages(pages);
     renderBlocks();
     blockList.querySelector(`[data-block-id="${block.id}"] .block-richtext`).focus();
+  }
+
+  function insertPage(position) {
+    syncBlocksFromDom();
+    const pages = getEditorPages();
+    const target = position === "before" ? editorPageIndex : editorPageIndex + 1;
+    const block = CourseContent.normalizeBlock({ id: CourseContent.id("block"), type: "text" });
+    pages.splice(target, 0, [block]);
+    applyEditorPages(pages);
+    editorPageIndex = target;
+    renderBlocks();
+    blockList.querySelector(`[data-block-id="${block.id}"] .block-richtext`)?.focus();
+  }
+
+  function moveBlockToPage(blockId, targetPage) {
+    syncBlocksFromDom();
+    const pages = getEditorPages();
+    const sourcePage = pages.findIndex((page) => page.some((block) => block.id === blockId));
+    if (sourcePage < 0 || targetPage < 0 || targetPage >= pages.length || sourcePage === targetPage) return;
+    const sourceIndex = pages[sourcePage].findIndex((block) => block.id === blockId);
+    const [block] = pages[sourcePage].splice(sourceIndex, 1);
+    if (!pages[sourcePage].length) {
+      pages.splice(sourcePage, 1);
+      if (targetPage > sourcePage) targetPage -= 1;
+    }
+    pages[targetPage].push(block);
+    applyEditorPages(pages);
+    editorPageIndex = targetPage;
+    renderBlocks();
   }
 
   async function cleanupNewUploads() {
@@ -244,6 +301,7 @@
   function openEditor(id = "") {
     courseForm.reset();
     uploadedDuringEdit = new Set();
+    editorPageIndex = 0;
     const course = id ? CourseStore.get(id) : null;
     courseForm.elements.id.value = course?.id || CourseContent.id("course");
     courseForm.elements.title.value = course?.title || "";
@@ -262,6 +320,47 @@
     renderTable();
   }
 
+  const formatSize = (bytes) => bytes < 1024 ? `${bytes} o` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} Ko` : `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+
+  async function renderImageLibrary() {
+    const library = document.querySelector("#image-library");
+    library.innerHTML = '<p class="table-empty">Chargement des images…</p>';
+    try {
+      const images = await CourseStore.listImages();
+      const totalBytes = images.reduce((sum, image) => sum + Math.round(String(image.dataUrl || "").length * .75), 0);
+      document.querySelector("#image-library-count").textContent = `${images.length} image${images.length > 1 ? "s" : ""}`;
+      document.querySelector("#image-library-size").textContent = `Environ ${formatSize(totalBytes)}`;
+      library.innerHTML = images.map((image) => {
+        const course = CourseStore.get(image.courseId);
+        const used = course?.blocks.some((block) => block.imageIds.includes(image.id));
+        return `
+          <article class="library-image" data-library-image="${image.id}">
+            <img src="${image.dataUrl}" alt="${escapeHtml(image.alt)}" />
+            <strong>${escapeHtml(image.alt || "Image sans description")}</strong>
+            <small>${course ? escapeHtml(CourseContent.displayTitle(course)) : "Aucun cours associé"} · ${formatSize(Math.round(String(image.dataUrl || "").length * .75))}</small>
+            <button type="button" data-delete-library-image="${image.id}" data-image-used="${used ? "true" : "false"}">Supprimer l’image</button>
+          </article>
+        `;
+      }).join("") || '<p class="table-empty">Aucune image enregistrée.</p>';
+    } catch (error) {
+      library.innerHTML = `<p class="table-empty">${escapeHtml(readableError(error))}</p>`;
+    }
+  }
+
+  async function deleteLibraryImage(imageId) {
+    const affected = CourseStore.all().filter((course) => course.blocks.some((block) => block.imageIds.includes(imageId)));
+    const warning = affected.length
+      ? `Cette image est utilisée dans « ${CourseContent.displayTitle(affected[0])} ». La supprimer la retirera aussi du cours. Continuer ?`
+      : "Supprimer définitivement cette image ?";
+    if (!window.confirm(warning)) return;
+    for (const course of affected) {
+      await CourseStore.save({ ...course, blocks: course.blocks.map((block) => ({ ...block, imageIds: block.imageIds.filter((id) => id !== imageId) })) });
+    }
+    await CourseStore.deleteImage(imageId).catch(() => {});
+    toast("Image supprimée.");
+    await renderImageLibrary();
+  }
+
   async function runMutation(action, successMessage) {
     try {
       await action();
@@ -274,9 +373,7 @@
   function compressImage(file) {
     return new Promise((resolve, reject) => {
       const image = new Image();
-      const objectUrl = URL.createObjectURL(file);
       image.onload = () => {
-        URL.revokeObjectURL(objectUrl);
         let width = image.naturalWidth;
         let height = image.naturalHeight;
         const maximum = 1600;
@@ -304,11 +401,11 @@
         if (dataUrl.length > 650000) reject(Object.assign(new Error("Image too large"), { code: "image-too-large" }));
         else resolve(dataUrl);
       };
-      image.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("Invalid image"));
-      };
-      image.src = objectUrl;
+      image.onerror = () => reject(new Error("Invalid image"));
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Invalid image"));
+      reader.onload = () => { image.src = String(reader.result || ""); };
+      reader.readAsDataURL(file);
     });
   }
 
@@ -433,22 +530,43 @@
     }
   });
   blockList.addEventListener("click", async (event) => {
+    const pageDirection = event.target.closest("[data-editor-page]");
+    const insert = event.target.closest("[data-insert-page]");
+    if (pageDirection) {
+      syncBlocksFromDom();
+      editorPageIndex += pageDirection.dataset.editorPage === "next" ? 1 : -1;
+      renderBlocks();
+      return;
+    }
+    if (insert) {
+      insertPage(insert.dataset.insertPage);
+      return;
+    }
     const card = event.target.closest("[data-block-id]");
     if (!card) return;
-    const index = editorBlocks.findIndex((block) => block.id === card.dataset.blockId);
     const move = event.target.closest("[data-move-block]");
     const remove = event.target.closest("[data-remove-block]");
     const removeImage = event.target.closest("[data-remove-image]");
     const format = event.target.closest("[data-format]");
+    const testLink = event.target.closest("[data-test-teacher-link]");
     if (move) {
       syncBlocksFromDom();
+      const pages = getEditorPages();
+      const page = pages[editorPageIndex];
+      const index = page.findIndex((block) => block.id === card.dataset.blockId);
       const target = index + Number(move.dataset.moveBlock);
-      if (target >= 0 && target < editorBlocks.length) [editorBlocks[index], editorBlocks[target]] = [editorBlocks[target], editorBlocks[index]];
+      if (target >= 0 && target < page.length) [page[index], page[target]] = [page[target], page[index]];
+      applyEditorPages(pages);
       renderBlocks();
     }
     if (remove && window.confirm("Supprimer ce bloc ?")) {
       syncBlocksFromDom();
-      editorBlocks.splice(index, 1);
+      const pages = getEditorPages();
+      const page = pages[editorPageIndex];
+      const index = page.findIndex((block) => block.id === card.dataset.blockId);
+      if (index >= 0) page.splice(index, 1);
+      applyEditorPages(pages);
+      editorPageIndex = Math.min(editorPageIndex, Math.max(0, getEditorPages().length - 1));
       renderBlocks();
     }
     if (removeImage) {
@@ -465,16 +583,31 @@
       const editor = card.querySelector(".block-richtext");
       if (format.dataset.format === "highlight") highlightSelection(editor);
     }
+    if (testLink) {
+      const url = CourseContent.safeUrl(card.querySelector("[data-teacher-url]").value);
+      if (!url) toast("Saisissez d’abord une adresse commençant par https://");
+      else window.open(url, "_blank", "noopener,noreferrer");
+    }
   });
   document.addEventListener("selectionchange", () => rememberSelection());
   blockList.addEventListener("change", async (event) => {
+    if (event.target.matches("[data-editor-page-select]")) {
+      syncBlocksFromDom();
+      editorPageIndex = Number(event.target.value);
+      renderBlocks();
+      return;
+    }
+    if (event.target.matches("[data-move-to-page]")) {
+      moveBlockToPage(event.target.closest("[data-block-id]").dataset.blockId, Number(event.target.value));
+      return;
+    }
     if (event.target.matches("[data-image-upload]")) await uploadImages(event.target);
     if (event.target.matches("[data-image-alt]")) {
       const preview = event.target.closest("[data-image-id]");
       const image = await CourseStore.getImage(preview.dataset.imageId);
       if (image) await CourseStore.saveImage({ ...image, alt: event.target.value });
     }
-    if (event.target.matches("[data-admitted], [data-slide-break], [data-reveal-break]")) {
+    if (event.target.matches("[data-admitted], [data-reveal-break]")) {
       syncBlocksFromDom();
       renderBlocks();
     }
@@ -509,13 +642,16 @@
     if (!draggedBlockId || !targetCard || targetCard.dataset.blockId === draggedBlockId) return;
     event.preventDefault();
     const after = targetCard.classList.contains("drop-after");
-    const from = editorBlocks.findIndex((block) => block.id === draggedBlockId);
-    let to = editorBlocks.findIndex((block) => block.id === targetCard.dataset.blockId);
+    const pages = getEditorPages();
+    const page = pages[editorPageIndex];
+    const from = page.findIndex((block) => block.id === draggedBlockId);
+    let to = page.findIndex((block) => block.id === targetCard.dataset.blockId);
     if (from < 0 || to < 0) return;
-    const [moved] = editorBlocks.splice(from, 1);
+    const [moved] = page.splice(from, 1);
     if (from < to) to -= 1;
     if (after) to += 1;
-    editorBlocks.splice(Math.max(0, Math.min(to, editorBlocks.length)), 0, moved);
+    page.splice(Math.max(0, Math.min(to, page.length)), 0, moved);
+    applyEditorPages(pages);
     draggedBlockId = "";
     clearDropMarkers();
     renderBlocks();
@@ -540,8 +676,13 @@
     const remove = event.target.closest("[data-delete-course]");
     const toggle = event.target.closest("[data-toggle-course]");
     const move = event.target.closest("[data-move-course]");
+    const deleteImage = event.target.closest("[data-delete-library-image]");
     if (edit) openEditor(edit.dataset.editCourse);
-    if (present) window.open(`presentation.html?course=${encodeURIComponent(present.dataset.presentCourse)}&mode=teacher`, "_blank", "noopener");
+    if (present) window.open(`presentation.html?course=${encodeURIComponent(present.dataset.presentCourse)}&mode=teacher`, "_blank");
+    if (deleteImage) {
+      try { await deleteLibraryImage(deleteImage.dataset.deleteLibraryImage); }
+      catch (error) { toast(readableError(error)); }
+    }
     if (pdf) await runMutation(() => CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse)), "PDF généré.");
     if (duplicate) await runMutation(() => CourseStore.duplicate(duplicate.dataset.duplicateCourse), "Copie créée en brouillon.");
     if (toggle) await runMutation(() => CourseStore.toggleStatus(toggle.dataset.toggleCourse), CourseStore.get(toggle.dataset.toggleCourse)?.status === "published" ? "Cours dépublié." : "Cours publié.");

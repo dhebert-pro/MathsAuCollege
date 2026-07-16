@@ -18,7 +18,7 @@ service cloud.firestore {
         && data.title is string && data.title.size() > 0 && data.title.size() <= 120
         && data.slug is string
         && data.chapterNumber is string && data.chapterNumber.size() <= 20
-        && data.level in ['6', '4']
+        && data.level in ['6', '5', '4', '3']
         && data.blocks is list && data.blocks.size() <= 200
         && data.slideCount is int && data.slideCount >= 1 && data.slideCount <= 200
         && data.status in ['draft', 'published']
@@ -34,7 +34,7 @@ service cloud.firestore {
         ])
         && data.id is string
         && data.title is string && data.title.size() > 0 && data.title.size() <= 120
-        && data.level in ['6', '4']
+        && data.level in ['6', '5', '4', '3']
         && data.content is string && data.content.size() <= 200000
         && data.status in ['draft', 'published'];
     }
@@ -62,7 +62,7 @@ service cloud.firestore {
     match /catalogs/{level} {
       allow read: if true;
       allow write: if isProfessor()
-        && level in ['6', '4']
+        && level in ['6', '5', '4', '3']
         && request.resource.data.level == level
         && request.resource.data.courses is list
         && request.resource.data.courses.size() <= 200;

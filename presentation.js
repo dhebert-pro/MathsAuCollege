@@ -95,12 +95,16 @@
   function renderTeacherLinks() {
     const current = currentTeacherLinks();
     teacherPanel.hidden = true;
-    teacherToggle.hidden = !teacherMode || current.length === 0;
+    teacherToggle.hidden = !teacherMode;
+    teacherToggle.disabled = current.length === 0;
     teacherToggle.dataset.singleUrl = current.length === 1 ? current[0].url : "";
     if (!current.length) {
+      teacherToggle.innerHTML = 'Ressource du bloc <span aria-hidden="true">↗</span>';
+      teacherToggle.title = "Le bouton s’activera lorsqu’un bloc possédant une ressource sera visible.";
       teacherPanel.innerHTML = "";
       return;
     }
+    teacherToggle.title = "Ouvrir la ressource du bloc visible (raccourci L)";
     teacherToggle.innerHTML = current.length === 1
       ? `Ressource : ${CourseContent.escapeHtml(current[0].label)} <span aria-hidden="true">↗</span>`
       : `Ressources disponibles <span>${current.length}</span>`;
@@ -165,7 +169,11 @@
       slideElement.innerHTML = stagesFor(currentSlide).map(({ block, stageNumber }) => blockHtml(block, stageNumber, revealedStage)).join("");
       hydrateImages();
     }
-    if (direction) slideElement.classList.add(direction === "next" ? "page-turn-next" : "page-turn-previous");
+    if (direction) {
+      slideElement.classList.remove("page-turn-next", "page-turn-previous");
+      void slideElement.offsetWidth;
+      slideElement.classList.add(direction === "next" ? "page-turn-next" : "page-turn-previous");
+    }
     updateControls();
   }
 
@@ -207,7 +215,8 @@
     }
     document.title = `${CourseContent.displayTitle(course)} · Maths au collège`;
     document.querySelector("#presentation-level").textContent = `${course.level}e`;
-    document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html#${course.level === "6" ? "sixieme" : "quatrieme"}`;
+    document.querySelector("#teacher-mode-badge").hidden = !teacherMode;
+    document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html#niveau-${course.level}`;
     loading.hidden = true;
     stage.hidden = false;
     render();

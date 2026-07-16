@@ -1,10 +1,10 @@
 # Maths au collège
 
-Application web de ressources de mathématiques destinée aux élèves de 6e et de 4e.
+Application web de ressources de mathématiques destinée aux élèves du collège.
 
 ## Fonctionnement
 
-- Les élèves choisissent librement leur niveau ; les accès directs `/6e` et `/4e` ouvrent immédiatement le bon espace.
+- Les élèves choisissent librement leur niveau ; les accès directs `/6e`, `/5e`, `/4e` et `/3e` ouvrent immédiatement le bon espace.
 - Chaque cours est présenté écran par écran, avec des révélations progressives possibles au sein d’un même écran.
 - Le PDF A4 portrait ignore le découpage de projection et resserre les blocs pour limiter le nombre de pages et la consommation d’encre.
 - Le back-office compose les cours dans un grand éditeur WYSIWYG avec des blocs séquentiels : texte, définition, propriété, exemple, « À retenir », attention, méthode et rappel.
@@ -49,9 +49,9 @@ npm run build:firebase
 npm run check
 ```
 
-Application publique : <https://maths-6e-4e.web.app/>
+Application publique : <https://cours-maths-college.web.app/>
 
-Accès directs : <https://maths-6e-4e.web.app/6e> et <https://maths-6e-4e.web.app/4e>.
+Accès directs : <https://cours-maths-college.web.app/6e>, <https://cours-maths-college.web.app/5e>, <https://cours-maths-college.web.app/4e> et <https://cours-maths-college.web.app/3e>.
 
 ## Données personnelles
 

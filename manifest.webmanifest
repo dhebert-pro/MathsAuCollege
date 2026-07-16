@@ -1,7 +1,7 @@
 {
   "name": "Maths au collège",
   "short_name": "Maths collège",
-  "description": "Activités de mathématiques pour les élèves de 6e et de 4e.",
+  "description": "Cours de mathématiques pour les élèves du collège.",
   "lang": "fr",
   "start_url": "./",
   "display": "standalone",

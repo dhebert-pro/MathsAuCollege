@@ -55,7 +55,7 @@ async function readCourseImages(courseId) {
 }
 
 function rebuildCatalogs(batch, courses) {
-  ["6", "4"].forEach((level) => {
+  CourseContent.LEVELS.forEach((level) => {
     const published = CourseContent.sortCourses(courses)
       .filter((course) => course.level === level && course.status === "published")
       .map(CourseContent.catalogCourse);
@@ -128,6 +128,10 @@ window.FirebaseBackend = {
   async getCourseImage(id) {
     const snapshot = await getDoc(doc(db, "courseImages", id));
     return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  },
+  async listCourseImages() {
+    const snapshot = await getDocs(collection(db, "courseImages"));
+    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
   },
   async deleteCourseImage(id) {
     await deleteDoc(doc(db, "courseImages", id));

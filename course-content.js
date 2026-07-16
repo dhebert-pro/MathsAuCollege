@@ -12,6 +12,7 @@
     reminder: { label: "Rappel", icon: "\u21ba" },
   };
   const TONES = ["yellow"];
+  const LEVELS = ["6", "5", "4", "3"];
   const collator = new Intl.Collator("fr", { numeric: true, sensitivity: "base" });
 
   function id(prefix = "item") {
@@ -98,7 +99,7 @@
       title,
       slug: String(course.slug || title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")),
       chapterNumber: String(course.chapterNumber || "").trim().slice(0, 20),
-      level: ["6", "4"].includes(String(course.level)) ? String(course.level) : "6",
+      level: LEVELS.includes(String(course.level)) ? String(course.level) : "6",
       blocks,
       slideCount: blocks.length ? groupSlides(blocks).length : Math.max(1, Number(course.slideCount) || 1),
       status: course.status === "published" ? "published" : "draft",
@@ -125,7 +126,7 @@
 
   function sortCourses(items) {
     return [...items].sort((a, b) => {
-      if (a.level !== b.level) return b.level.localeCompare(a.level);
+      if (a.level !== b.level) return LEVELS.indexOf(a.level) - LEVELS.indexOf(b.level);
       const aManual = Number.isInteger(a.manualOrder);
       const bManual = Number.isInteger(b.manualOrder);
       if (aManual && bManual && a.manualOrder !== b.manualOrder) return a.manualOrder - b.manualOrder;
@@ -151,6 +152,7 @@
   window.CourseContent = {
     TYPES,
     TONES,
+    LEVELS,
     id,
     escapeHtml,
     sanitizeHtml,

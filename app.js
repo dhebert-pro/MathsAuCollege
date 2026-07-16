@@ -26,14 +26,16 @@
   }
 
   function renderAllCourses() {
-    renderCourses("6");
-    renderCourses("4");
+    CourseContent.LEVELS.forEach(renderCourses);
   }
 
   function showPage() {
     const directPath = window.location.pathname.replace(/\/+$/, "");
-    const pathRoute = directPath.endsWith("/6e") ? "sixieme" : directPath.endsWith("/4e") ? "quatrieme" : "";
-    const route = window.location.hash.slice(1) || pathRoute || "accueil";
+    const levelMatch = directPath.match(/\/([3-6])e$/);
+    const pathRoute = levelMatch && CourseContent.LEVELS.includes(levelMatch[1]) ? `niveau-${levelMatch[1]}` : "";
+    const legacyRoutes = { sixieme: "niveau-6", quatrieme: "niveau-4" };
+    const hashRoute = window.location.hash.slice(1);
+    const route = legacyRoutes[hashRoute] || hashRoute || pathRoute || "accueil";
     const validRoute = document.querySelector(`[data-page="${route}"]`) ? route : "accueil";
     document.querySelectorAll("[data-page]").forEach((page) => {
       const active = page.dataset.page === validRoute;
@@ -83,7 +85,7 @@
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {
-    const refreshKey = "sw-refreshed-0.9.0";
+    const refreshKey = "sw-refreshed-0.10.0";
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (sessionStorage.getItem(refreshKey)) return;
       sessionStorage.setItem(refreshKey, "true");

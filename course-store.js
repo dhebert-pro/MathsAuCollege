@@ -67,10 +67,16 @@
       images.delete(id);
       await FirebaseBackend.deleteCourseImage(id);
     },
+    async listImages() {
+      if (!firebaseMode) return [];
+      const items = await FirebaseBackend.listCourseImages();
+      items.forEach((image) => images.set(image.id, image));
+      return items;
+    },
     startPublic() {
       this.stopSubscriptions();
       if (!firebaseMode) return;
-      ["6", "4"].forEach((level) => {
+      CourseContent.LEVELS.forEach((level) => {
         subscriptions.push(FirebaseBackend.subscribeCatalog(level, (items, fromCache) => replaceLevel(level, items, fromCache), () => replaceLevel(level, [], false)));
       });
     },
