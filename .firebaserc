@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "maths-au-college-667a8"
-  }
+  },
+  "targets": {
+    "maths-au-college-667a8": {
+      "hosting": {
+        "main": [
+          "maths-au-college-667a8"
+        ],
+        "short": [
+          "maths-6e-4e"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

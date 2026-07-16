@@ -7,8 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.8.0" />
-    <link rel="stylesheet" href="professeur.css?v=0.8.0" />
+    <link rel="stylesheet" href="styles.css?v=0.9.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.9.0" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -28,7 +28,7 @@
           <div id="login-message" class="form-message" role="status"></div>
         </div>
         <a class="back-link" href="index.html">← Retour aux cours</a>
-        <span class="app-version login-version">v0.8.0</span>
+        <span class="app-version login-version">v0.9.0</span>
       </section>
 
       <section id="admin-app" class="admin-app" hidden>
@@ -45,7 +45,7 @@
           <div class="sidebar-bottom">
             <a href="index.html">Voir les cours ↗</a>
             <button id="logout" type="button">Se déconnecter</button>
-            <span class="app-version">v0.8.0</span>
+            <span class="app-version">v0.9.0</span>
           </div>
         </aside>
 
@@ -91,7 +91,7 @@
             <form id="course-form" class="editor-layout">
               <input type="hidden" name="id" />
               <input type="hidden" name="status" value="draft" />
-              <div class="admin-panel form-main">
+              <div class="admin-panel form-main wysiwyg-workspace">
                 <div class="chapter-fields">
                   <label>Numéro du chapitre <span class="optional">facultatif</span><input name="chapterNumber" maxlength="20" placeholder="Ex. 3" /></label>
                   <label>Nom du chapitre <span aria-hidden="true">*</span><input name="title" required maxlength="120" placeholder="Ex. Fractions et calculs" /></label>
@@ -99,17 +99,6 @@
                 <section class="block-composer" aria-labelledby="blocks-title">
                   <div class="block-composer-heading"><div><h2 id="blocks-title">Contenu du cours</h2><p>Ajoutez les blocs dans l’ordre où ils devront apparaître.</p></div><span id="block-count">0 bloc</span></div>
                   <div id="block-list" class="block-list"></div>
-                  <div class="block-palette" aria-label="Ajouter un bloc">
-                    <p>Ajouter un bloc</p>
-                    <button type="button" data-add-block="text">¶ Texte</button>
-                    <button type="button" data-add-block="definition">D Définition</button>
-                    <button type="button" data-add-block="property">P Propriété</button>
-                    <button type="button" data-add-block="example">Ex Exemple</button>
-                    <button type="button" data-add-block="takeaway">★ À retenir</button>
-                    <button type="button" data-add-block="warning">! Attention</button>
-                    <button type="button" data-add-block="method">M Méthode</button>
-                    <button type="button" data-add-block="reminder">↺ Rappel</button>
-                  </div>
                 </section>
               </div>
               <aside class="editor-options">
@@ -118,12 +107,18 @@
                   <label>Niveau<select name="level" required><option value="6">6e</option><option value="4">4e</option></select></label>
                   <div class="editor-status"><span>État actuel</span><strong id="editor-status-label" class="status draft">Brouillon</strong></div>
                 </div>
-                <div class="admin-panel live-preview-panel">
-                  <div class="live-preview-heading"><div><h2>Aperçu direct</h2><p>Rendu de la présentation</p></div><span id="preview-counter">1 / 1</span></div>
-                  <div id="course-live-preview" class="course-live-preview" aria-live="polite"></div>
-                  <div class="live-preview-controls">
-                    <button id="preview-previous" type="button" aria-label="Page précédente">←</button>
-                    <button id="preview-next" type="button" aria-label="Page suivante">→</button>
+                <div class="admin-panel palette-panel">
+                  <h2>Ajouter un bloc</h2>
+                  <p>Le bloc apparaît directement dans le document.</p>
+                  <div class="block-palette" aria-label="Ajouter un bloc">
+                    <button type="button" data-add-block="text">¶ Texte</button>
+                    <button type="button" data-add-block="definition">D Définition</button>
+                    <button type="button" data-add-block="property">P Propriété</button>
+                    <button type="button" data-add-block="example">Ex Exemple</button>
+                    <button type="button" data-add-block="takeaway">★ À retenir</button>
+                    <button type="button" data-add-block="warning">! Attention</button>
+                    <button type="button" data-add-block="method">M Méthode</button>
+                    <button type="button" data-add-block="reminder">↺ Rappel</button>
                   </div>
                 </div>
                 <div class="editor-actions">
@@ -140,12 +135,12 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.8.0" defer></script>
-    <script src="course-content.js?v=0.8.0" defer></script>
-    <script src="firebase-config.js?v=0.8.0" defer></script>
-    <script src="firebase-bundle.js?v=0.8.0" defer></script>
-    <script src="course-store.js?v=0.8.0" defer></script>
-    <script src="pdf-export.js?v=0.8.0" defer></script>
-    <script src="professeur.js?v=0.8.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.9.0" defer></script>
+    <script src="course-content.js?v=0.9.0" defer></script>
+    <script src="firebase-config.js?v=0.9.0" defer></script>
+    <script src="firebase-bundle.js?v=0.9.0" defer></script>
+    <script src="course-store.js?v=0.9.0" defer></script>
+    <script src="pdf-export.js?v=0.9.0" defer></script>
+    <script src="professeur.js?v=0.9.0" defer></script>
   </body>
 </html>

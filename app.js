@@ -17,8 +17,8 @@
         <h2>${escapeHtml(CourseContent.displayTitle(course))}</h2>
         <p>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""} · Lecture et PDF</p>
         <div class="course-card-actions">
-          <button type="button" class="text-button" data-read-course="${course.id}">Consulter</button>
-          <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> PDF</button>
+          <button type="button" class="read-course-button" data-read-course="${course.id}">Consulter le cours <span aria-hidden="true">→</span></button>
+          <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> Télécharger le PDF</button>
         </div>
       </article>
     `).join("");
@@ -31,7 +31,9 @@
   }
 
   function showPage() {
-    const route = window.location.hash.slice(1) || "accueil";
+    const directPath = window.location.pathname.replace(/\/+$/, "");
+    const pathRoute = directPath.endsWith("/6e") ? "sixieme" : directPath.endsWith("/4e") ? "quatrieme" : "";
+    const route = window.location.hash.slice(1) || pathRoute || "accueil";
     const validRoute = document.querySelector(`[data-page="${route}"]`) ? route : "accueil";
     document.querySelectorAll("[data-page]").forEach((page) => {
       const active = page.dataset.page === validRoute;
@@ -81,7 +83,7 @@
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {
-    const refreshKey = "sw-refreshed-0.8.0";
+    const refreshKey = "sw-refreshed-0.9.0";
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (sessionStorage.getItem(refreshKey)) return;
       sessionStorage.setItem(refreshKey, "true");

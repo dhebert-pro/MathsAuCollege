@@ -10,13 +10,12 @@
   const saveButton = document.querySelector("#save-course");
   const publishButton = document.querySelector("#publish-course");
   const unpublishButton = document.querySelector("#unpublish-course");
-  const livePreview = document.querySelector("#course-live-preview");
   let accessGranted = false;
   let editorBlocks = [];
   let uploadedDuringEdit = new Set();
-  let previewSlideIndex = 0;
-  let previewFrame = 0;
   let draggedBlockId = "";
+  let savedSelectionRange = null;
+  let savedSelectionEditor = null;
 
   const escapeHtml = CourseContent.escapeHtml;
   const normalizeSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -144,7 +143,7 @@
       </div>
     `).join("");
     return `
-      <article class="block-editor block-${block.type}" data-block-id="${block.id}">
+      <article class="block-editor block-${block.type}${block.admitted ? " admitted" : ""}" data-block-id="${block.id}">
         <header class="block-editor-header">
           <div><button type="button" class="drag-handle" draggable="true" data-drag-block aria-label="Déplacer le bloc ${index + 1}" title="Faire glisser pour déplacer">⋮⋮</button><span class="block-type-icon">${type.icon}</span><strong>${type.label}</strong><small>Bloc ${index + 1}</small></div>
           <div class="block-controls">
@@ -154,19 +153,18 @@
           </div>
         </header>
         <div class="rich-toolbar" aria-label="Mise en forme">
-          <button type="button" data-format="bold" title="Gras"><strong>G</strong></button>
-          <span>Sélectionnez du texte, puis :</span>
-          <button type="button" class="highlight-button" data-format="highlight" data-color="#ffe6a6">Mettre en valeur</button>
+          <span>Sélectionnez la partie importante du texte :</span>
+          <button type="button" class="highlight-button" data-format="highlight">Mettre en valeur</button>
         </div>
         <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
-        <div class="block-options">
-          <p class="break-help"><strong>Diapositive</strong> : crée un nouvel écran. <strong>Révélation</strong> : reste sur le même écran et affiche ce bloc plus tard.</p>
-          <label><input type="checkbox" data-slide-break ${block.slideBreakBefore ? "checked" : ""} ${index === 0 ? "disabled" : ""} /> Commencer une nouvelle diapositive avant ce bloc</label>
-          <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Masquer ce bloc jusqu’au prochain clic sur Suivant</label>
-        </div>
-        <details class="block-extras">
-          <summary>Images et lien de projection</summary>
+        <details class="block-settings">
+          <summary>Réglages, images et ressource professeur</summary>
+          <div class="block-options">
+            <p class="break-help"><strong>Nouvelle page</strong> : commence un nouvel écran. <strong>Apparition différée</strong> : réserve la place du bloc et le révèle au clic.</p>
+            <label><input type="checkbox" data-slide-break ${block.slideBreakBefore ? "checked" : ""} ${index === 0 ? "disabled" : ""} /> Commencer une nouvelle page avant ce bloc</label>
+            <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Faire apparaître ce bloc au clic suivant</label>
+          </div>
           <div class="block-images">${imagePreviews}</div>
           <label class="image-upload">Ajouter des images<input type="file" data-image-upload accept="image/png,image/jpeg,image/webp" multiple /></label>
           <p class="field-help">Les images sont automatiquement compressées. Maximum 8 par bloc.</p>
@@ -174,7 +172,7 @@
             <label>Nom du lien professeur<input type="text" data-teacher-label maxlength="80" value="${escapeHtml(block.teacherLabel)}" placeholder="Ex. Animation GeoGebra" /></label>
             <label>Adresse du lien<input type="url" data-teacher-url value="${escapeHtml(block.teacherUrl)}" placeholder="https://…" /></label>
           </div>
-          <p class="field-help">Ce lien apparaîtra uniquement lorsque vous projetterez depuis le back-office. Il est absent du cours élève et du PDF.</p>
+          <p class="field-help">La ressource sera proposée dans la barre du professeur uniquement lorsque ce bloc sera visible. Elle ne figurera jamais sur la page du cours ni dans le PDF.</p>
         </details>
       </article>
     `;
@@ -195,50 +193,6 @@
     });
   }
 
-  function previewBlock(block) {
-    const type = CourseContent.TYPES[block.type];
-    return `
-      <section class="preview-block block-${block.type}${block.admitted ? " admitted" : ""}">
-        ${block.type === "text" ? "" : `<strong class="preview-block-label">${escapeHtml(type.label)}${block.admitted ? " admise" : ""}</strong>`}
-        <div class="preview-block-content">${CourseContent.sanitizeHtml(block.html)}</div>
-        ${block.imageIds.length ? `<div class="preview-images">${block.imageIds.map((id) => `<span data-preview-image="${id}">Image…</span>`).join("")}</div>` : ""}
-      </section>
-    `;
-  }
-
-  async function hydratePreviewImages() {
-    const holders = [...livePreview.querySelectorAll("[data-preview-image]")];
-    await Promise.all(holders.map(async (holder) => {
-      try {
-        const image = await CourseStore.getImage(holder.dataset.previewImage);
-        if (!image || !holder.isConnected) return;
-        const element = document.createElement("img");
-        element.src = image.dataUrl;
-        element.alt = image.alt;
-        holder.replaceWith(element);
-      } catch {
-        if (holder.isConnected) holder.textContent = "Image indisponible";
-      }
-    }));
-  }
-
-  function renderPreview(sync = true) {
-    if (sync && blockList.children.length) syncBlocksFromDom();
-    const slides = CourseContent.groupSlides(editorBlocks);
-    previewSlideIndex = Math.max(0, Math.min(previewSlideIndex, slides.length - 1));
-    const blocks = slides[previewSlideIndex] || [];
-    livePreview.innerHTML = blocks.map(previewBlock).join("") || '<p class="preview-empty">Ajoutez du contenu pour voir le rendu.</p>';
-    document.querySelector("#preview-counter").textContent = `${previewSlideIndex + 1} / ${slides.length}`;
-    document.querySelector("#preview-previous").disabled = previewSlideIndex === 0;
-    document.querySelector("#preview-next").disabled = previewSlideIndex >= slides.length - 1;
-    hydratePreviewImages();
-  }
-
-  function schedulePreview() {
-    cancelAnimationFrame(previewFrame);
-    previewFrame = requestAnimationFrame(() => renderPreview(true));
-  }
-
   async function hydrateImages() {
     const previews = [...blockList.querySelectorAll("[data-image-id]")];
     await Promise.all(previews.map(async (preview) => {
@@ -257,11 +211,20 @@
   }
 
   function renderBlocks() {
-    blockList.innerHTML = editorBlocks.map(blockCard).join("");
+    const pages = [];
+    editorBlocks.forEach((block, index) => {
+      if (!pages.length || (block.slideBreakBefore && pages[pages.length - 1].length)) pages.push([]);
+      pages[pages.length - 1].push({ block, index });
+    });
+    blockList.innerHTML = pages.map((page, pageIndex) => `
+      <section class="editor-page">
+        <div class="editor-page-label"><span>Page ${pageIndex + 1}</span><small>Modifiez directement le rendu</small></div>
+        <div class="editor-page-canvas">${page.map(({ block, index }) => blockCard(block, index)).join("")}</div>
+      </section>
+    `).join("");
     const count = editorBlocks.length;
     document.querySelector("#block-count").textContent = `${count} bloc${count > 1 ? "s" : ""}`;
     hydrateImages();
-    renderPreview(false);
   }
 
   function addBlock(type) {
@@ -287,7 +250,6 @@
     courseForm.elements.chapterNumber.value = course?.chapterNumber || "";
     courseForm.elements.level.value = course?.level || "6";
     editorBlocks = course?.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds] })) || [CourseContent.normalizeBlock({ type: "text" })];
-    previewSlideIndex = 0;
     document.querySelector("#editor-title").textContent = course ? "Modifier le cours" : "Nouveau cours";
     updateEditorStatus(course?.status || "draft");
     renderBlocks();
@@ -432,12 +394,43 @@
   document.querySelector("#reset-order").addEventListener("click", () => runMutation(() => CourseStore.resetOrder(document.querySelector("#level-filter").value), "Tri automatique rétabli."));
   ["#admin-search", "#level-filter", "#status-filter"].forEach((selector) => document.querySelector(selector).addEventListener("input", renderTable));
   document.querySelectorAll("[data-add-block]").forEach((button) => button.addEventListener("click", () => addBlock(button.dataset.addBlock)));
-  document.querySelector("#preview-previous").addEventListener("click", () => { previewSlideIndex -= 1; renderPreview(true); });
-  document.querySelector("#preview-next").addEventListener("click", () => { previewSlideIndex += 1; renderPreview(true); });
   window.addEventListener("courses:changed", () => { if (accessGranted) renderAll(); });
 
+  function rememberSelection(editor) {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || selection.isCollapsed) return;
+    const range = selection.getRangeAt(0);
+    const targetEditor = editor || range.commonAncestorContainer.parentElement?.closest?.(".block-richtext") || (range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE ? range.commonAncestorContainer.closest?.(".block-richtext") : null);
+    if (!targetEditor || !targetEditor.contains(range.commonAncestorContainer)) return;
+    savedSelectionRange = range.cloneRange();
+    savedSelectionEditor = targetEditor;
+  }
+
+  function highlightSelection(editor) {
+    if (!savedSelectionRange || savedSelectionEditor !== editor || !editor.contains(savedSelectionRange.commonAncestorContainer)) {
+      toast("Sélectionnez d’abord les mots à mettre en valeur.");
+      return;
+    }
+    const range = savedSelectionRange.cloneRange();
+    const mark = document.createElement("mark");
+    mark.dataset.tone = "yellow";
+    mark.appendChild(range.extractContents());
+    range.insertNode(mark);
+    editor.normalize();
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    const highlighted = document.createRange();
+    highlighted.selectNodeContents(mark);
+    selection.addRange(highlighted);
+    savedSelectionRange = highlighted.cloneRange();
+    savedSelectionEditor = editor;
+  }
+
   blockList.addEventListener("mousedown", (event) => {
-    if (event.target.closest("[data-format]")) event.preventDefault();
+    if (event.target.closest("[data-format]")) {
+      rememberSelection(event.target.closest("[data-block-id]")?.querySelector(".block-richtext"));
+      event.preventDefault();
+    }
   });
   blockList.addEventListener("click", async (event) => {
     const card = event.target.closest("[data-block-id]");
@@ -470,18 +463,10 @@
     }
     if (format) {
       const editor = card.querySelector(".block-richtext");
-      editor.focus();
-      if (format.dataset.format === "bold") document.execCommand("bold", false);
-      if (format.dataset.format === "highlight") {
-        const applied = document.execCommand("hiliteColor", false, format.dataset.color);
-        if (!applied) document.execCommand("backColor", false, format.dataset.color);
-      }
-      schedulePreview();
+      if (format.dataset.format === "highlight") highlightSelection(editor);
     }
   });
-  blockList.addEventListener("input", (event) => {
-    if (event.target.matches(".block-richtext, [data-teacher-label], [data-teacher-url]")) schedulePreview();
-  });
+  document.addEventListener("selectionchange", () => rememberSelection());
   blockList.addEventListener("change", async (event) => {
     if (event.target.matches("[data-image-upload]")) await uploadImages(event.target);
     if (event.target.matches("[data-image-alt]")) {
@@ -489,7 +474,10 @@
       const image = await CourseStore.getImage(preview.dataset.imageId);
       if (image) await CourseStore.saveImage({ ...image, alt: event.target.value });
     }
-    if (event.target.matches("[data-admitted], [data-slide-break], [data-reveal-break]")) renderPreview(true);
+    if (event.target.matches("[data-admitted], [data-slide-break], [data-reveal-break]")) {
+      syncBlocksFromDom();
+      renderBlocks();
+    }
   });
 
   function clearDropMarkers() {

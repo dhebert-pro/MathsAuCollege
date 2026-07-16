@@ -85,11 +85,9 @@
       line.forEach((token) => {
         pdf.setFont("helvetica", token.bold || token.highlight ? "bold" : token.italic ? "italic" : "normal");
         pdf.setFontSize(fontSize);
-        pdf.setTextColor(...COLORS.ink);
+        pdf.setTextColor(...(token.highlight ? [138, 60, 32] : COLORS.ink));
         if (token.highlight) {
-          pdf.setFillColor(255, 232, 174);
-          pdf.roundedRect(cursor - .4, y - fontSize * .31, token.width + .8, fontSize * .43, .6, .6, "F");
-          pdf.setDrawColor(176, 124, 35);
+          pdf.setDrawColor(205, 132, 34);
           pdf.setLineWidth(.35);
           pdf.line(cursor, y + .7, cursor + token.width, y + .7);
         }

@@ -8,6 +8,8 @@
   const errorView = document.querySelector("#presentation-error");
   const stage = document.querySelector("#presentation-stage");
   const slideElement = document.querySelector("#slide");
+  const teacherToggle = document.querySelector("#teacher-links-toggle");
+  const teacherPanel = document.querySelector("#teacher-links");
   let course = null;
   let slides = [];
   let slideIndex = 0;
@@ -20,6 +22,28 @@
     document.querySelector("#presentation-error-message").textContent = message;
   }
 
+  function progressKey() {
+    return `maths-course-progress:${teacherMode ? "teacher" : "student"}:${courseId}`;
+  }
+
+  function saveProgress() {
+    if (!course) return;
+    try {
+      localStorage.setItem(progressKey(), JSON.stringify({ slideIndex, revealIndex }));
+    } catch {}
+  }
+
+  function restoreProgress() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(progressKey()) || "null");
+      slideIndex = Math.max(0, Math.min(Number(saved?.slideIndex) || 0, slides.length));
+      revealIndex = Math.max(0, Math.min(Number(saved?.revealIndex) || 0, maxReveal()));
+    } catch {
+      slideIndex = 0;
+      revealIndex = 0;
+    }
+  }
+
   function stagesFor(slide) {
     let stageNumber = 0;
     return slide.map((block, index) => {
@@ -28,10 +52,12 @@
     });
   }
 
-  function blockHtml(block, stageNumber) {
+  function blockHtml(block, stageNumber, revealedStage) {
     const type = CourseContent.TYPES[block.type];
+    const hidden = stageNumber > revealIndex;
+    const newlyRevealed = !hidden && stageNumber > 0 && stageNumber === revealedStage;
     return `
-      <section class="course-block block-${block.type}${block.admitted ? " admitted" : ""}${stageNumber > revealIndex ? " reveal-hidden" : ""}" data-block-id="${block.id}">
+      <section class="course-block block-${block.type}${block.admitted ? " admitted" : ""}${hidden ? " reveal-hidden" : ""}${newlyRevealed ? " reveal-new" : ""}" data-block-id="${block.id}">
         ${block.type === "text" ? "" : `<h2><span>${type.icon}</span>${type.label}${block.admitted ? " · admise" : ""}</h2>`}
         <div class="block-content">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.imageIds.length ? `<div class="block-images-view">${block.imageIds.map((id) => `<div data-presentation-image="${id}"></div>`).join("")}</div>` : ""}
@@ -55,45 +81,43 @@
     }));
   }
 
-  function teacherLinksFor(slide, index) {
-    return slide
-      .filter((block) => block.teacherUrl)
-      .map((block) => ({ id: block.id, slide: index + 1, label: block.teacherLabel || CourseContent.TYPES[block.type].label, url: block.teacherUrl }));
-  }
-
   function currentTeacherLinks() {
     if (!teacherMode || slideIndex === 0) return [];
-    return teacherLinksFor(slides[slideIndex - 1], slideIndex - 1);
-  }
-
-  function allTeacherLinks() {
-    if (!teacherMode) return [];
-    return slides.flatMap(teacherLinksFor);
+    return stagesFor(slides[slideIndex - 1])
+      .filter(({ block, stageNumber }) => block.teacherUrl && stageNumber <= revealIndex)
+      .map(({ block }) => ({ id: block.id, label: block.teacherLabel || CourseContent.TYPES[block.type].label, url: block.teacherUrl }));
   }
 
   function teacherLinkHtml(link) {
-    return `<a href="${CourseContent.safeUrl(link.url)}" target="_blank" rel="noopener noreferrer">${CourseContent.escapeHtml(link.label)} <span aria-hidden="true">↗</span></a>`;
+    return `<a href="${CourseContent.safeUrl(link.url)}" target="_blank" rel="noopener noreferrer">Ouvrir ${CourseContent.escapeHtml(link.label)} <span aria-hidden="true">↗</span></a>`;
   }
 
   function renderTeacherLinks() {
     const current = currentTeacherLinks();
-    const all = allTeacherLinks();
-    const toggle = document.querySelector("#teacher-links-toggle");
-    toggle.hidden = !teacherMode;
-    document.querySelector("#teacher-link-count").textContent = all.length;
-    const panel = document.querySelector("#teacher-links");
-    if (!teacherMode) {
-      panel.hidden = true;
+    teacherPanel.hidden = true;
+    teacherToggle.hidden = !teacherMode || current.length === 0;
+    teacherToggle.dataset.singleUrl = current.length === 1 ? current[0].url : "";
+    if (!current.length) {
+      teacherPanel.innerHTML = "";
       return;
     }
-    const other = all.filter((link) => !current.some((item) => item.id === link.id));
-    panel.innerHTML = `
-      <h2>Liens du professeur</h2>
-      <p class="teacher-links-help">Cliquez sur le bouton en haut de la présentation, ou appuyez sur <kbd>L</kbd>. Ces liens ne sont visibles ni par les élèves ni dans le PDF.</p>
-      <h3>Pour l’écran actuel</h3>
-      ${current.length ? current.map(teacherLinkHtml).join("") : `<p class="teacher-links-empty">Aucun lien associé à cet écran.</p>`}
-      ${other.length ? `<details><summary>Tous les autres liens (${other.length})</summary>${other.map(teacherLinkHtml).join("")}</details>` : ""}
+    teacherToggle.innerHTML = current.length === 1
+      ? `Ressource : ${CourseContent.escapeHtml(current[0].label)} <span aria-hidden="true">↗</span>`
+      : `Ressources disponibles <span>${current.length}</span>`;
+    teacherPanel.innerHTML = `
+      <h2>Ressources du professeur</h2>
+      <p class="teacher-links-help">Ces commandes sont placées hors de la page à recopier. Elles sont absentes du cours élève et du PDF.</p>
+      ${current.map(teacherLinkHtml).join("")}
     `;
+  }
+
+  function openTeacherResource() {
+    const current = currentTeacherLinks();
+    if (current.length === 1) {
+      window.open(CourseContent.safeUrl(current[0].url), "_blank", "noopener,noreferrer");
+    } else if (current.length > 1) {
+      teacherPanel.hidden = !teacherPanel.hidden;
+    }
   }
 
   function maxReveal() {
@@ -102,18 +126,7 @@
     return staged.length ? Math.max(...staged.map((item) => item.stageNumber)) : 0;
   }
 
-  function render() {
-    if (slideIndex === 0) {
-      slideElement.className = "slide slide-cover";
-      slideElement.dataset.blockCount = "0";
-      slideElement.innerHTML = `<div class="cover-decoration" aria-hidden="true"><span>π</span><span>x²</span><span>△</span></div><div class="cover-content"><span class="cover-number">${course.chapterNumber ? `Chapitre ${CourseContent.escapeHtml(course.chapterNumber)}` : `Classe de ${course.level}e`}</span><h1>${CourseContent.escapeHtml(course.title)}</h1></div>`;
-    } else {
-      slideElement.className = "slide";
-      const currentSlide = slides[slideIndex - 1];
-      slideElement.dataset.blockCount = String(currentSlide.length);
-      slideElement.innerHTML = stagesFor(currentSlide).map(({ block, stageNumber }) => blockHtml(block, stageNumber)).join("");
-      hydrateImages();
-    }
+  function updateControls() {
     const total = slides.length + 1;
     document.querySelector("#slide-counter").textContent = `${slideIndex + 1} / ${total}`;
     document.querySelector("#progress-bar").style.width = `${((slideIndex + 1) / total) * 100}%`;
@@ -121,27 +134,74 @@
     document.querySelector("#next-step").disabled = slideIndex === total - 1 && revealIndex >= maxReveal();
     document.querySelector("#reveal-hint").textContent = revealIndex < maxReveal() ? "Cliquez pour révéler la suite" : slideIndex < total - 1 ? "Continuer" : "Fin du cours";
     renderTeacherLinks();
+    saveProgress();
+  }
+
+  function updateRevealOnly(revealedStage = null) {
+    if (slideIndex === 0) return;
+    stagesFor(slides[slideIndex - 1]).forEach(({ block, stageNumber }) => {
+      const element = slideElement.querySelector(`[data-block-id="${block.id}"]`);
+      if (!element) return;
+      element.classList.remove("reveal-new");
+      element.classList.toggle("reveal-hidden", stageNumber > revealIndex);
+      if (revealedStage !== null && stageNumber === revealedStage) {
+        void element.offsetWidth;
+        element.classList.add("reveal-new");
+      }
+    });
+    updateControls();
+  }
+
+  function render({ direction = "", revealedStage = null } = {}) {
+    teacherPanel.hidden = true;
+    if (slideIndex === 0) {
+      slideElement.className = "slide slide-cover";
+      slideElement.dataset.blockCount = "0";
+      slideElement.innerHTML = `<div class="cover-decoration" aria-hidden="true"><span>π</span><span>x²</span><span>△</span></div><div class="cover-content">${course.chapterNumber ? `<span class="cover-number">Chapitre ${CourseContent.escapeHtml(course.chapterNumber)}</span>` : ""}<h1>${CourseContent.escapeHtml(course.title)}</h1></div>`;
+    } else {
+      slideElement.className = "slide";
+      const currentSlide = slides[slideIndex - 1];
+      slideElement.dataset.blockCount = String(currentSlide.length);
+      slideElement.innerHTML = stagesFor(currentSlide).map(({ block, stageNumber }) => blockHtml(block, stageNumber, revealedStage)).join("");
+      hydrateImages();
+    }
+    if (direction) slideElement.classList.add(direction === "next" ? "page-turn-next" : "page-turn-previous");
+    updateControls();
   }
 
   function next() {
-    if (revealIndex < maxReveal()) revealIndex += 1;
-    else if (slideIndex < slides.length) { slideIndex += 1; revealIndex = 0; }
-    render();
+    if (revealIndex < maxReveal()) {
+      revealIndex += 1;
+      updateRevealOnly(revealIndex);
+    } else if (slideIndex < slides.length) {
+      slideIndex += 1;
+      revealIndex = 0;
+      render({ direction: "next" });
+    }
   }
 
   function previous() {
-    if (revealIndex > 0) revealIndex -= 1;
-    else if (slideIndex > 0) { slideIndex -= 1; revealIndex = maxReveal(); }
-    render();
+    if (revealIndex > 0) {
+      revealIndex -= 1;
+      updateRevealOnly();
+    } else if (slideIndex > 0) {
+      slideIndex -= 1;
+      revealIndex = maxReveal();
+      render({ direction: "previous" });
+    }
+  }
+
+  function restart() {
+    slideIndex = 0;
+    revealIndex = 0;
+    render({ direction: "previous" });
   }
 
   function showCourse(value, reset = true) {
     course = value;
     slides = CourseContent.groupSlides(course.blocks);
-    if (reset) {
-      slideIndex = 0;
-      revealIndex = 0;
-    } else {
+    if (reset) restoreProgress();
+    else {
       slideIndex = Math.min(slideIndex, slides.length);
       revealIndex = Math.min(revealIndex, maxReveal());
     }
@@ -165,23 +225,32 @@
 
   document.querySelector("#next-step").addEventListener("click", next);
   document.querySelector("#previous-step").addEventListener("click", previous);
+  document.querySelector("#presentation-restart").addEventListener("click", restart);
   document.querySelector("#presentation-pdf").addEventListener("click", async (event) => {
     const button = event.currentTarget;
     button.disabled = true;
     try { await CoursePdf.download(course); } finally { button.disabled = false; }
   });
   document.querySelector("#fullscreen-button").addEventListener("click", () => document.documentElement.requestFullscreen?.());
-  document.querySelector("#teacher-links-toggle").addEventListener("click", () => {
-    const panel = document.querySelector("#teacher-links");
-    panel.hidden = !panel.hidden;
+  teacherToggle.addEventListener("click", openTeacherResource);
+  document.querySelector("#presentation-close").addEventListener("click", (event) => {
+    if (teacherMode && window.opener) {
+      event.preventDefault();
+      window.close();
+      return;
+    }
+    try {
+      if (document.referrer && new URL(document.referrer).origin === window.location.origin && history.length > 1) {
+        event.preventDefault();
+        history.back();
+      }
+    } catch {}
   });
   document.addEventListener("keydown", (event) => {
     if (["ArrowRight", "PageDown", "Enter", " "].includes(event.key)) { event.preventDefault(); next(); }
     if (["ArrowLeft", "PageUp", "Backspace"].includes(event.key)) { event.preventDefault(); previous(); }
-    if (teacherMode && event.key.toLowerCase() === "l") {
-      const panel = document.querySelector("#teacher-links");
-      panel.hidden = !panel.hidden;
-    }
+    if (teacherMode && event.key.toLowerCase() === "l") openTeacherResource();
+    if (event.key === "Home") { event.preventDefault(); restart(); }
   });
 
   if (!courseId) {

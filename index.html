@@ -9,14 +9,14 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=0.8.0" />
+    <link rel="stylesheet" href="styles.css?v=0.9.0" />
     <title>Maths au collège</title>
   </head>
   <body>
     <a class="skip-link" href="#contenu">Aller au contenu</a>
 
     <header class="site-header">
-      <a class="brand" href="#accueil" aria-label="Maths au collège — accueil">
+      <a class="brand" href="./#accueil" aria-label="Maths au collège — accueil">
         <img src="assets/logo.svg" alt="" width="46" height="46" />
         <span><strong>Maths au collège</strong></span>
       </a>
@@ -24,10 +24,10 @@
         <span class="sr-only">Ouvrir le menu</span><span aria-hidden="true">☰</span>
       </button>
       <nav id="navigation" class="navigation" aria-label="Navigation principale">
-        <a href="#accueil" data-route="accueil">Accueil</a>
-        <a href="#sixieme" data-route="sixieme">6e</a>
-        <a href="#quatrieme" data-route="quatrieme">4e</a>
-        <a href="#aide" data-route="aide">Aide</a>
+        <a href="./#accueil" data-route="accueil">Accueil</a>
+        <a href="./#sixieme" data-route="sixieme">6e</a>
+        <a href="./#quatrieme" data-route="quatrieme">4e</a>
+        <a href="./#aide" data-route="aide">Aide</a>
         <a class="teacher-link" href="professeur.html">Espace professeur</a>
       </nav>
     </header>
@@ -39,11 +39,11 @@
             <h1>Tes cours de maths.</h1>
             <p class="hero-text">Choisis ton niveau.</p>
             <div class="level-actions">
-              <a class="button primary" href="#sixieme">Je suis en 6e</a>
-              <a class="button secondary" href="#quatrieme">Je suis en 4e</a>
+              <a class="button level-button" href="./#sixieme">Je suis en 6e</a>
+              <a class="button level-button" href="./#quatrieme">Je suis en 4e</a>
             </div>
           </div>
-          <div class="level-choice" aria-hidden="true"><span>6<sup>e</sup></span><span>4<sup>e</sup></span></div>
+          <div class="level-choice" aria-hidden="true"><span><strong>6<sup>e</sup></strong></span><span><strong>4<sup>e</sup></strong></span></div>
         </div>
       </section>
 
@@ -87,15 +87,15 @@
     <footer>
       <p>Maths au collège</p>
       <p><span id="network-status" class="status-dot"></span> <span id="network-label">En ligne</span></p>
-      <p class="app-version">v0.8.0</p>
+      <p class="app-version">v0.9.0</p>
     </footer>
 
-    <script src="vendor/jspdf.umd.min.js?v=0.8.0" defer></script>
-    <script src="course-content.js?v=0.8.0" defer></script>
-    <script src="firebase-config.js?v=0.8.0" defer></script>
-    <script src="firebase-bundle.js?v=0.8.0" defer></script>
-    <script src="course-store.js?v=0.8.0" defer></script>
-    <script src="pdf-export.js?v=0.8.0" defer></script>
-    <script src="app.js?v=0.8.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.9.0" defer></script>
+    <script src="course-content.js?v=0.9.0" defer></script>
+    <script src="firebase-config.js?v=0.9.0" defer></script>
+    <script src="firebase-bundle.js?v=0.9.0" defer></script>
+    <script src="course-store.js?v=0.9.0" defer></script>
+    <script src="pdf-export.js?v=0.9.0" defer></script>
+    <script src="app.js?v=0.9.0" defer></script>
   </body>
 </html>
