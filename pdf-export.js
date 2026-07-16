@@ -36,6 +36,8 @@
       if (node.nodeType !== Node.ELEMENT_NODE) return;
       const tag = node.tagName.toLowerCase();
       if (tag === "br") { tokens.push({ text: "\n", ...style }); return; }
+      if (tag === "span" && node.classList.contains("math-root")) { tokens.push({ text: node.textContent, math: "root", ...style }); return; }
+      if (tag === "span" && node.classList.contains("math-angle")) { tokens.push({ text: node.textContent, math: "angle", ...style }); return; }
       const nextStyle = {
         bold: style.bold || tag === "strong",
         italic: style.italic || tag === "em",
@@ -57,14 +59,15 @@
       pdf.setFontSize(fontSize);
     }
     tokens.forEach((token) => {
-      token.text.split(/(\s+|\n)/).filter(Boolean).forEach((piece) => {
+      const pieces = token.math ? [token.text] : token.text.split(/(\s+|\n)/).filter(Boolean);
+      pieces.forEach((piece) => {
         if (piece.includes("\n")) {
           if (lines[lines.length - 1].length) lines.push([]);
           width = 0;
           return;
         }
         applyFont(token);
-        const pieceWidth = pdf.getTextWidth(piece);
+        const pieceWidth = pdf.getTextWidth(piece) + (token.math === "root" ? 3 : 0);
         if (width + pieceWidth > maxWidth && lines[lines.length - 1].length && !/^\s+$/.test(piece)) {
           lines.push([]);
           width = 0;
@@ -91,7 +94,20 @@
           pdf.setLineWidth(.35);
           pdf.line(cursor, y + .7, cursor + token.width, y + .7);
         }
-        pdf.text(token.text, cursor, y);
+        if (token.math === "root") {
+          pdf.setDrawColor(...COLORS.ink);
+          pdf.setLineWidth(.35);
+          pdf.line(cursor, y - .6, cursor + .7, y + .4);
+          pdf.line(cursor + .7, y + .4, cursor + 1.7, y - fontSize * .34);
+          pdf.line(cursor + 1.7, y - fontSize * .34, cursor + token.width, y - fontSize * .34);
+          pdf.text(token.text, cursor + 2.3, y);
+        } else if (token.math === "angle") {
+          pdf.text(token.text, cursor, y);
+          pdf.setDrawColor(...COLORS.ink);
+          pdf.setLineWidth(.3);
+          pdf.line(cursor, y - fontSize * .3, cursor + token.width / 2, y - fontSize * .43);
+          pdf.line(cursor + token.width / 2, y - fontSize * .43, cursor + token.width, y - fontSize * .3);
+        } else pdf.text(token.text, cursor, y);
         cursor += token.width;
       });
       y += lineHeight;

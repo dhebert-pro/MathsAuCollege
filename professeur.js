@@ -138,11 +138,11 @@
   function blockCard(block, index, pageIndex, pageCount, localIndex, pageLength) {
     const type = CourseContent.TYPES[block.type];
     const mathSymbols = [
-      ["∈", "Appartient à"], ["∉", "N’appartient pas à"], ["⊂", "Est inclus dans"], ["∅", "Ensemble vide"],
+      ["∈", "Appartient à"], ["∉", "N’appartient pas à"],
       ["≤", "Inférieur ou égal"], ["≥", "Supérieur ou égal"], ["≠", "Différent de"], ["≈", "Environ égal"],
-      ["×", "Multiplication"], ["÷", "Division"], ["±", "Plus ou moins"], ["√", "Racine carrée"],
-      ["π", "Pi"], ["∞", "Infini"], ["°", "Degré"], ["²", "Au carré"], ["³", "Au cube"],
-      ["∥", "Parallèle"], ["⟂", "Perpendiculaire"], ["∠", "Angle"], ["Δ", "Delta"], ["→", "Flèche"], ["↔", "Double flèche"],
+      ["×", "Multiplication"], ["÷", "Division"], ["±", "Plus ou moins"], ["root", "Racine carrée"],
+      ["π", "Pi"], ["°", "Degré"], ["²", "Au carré"], ["³", "Au cube"],
+      ["//", "Droites parallèles"], ["⟂", "Droites perpendiculaires"], ["angle", "Angle ABC"], ["→", "Flèche"], ["↔", "Double flèche"],
     ];
     const imagePreviews = block.imageIds.map((imageId) => `
       <div class="block-image" data-image-id="${imageId}">
@@ -171,7 +171,10 @@
           <div class="math-symbol-picker">
             <span>Symboles mathématiques :</span>
             <div class="math-symbol-grid" role="group" aria-label="Symboles mathématiques">
-              ${mathSymbols.map(([symbol, label]) => `<button type="button" data-insert-symbol="${symbol}" title="${label}" aria-label="${label}">${symbol}</button>`).join("")}
+              ${mathSymbols.map(([symbol, label]) => {
+                const preview = symbol === "root" ? '<span class="math-root">a</span>' : symbol === "angle" ? '<span class="math-angle">ABC</span>' : symbol;
+                return `<button type="button" data-insert-symbol="${symbol}" title="${label}" aria-label="${label}">${preview}</button>`;
+              }).join("")}
             </div>
           </div>
         </div>
@@ -588,12 +591,20 @@
       range.collapse(false);
     }
     range.deleteContents();
-    const node = document.createTextNode(symbol);
+    const structured = ["root", "angle"].includes(symbol);
+    const node = structured ? document.createElement("span") : document.createTextNode(symbol);
+    if (structured) {
+      node.className = symbol === "root" ? "math-root" : "math-angle";
+      node.textContent = symbol === "root" ? "a" : "ABC";
+    }
     range.insertNode(node);
-    range.setStartAfter(node);
-    range.collapse(true);
     const selection = window.getSelection();
     selection.removeAllRanges();
+    if (structured) range.selectNodeContents(node);
+    else {
+      range.setStartAfter(node);
+      range.collapse(true);
+    }
     selection.addRange(range);
     savedSelectionRange = range.cloneRange();
     savedSelectionEditor = editor;

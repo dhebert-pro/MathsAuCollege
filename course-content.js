@@ -36,6 +36,8 @@
       if (["strong", "b"].includes(tag)) return `<strong>${children}</strong>`;
       if (["em", "i"].includes(tag)) return `<em>${children}</em>`;
       if (["p", "ul", "ol", "li"].includes(tag)) return `<${tag}>${children}</${tag}>`;
+      if (tag === "span" && node.classList.contains("math-root")) return `<span class="math-root">${children}</span>`;
+      if (tag === "span" && node.classList.contains("math-angle")) return `<span class="math-angle">${children}</span>`;
       if (tag === "mark") {
         return `<mark data-tone="yellow">${children}</mark>`;
       }
