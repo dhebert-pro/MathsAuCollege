@@ -126,5 +126,19 @@
     return validate(parsed);
   }
 
-  window.CoursePackage = { FORMAT, VERSION, read, validate };
+  function download(value, filename) {
+    validate(value);
+    const json = JSON.stringify(value, null, 2);
+    if (new TextEncoder().encode(json).length > MAX_PACKAGE_BYTES) invalid("Le paquet dépasse la limite de 8 Mo.");
+    const url = URL.createObjectURL(new Blob([json], { type: "application/json;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = String(filename || "cours.mathscours").replace(/[^a-z0-9._-]+/gi, "-");
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  window.CoursePackage = { FORMAT, VERSION, read, validate, download };
 })();

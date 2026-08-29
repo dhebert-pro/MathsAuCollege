@@ -2,7 +2,7 @@
 
 ## Utilisation
 
-1. Ouvrez une nouvelle conversation dans ChatGPT et joignez vos ressources : cours existants, progression, programme, repères, attendus et éventuelles images.
+1. Ouvrez une nouvelle conversation dans ChatGPT et joignez vos ressources : cours existants, progression, programme, repères, attendus et éventuelles images. Vous pouvez aussi joindre un cours `.mathscours` exporté du back-office comme exemple concret.
 2. Copiez tout le prompt ci-dessous dans ChatGPT.
 3. Remplacez les renseignements placés entre crochets.
 4. Téléchargez le fichier `.mathscours` fourni par ChatGPT.
@@ -22,7 +22,7 @@ PARAMÈTRES DU COURS
 - Contraintes ou souhaits particuliers : [préciser]
 
 SOURCES
-Analyse d’abord toutes les pièces jointes que je fournis. Appuie-toi sur le programme officiel, les repères annuels et les attendus de fin d’année applicables, ainsi que sur la variété d’exercices observée dans des ressources pédagogiques reconnues comme Sésamath. Ne copie pas un manuel ou une fiche protégée : produis des formulations, figures, données numériques et exercices originaux. N’invente jamais une exigence officielle. S’il manque une source indispensable ou si une consigne est ambiguë, demande-la avant de fabriquer le fichier.
+Analyse d’abord toutes les pièces jointes que je fournis. Si je joins un fichier `.mathscours` exporté de mon application, lis son JSON et utilise-le comme référence pour comprendre mon niveau de détail, le rythme des pages et révélations, la variété des blocs, les mises en valeur, les figures, les liens et la fiche d’exercices. Ne recopie pas son contenu dans le nouveau chapitre : reproduis seulement les principes éditoriaux et pédagogiques pertinents. Appuie-toi sur le programme officiel, les repères annuels et les attendus de fin d’année applicables, ainsi que sur la variété d’exercices observée dans des ressources pédagogiques reconnues comme Sésamath. Ne copie pas un manuel ou une fiche protégée : produis des formulations, figures, données numériques et exercices originaux. N’invente jamais une exigence officielle. S’il manque une source indispensable ou si une consigne est ambiguë, demande-la avant de fabriquer le fichier.
 
 OBJECTIF PÉDAGOGIQUE
 - Construis une progression exacte, accessible et cohérente avec ce que les élèves ont déjà vu.

@@ -7,8 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.27.0" />
-    <link rel="stylesheet" href="professeur.css?v=0.27.0" />
+    <link rel="stylesheet" href="styles.css?v=0.28.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.28.0" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -28,7 +28,7 @@
           <div id="login-message" class="form-message" role="status"></div>
         </div>
         <a class="back-link" href="index.html">← Retour aux cours</a>
-        <span class="app-version login-version">v0.27.0</span>
+        <span class="app-version login-version">v0.28.0</span>
       </section>
 
       <section id="admin-app" class="admin-app" hidden>
@@ -46,7 +46,7 @@
           <div class="sidebar-bottom">
             <a href="index.html">Voir les cours ↗</a>
             <button id="logout" type="button">Se déconnecter</button>
-            <span class="app-version">v0.27.0</span>
+            <span class="app-version">v0.28.0</span>
           </div>
         </aside>
 
@@ -73,7 +73,7 @@
               <div>
                 <p class="eyebrow">Création avec ChatGPT</p>
                 <h2 id="course-import-title">Importer un cours préparé ailleurs</h2>
-                <p>Chargez un paquet <code>.mathscours</code>. Son contenu, ses images, ses liens et sa fiche d’exercices seront contrôlés puis enregistrés en brouillon.</p>
+                <p>Chargez un paquet <code>.mathscours</code>. Son contenu sera contrôlé puis enregistré en brouillon. Pour donner un exemple à ChatGPT, exportez un cours existant depuis sa ligne dans le tableau.</p>
               </div>
               <div class="course-import-actions">
                 <a class="admin-button secondary" href="assets/consignes-chatgpt-cours.md" download>Consignes pour ChatGPT</a>
@@ -170,13 +170,13 @@
     </main>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.27.0" defer></script>
-    <script src="course-content.js?v=0.27.0" defer></script>
-    <script src="firebase-config.js?v=0.27.0" defer></script>
-    <script src="firebase-bundle.js?v=0.27.0" defer></script>
-    <script src="course-store.js?v=0.27.0" defer></script>
-    <script src="pdf-export.js?v=0.27.0" defer></script>
-    <script src="course-package.js?v=0.27.0" defer></script>
-    <script src="professeur.js?v=0.27.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.28.0" defer></script>
+    <script src="course-content.js?v=0.28.0" defer></script>
+    <script src="firebase-config.js?v=0.28.0" defer></script>
+    <script src="firebase-bundle.js?v=0.28.0" defer></script>
+    <script src="course-store.js?v=0.28.0" defer></script>
+    <script src="pdf-export.js?v=0.28.0" defer></script>
+    <script src="course-package.js?v=0.28.0" defer></script>
+    <script src="professeur.js?v=0.28.0" defer></script>
   </body>
 </html>

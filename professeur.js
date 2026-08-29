@@ -34,6 +34,7 @@
   function readableError(error) {
     const code = error?.code || "";
     if (code === "invalid-course-package") return error.message;
+    if (code === "export-missing-asset") return error.message;
     if (code === "image-too-large") return "L’image reste trop lourde après compression.";
     if (code === "file-too-large") return "Le PDF dépasse la limite de 650 Ko.";
     if (code.includes("popup-closed") || code.includes("cancelled-popup")) return "Connexion annulée.";
@@ -120,6 +121,7 @@
             <button type="button" class="present-course" data-present-course="${course.id}" title="Présenter avec les ressources professeur">▶ Présenter</button>
             <button type="button" data-edit-course="${course.id}" title="Modifier"><span aria-hidden="true">✎</span><span class="sr-only">Modifier ${escapeHtml(course.title)}</span></button>
             <button type="button" data-pdf-course="${course.id}" title="Télécharger en PDF"><span aria-hidden="true">↓</span><span class="sr-only">Télécharger ${escapeHtml(course.title)} en PDF</span></button>
+            <button type="button" data-export-course="${course.id}" title="Exporter pour ChatGPT"><span aria-hidden="true">⇩</span><span class="sr-only">Exporter ${escapeHtml(course.title)} pour ChatGPT</span></button>
             <button type="button" data-duplicate-course="${course.id}" title="Dupliquer"><span aria-hidden="true">⧉</span><span class="sr-only">Dupliquer ${escapeHtml(course.title)}</span></button>
             <button type="button" data-delete-course="${course.id}" class="danger" title="Supprimer"><span aria-hidden="true">×</span><span class="sr-only">Supprimer ${escapeHtml(course.title)}</span></button>
           </div>
@@ -739,6 +741,67 @@
     }
   }
 
+  async function exportCoursePackage(courseId, button) {
+    const course = CourseStore.get(courseId);
+    if (!course) return;
+    button.disabled = true;
+    toast("Préparation du paquet de cours…");
+    try {
+      const blocks = [];
+      for (const block of course.blocks) {
+        const images = [];
+        for (const imageId of block.imageIds) {
+          const image = await CourseStore.getImage(imageId);
+          if (!image) {
+            const error = new Error("Une image du cours est introuvable. Remplacez-la ou retirez-la avant l’export.");
+            error.code = "export-missing-asset";
+            throw error;
+          }
+          images.push({ alt: image.alt, dataUrl: image.dataUrl });
+        }
+        blocks.push({
+          type: block.type,
+          html: block.html,
+          admitted: block.type === "property" && Boolean(block.admitted),
+          slideBreakBefore: Boolean(block.slideBreakBefore),
+          revealBreakBefore: !block.slideBreakBefore && Boolean(block.revealBreakBefore),
+          images,
+          links: block.links.map((link) => ({ label: link.label, url: link.url })),
+        });
+      }
+
+      let exercisePdf = null;
+      if (course.exerciseFileId) {
+        const file = await CourseStore.getFile(course.exerciseFileId);
+        if (!file) {
+          const error = new Error("La fiche d’exercices est introuvable. Remplacez-la ou retirez-la avant l’export.");
+          error.code = "export-missing-asset";
+          throw error;
+        }
+        exercisePdf = { name: file.name, dataUrl: file.dataUrl };
+      }
+
+      const value = {
+        format: CoursePackage.FORMAT,
+        version: CoursePackage.VERSION,
+        course: {
+          title: course.title,
+          chapterNumber: course.chapterNumber,
+          level: course.level,
+          blocks,
+        },
+        exercisePdf,
+      };
+      const prefix = course.chapterNumber ? `${course.chapterNumber}-` : "";
+      CoursePackage.download(value, `${prefix}${course.slug || "cours"}.mathscours`);
+      toast("Paquet de cours exporté.");
+    } catch (error) {
+      toast(readableError(error));
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   loginButton.addEventListener("click", async () => {
     loginButton.disabled = true;
     loginMessage.textContent = "Ouverture de la connexion Google…";
@@ -1056,6 +1119,7 @@
     const edit = event.target.closest("[data-edit-course]");
     const present = event.target.closest("[data-present-course]");
     const pdf = event.target.closest("[data-pdf-course]");
+    const exportButton = event.target.closest("[data-export-course]");
     const duplicate = event.target.closest("[data-duplicate-course]");
     const remove = event.target.closest("[data-delete-course]");
     const toggle = event.target.closest("[data-toggle-course]");
@@ -1068,6 +1132,7 @@
       catch (error) { toast(readableError(error)); }
     }
     if (pdf) await runMutation(() => CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse)), "PDF généré.");
+    if (exportButton) await exportCoursePackage(exportButton.dataset.exportCourse, exportButton);
     if (duplicate) await runMutation(() => CourseStore.duplicate(duplicate.dataset.duplicateCourse), "Copie créée en brouillon.");
     if (toggle) await runMutation(() => CourseStore.toggleStatus(toggle.dataset.toggleCourse), CourseStore.get(toggle.dataset.toggleCourse)?.status === "published" ? "Cours dépublié." : "Cours publié.");
     if (move) await runMutation(() => CourseStore.move(move.dataset.moveCourse, Number(move.dataset.direction)), "Ordre modifié.");
