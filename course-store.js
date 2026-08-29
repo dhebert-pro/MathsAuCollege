@@ -118,7 +118,12 @@
         manualOrder: null,
         status: "draft",
         createdAt: new Date().toISOString(),
-        blocks: source.blocks.map((block) => ({ ...block, id: CourseContent.id("block"), imageIds: block.imageIds.map((imageId) => mapping.get(imageId)).filter(Boolean) })),
+        blocks: source.blocks.map((block) => ({
+          ...block,
+          id: CourseContent.id("block"),
+          imageIds: block.imageIds.map((imageId) => mapping.get(imageId)).filter(Boolean),
+          links: block.links.map((link) => ({ ...link, id: CourseContent.id("link") })),
+        })),
       });
     },
     async remove(id) {

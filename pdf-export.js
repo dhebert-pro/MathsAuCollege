@@ -263,20 +263,20 @@
     const validImages = block.imageIds.map((id) => imageMap.get(id)).filter(Boolean);
     const imageRows = Math.ceil(validImages.length / 2);
     const imagesHeight = imageRows ? imageRows * 53 + 3 : 0;
-    const linkText = block.teacherUrl
-      ? `Lien${block.teacherLabel ? ` - ${block.teacherLabel}` : ""} : ${block.teacherUrl}`
-      : "";
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(7.5);
-    const linkLines = linkText ? pdf.splitTextToSize(normalizePdfText(linkText), width - 18) : [];
-    const linkHeight = linkLines.length ? 5 + linkLines.length * 3.6 : 0;
+    const linkEntries = block.links.filter((link) => link.url).map((link) => {
+      const text = `Lien${link.label ? ` - ${link.label}` : ""} : ${link.url}`;
+      return { ...link, lines: pdf.splitTextToSize(normalizePdfText(text), width - 18) };
+    });
+    const linkHeight = linkEntries.reduce((height, entry) => height + 3 + entry.lines.length * 3.6, 0);
     return {
       lines,
       validImages,
       imagesHeight,
       labelHeight,
       lineHeight,
-      linkLines,
+      linkEntries,
       linkHeight,
       height: (block.type === "text" ? 6 : 12) + labelHeight + Math.max(lineHeight, richLinesHeight(lines, lineHeight)) + imagesHeight + linkHeight,
     };
@@ -305,21 +305,25 @@
     });
   }
 
-  function drawBlockLink(pdf, block, lines, x, y, width) {
-    if (!lines.length || !block.teacherUrl) return;
+  function drawBlockLinks(pdf, entries, x, y, width) {
+    if (!entries.length) return;
     pdf.setDrawColor(...COLORS.line);
     pdf.setLineWidth(.25);
     pdf.line(x, y, x + width, y);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(7.5);
     pdf.setTextColor(...COLORS.blue);
-    lines.forEach((line, index) => {
-      const baseline = y + 3.8 + index * 3.6;
-      pdf.text(line, x, baseline);
-      const lineWidth = Math.min(width, pdf.getTextWidth(line));
-      pdf.setLineWidth(.18);
-      pdf.line(x, baseline + .45, x + lineWidth, baseline + .45);
-      pdf.link(x, baseline - 2.8, lineWidth, 3.6, { url: block.teacherUrl });
+    let cursorY = y + 3.8;
+    entries.forEach((entry) => {
+      entry.lines.forEach((line) => {
+        pdf.text(line, x, cursorY);
+        const lineWidth = Math.min(width, pdf.getTextWidth(line));
+        pdf.setLineWidth(.18);
+        pdf.line(x, cursorY + .45, x + lineWidth, cursorY + .45);
+        pdf.link(x, cursorY - 2.8, lineWidth, 3.6, { url: entry.url });
+        cursorY += 3.6;
+      });
+      cursorY += 3;
     });
   }
 
@@ -363,10 +367,9 @@
     }
     cursorY = drawRichLines(pdf, layout.lines, contentX, cursorY, fontSize, layout.lineHeight);
     if (layout.validImages.length) drawImageGrid(pdf, layout.validImages, plainTextBlock ? x + 1 : x + 9, cursorY + 2, plainTextBlock ? width - 2 : width - 18);
-    drawBlockLink(
+    drawBlockLinks(
       pdf,
-      block,
-      layout.linkLines,
+      layout.linkEntries,
       plainTextBlock ? x + 1 : x + 9,
       cursorY + layout.imagesHeight + 1,
       plainTextBlock ? width - 2 : width - 18,

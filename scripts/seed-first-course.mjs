@@ -59,8 +59,7 @@ course.slideCount = course.blocks.filter((block, index) => index === 0 || block.
 course.blocks = course.blocks.map((block) => ({
   admitted: false,
   imageIds: [],
-  teacherLabel: "",
-  teacherUrl: "",
+  links: [],
   ...block,
 }));
 
@@ -78,7 +77,7 @@ const privateList = await request(`${base}/courses?pageSize=300`);
 let migrated = 0;
 for (const document of privateList.documents || []) {
   const privateCourse = fromDocument(document);
-  if (privateCourse.status !== "published" || !privateCourse.blocks?.some((block) => block.teacherUrl)) continue;
+  if (privateCourse.status !== "published" || !privateCourse.blocks?.some((block) => block.links?.length || block.teacherUrl)) continue;
   const publicDocument = await request(`${base}/publishedCourses/${encodeURIComponent(privateCourse.id)}`, {}, true);
   if (!publicDocument) continue;
   await request(`${base}/publishedCourses/${encodeURIComponent(privateCourse.id)}?updateMask.fieldPaths=blocks`, {

@@ -68,6 +68,14 @@
 
   function normalizeBlock(block = {}) {
     const type = TYPES[block.type] ? block.type : "text";
+    const sourceLinks = Array.isArray(block.links)
+      ? block.links
+      : (block.teacherUrl ? [{ label: block.teacherLabel, url: block.teacherUrl }] : []);
+    const links = sourceLinks.map((link) => ({
+      id: String(link?.id || id("link")),
+      label: String(link?.label || "").trim().slice(0, 80),
+      url: safeUrl(link?.url),
+    })).filter((link) => link.url).slice(0, 8);
     return {
       id: String(block.id || id("block")),
       type,
@@ -76,8 +84,7 @@
       slideBreakBefore: Boolean(block.slideBreakBefore),
       revealBreakBefore: Boolean(block.revealBreakBefore),
       imageIds: Array.isArray(block.imageIds) ? [...new Set(block.imageIds.map(String))].slice(0, 8) : [],
-      teacherLabel: String(block.teacherLabel || "").trim().slice(0, 80),
-      teacherUrl: safeUrl(block.teacherUrl),
+      links,
     };
   }
 

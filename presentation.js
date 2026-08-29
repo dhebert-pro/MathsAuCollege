@@ -61,13 +61,15 @@
 
   function blockHtml(block, stageNumber, revealedStage) {
     const type = CourseContent.TYPES[block.type];
-    const resourceUrl = CourseContent.safeUrl(block.teacherUrl);
-    const resourceLabel = CourseContent.escapeHtml(block.teacherLabel || "la ressource associée à ce bloc");
+    const resourceLinks = block.links.filter((link) => link.url).map((link) => {
+      const resourceLabel = CourseContent.escapeHtml(link.label || "la ressource associée à ce bloc");
+      return `<a class="block-resource-link" href="${link.url}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir ${resourceLabel}" title="${resourceLabel}"><span aria-hidden="true">↗</span></a>`;
+    }).join("");
     const hidden = stageNumber > revealIndex;
     const newlyRevealed = !hidden && stageNumber > 0 && stageNumber === revealedStage;
     return `
       <section class="course-block block-${block.type}${block.admitted ? " admitted" : ""}${hidden ? " reveal-hidden" : ""}${newlyRevealed ? " reveal-new" : ""}" data-block-id="${block.id}">
-        ${resourceUrl ? `<a class="block-resource-link" href="${resourceUrl}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir ${resourceLabel}" title="Ouvrir ${resourceLabel}"><span aria-hidden="true">↗</span></a>` : ""}
+        ${resourceLinks ? `<nav class="block-resource-links" aria-label="Ressources associées">${resourceLinks}</nav>` : ""}
         ${block.type === "text" ? "" : `<h2>${type.label}${block.admitted ? " · admise" : ""}</h2>`}
         <div class="block-content">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.imageIds.length ? `<div class="block-images-view">${block.imageIds.map((id) => `<div data-presentation-image="${id}"></div>`).join("")}</div>` : ""}

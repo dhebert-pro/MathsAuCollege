@@ -158,6 +158,17 @@
         </div>
       </div>
     `).join("");
+    const linkFields = block.links.map((link, linkIndex) => `
+      <div class="teacher-link-row" data-link-id="${escapeHtml(link.id)}">
+        <span class="teacher-link-number">Lien ${linkIndex + 1}</span>
+        <label>Nom de la ressource<input type="text" data-link-label maxlength="80" value="${escapeHtml(link.label)}" placeholder="Ex. Animation GeoGebra" /></label>
+        <label>Adresse du lien<input type="url" data-link-url value="${escapeHtml(link.url)}" placeholder="https://…" /></label>
+        <div class="teacher-link-actions">
+          <button type="button" class="admin-button secondary" data-test-link>Tester ↗</button>
+          <button type="button" class="admin-button danger" data-remove-link>Supprimer</button>
+        </div>
+      </div>
+    `).join("");
     return `
       <article class="block-editor block-${block.type}${block.admitted ? " admitted" : ""}" data-block-id="${block.id}" data-expanded="false">
         <header class="block-editor-header">
@@ -191,20 +202,17 @@
           <div class="block-richtext" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écrivez le contenu de ce bloc…">${CourseContent.sanitizeHtml(block.html)}</div>
           ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
           <details class="block-settings">
-            <summary>Réglages, images et ressource professeur</summary>
+            <summary>Réglages, images et liens</summary>
             <div class="block-options">
               <p class="break-help"><strong>Apparition différée</strong> : réserve la place du bloc et le révèle au clic. La création et la navigation entre les pages se font au-dessus du document.</p>
               <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Faire apparaître ce bloc au clic suivant</label>
             </div>
             <div class="block-images">${imagePreviews}</div>
-            <label class="image-upload">Ajouter des images<input type="file" data-image-upload accept="image/png,image/jpeg,image/webp" multiple /></label>
-            <p class="field-help">Les images sont automatiquement compressées. Maximum 8 par bloc.</p>
-            <div class="teacher-link-fields">
-              <label>Nom de la ressource<input type="text" data-teacher-label maxlength="80" value="${escapeHtml(block.teacherLabel)}" placeholder="Ex. Animation GeoGebra" /></label>
-              <label>Adresse du lien<input type="url" data-teacher-url value="${escapeHtml(block.teacherUrl)}" placeholder="https://…" /></label>
-              <button type="button" class="admin-button secondary" data-test-teacher-link>Tester le lien ↗</button>
-            </div>
-            <p class="field-help">La ressource sera proposée dans la barre du professeur uniquement lorsque ce bloc sera visible. Elle ne figurera jamais sur la page du cours ni dans le PDF.</p>
+            <label class="image-upload">Ajouter une ou plusieurs images<input type="file" data-image-upload accept="image/png,image/jpeg,image/webp" multiple /></label>
+            <p class="field-help">Vous pouvez sélectionner plusieurs fichiers en une fois. Les images sont automatiquement compressées, avec un maximum de 8 par bloc.</p>
+            <div class="teacher-links" data-teacher-links>${linkFields}</div>
+            <button type="button" class="admin-button secondary add-link-button" data-add-link ${block.links.length >= 8 ? "disabled" : ""}>+ Ajouter un lien</button>
+            <p class="field-help">Maximum 8 liens par bloc. Chaque ressource apparaîtra discrètement sur le bloc, en consultation comme en présentation, et sera inscrite dans le PDF.</p>
           </details>
         </div>
       </article>
@@ -216,14 +224,21 @@
       const index = editorBlocks.findIndex((block) => block.id === card.dataset.blockId);
       if (index < 0) return;
       const previous = editorBlocks[index];
-      editorBlocks[index] = CourseContent.normalizeBlock({
-        ...previous,
-        html: card.querySelector(".block-richtext").innerHTML,
-        admitted: Boolean(card.querySelector("[data-admitted]")?.checked),
-        revealBreakBefore: card.querySelector("[data-reveal-break]").checked,
-        teacherLabel: card.querySelector("[data-teacher-label]").value,
-        teacherUrl: card.querySelector("[data-teacher-url]").value,
-      });
+      const links = [...card.querySelectorAll("[data-link-id]")].map((row) => ({
+        id: row.dataset.linkId,
+        label: row.querySelector("[data-link-label]").value,
+        url: row.querySelector("[data-link-url]").value,
+      }));
+      editorBlocks[index] = {
+        ...CourseContent.normalizeBlock({
+          ...previous,
+          html: card.querySelector(".block-richtext").innerHTML,
+          admitted: Boolean(card.querySelector("[data-admitted]")?.checked),
+          revealBreakBefore: card.querySelector("[data-reveal-break]").checked,
+          links,
+        }),
+        links: links.slice(0, 8),
+      };
     });
   }
 
@@ -358,7 +373,7 @@
     courseForm.elements.title.value = course?.title || "";
     courseForm.elements.chapterNumber.value = course?.chapterNumber || "";
     courseForm.elements.level.value = course?.level || "6";
-    editorBlocks = course?.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds] })) || [CourseContent.normalizeBlock({ type: "text" })];
+    editorBlocks = course?.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds], links: block.links.map((link) => ({ ...link })) })) || [CourseContent.normalizeBlock({ type: "text" })];
     document.querySelector("#editor-title").textContent = course ? "Modifier le cours" : "Nouveau cours";
     updateEditorStatus(course?.status || "draft");
     renderBlocks();
@@ -562,7 +577,7 @@
         manualOrder: existing?.manualOrder ?? null,
       });
       uploadedDuringEdit = new Set();
-      editorBlocks = saved.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds] }));
+      editorBlocks = saved.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds], links: block.links.map((link) => ({ ...link })) }));
       updateEditorStatus(saved.status);
       document.querySelector("#editor-title").textContent = "Modifier le cours";
       toast(!existing && status === "published" ? "Cours publié." : !existing ? "Brouillon enregistré." : "Modifications enregistrées.");
@@ -728,7 +743,9 @@
     const removeImage = event.target.closest("[data-remove-image]");
     const format = event.target.closest("[data-format]");
     const symbol = event.target.closest("[data-insert-symbol]");
-    const testLink = event.target.closest("[data-test-teacher-link]");
+    const addLink = event.target.closest("[data-add-link]");
+    const removeLink = event.target.closest("[data-remove-link]");
+    const testLink = event.target.closest("[data-test-link]");
     if (move) {
       syncBlocksFromDom();
       const pages = getEditorPages();
@@ -764,8 +781,21 @@
       if (format.dataset.format === "highlight") highlightSelection(editor);
     }
     if (symbol) insertSymbol(card.querySelector(".block-richtext"), symbol.dataset.insertSymbol);
+    if (addLink) {
+      syncBlocksFromDom();
+      const block = editorBlocks.find((item) => item.id === card.dataset.blockId);
+      if (block.links.length < 8) block.links.push({ id: CourseContent.id("link"), label: "", url: "" });
+      renderBlocks();
+    }
+    if (removeLink) {
+      syncBlocksFromDom();
+      const block = editorBlocks.find((item) => item.id === card.dataset.blockId);
+      const linkId = removeLink.closest("[data-link-id]").dataset.linkId;
+      block.links = block.links.filter((link) => link.id !== linkId);
+      renderBlocks();
+    }
     if (testLink) {
-      const url = CourseContent.safeUrl(card.querySelector("[data-teacher-url]").value);
+      const url = CourseContent.safeUrl(testLink.closest("[data-link-id]").querySelector("[data-link-url]").value);
       if (!url) toast("Saisissez d’abord une adresse commençant par https://");
       else window.open(url, "_blank", "noopener,noreferrer");
     }
