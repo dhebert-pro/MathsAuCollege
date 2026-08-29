@@ -12,7 +12,8 @@ service cloud.firestore {
     function validCourse(data) {
       return data.keys().hasOnly([
           'id', 'title', 'slug', 'chapterNumber', 'level', 'blocks',
-          'slideCount', 'status', 'manualOrder', 'createdAt', 'updatedAt'
+          'exerciseFileId', 'exerciseFileName', 'slideCount', 'status',
+          'manualOrder', 'createdAt', 'updatedAt'
         ])
         && data.id is string
         && data.title is string && data.title.size() > 0 && data.title.size() <= 120
@@ -20,6 +21,8 @@ service cloud.firestore {
         && data.chapterNumber is string && data.chapterNumber.size() <= 20
         && data.level in ['6', '5', '4', '3']
         && data.blocks is list && data.blocks.size() <= 200
+        && data.exerciseFileId is string && data.exerciseFileId.size() <= 160
+        && data.exerciseFileName is string && data.exerciseFileName.size() <= 160
         && data.slideCount is int && data.slideCount >= 1 && data.slideCount <= 200
         && data.status in ['draft', 'published']
         && (data.manualOrder == null || (data.manualOrder is int && data.manualOrder >= 0 && data.manualOrder <= 999))
@@ -47,6 +50,18 @@ service cloud.firestore {
         && data.courseId is string
         && data.dataUrl is string && data.dataUrl.size() > 0 && data.dataUrl.size() <= 750000
         && data.alt is string && data.alt.size() <= 160
+        && data.published is bool
+        && data.createdAt is string;
+    }
+
+    function validFile(data) {
+      return data.keys().hasOnly([
+          'id', 'courseId', 'dataUrl', 'name', 'published', 'createdAt'
+        ])
+        && data.id is string
+        && data.courseId is string
+        && data.dataUrl is string && data.dataUrl.size() > 0 && data.dataUrl.size() <= 900000
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 160
         && data.published is bool
         && data.createdAt is string;
     }
@@ -83,6 +98,15 @@ service cloud.firestore {
       allow create, update: if isProfessor()
         && request.resource.data.id == imageId
         && validImage(request.resource.data);
+      allow delete: if isProfessor();
+    }
+
+    match /courseFiles/{fileId} {
+      allow get: if isProfessor() || resource.data.published == true;
+      allow list: if isProfessor();
+      allow create, update: if isProfessor()
+        && request.resource.data.id == fileId
+        && validFile(request.resource.data);
       allow delete: if isProfessor();
     }
 

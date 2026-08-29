@@ -54,6 +54,11 @@ async function readCourseImages(courseId) {
   return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 }
 
+async function readCourseFiles(courseId) {
+  const snapshot = await getDocs(query(collection(db, "courseFiles"), where("courseId", "==", courseId)));
+  return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+}
+
 function rebuildCatalogs(batch, courses) {
   CourseContent.LEVELS.forEach((level) => {
     const published = CourseContent.sortCourses(courses)
@@ -72,6 +77,14 @@ function syncImages(batch, images, referencedIds, published) {
   images.forEach((image) => {
     const reference = doc(db, "courseImages", image.id);
     if (!references.has(image.id)) batch.delete(reference);
+    else batch.update(reference, { published });
+  });
+}
+
+function syncFiles(batch, files, referencedId, published) {
+  files.forEach((file) => {
+    const reference = doc(db, "courseFiles", file.id);
+    if (file.id !== referencedId) batch.delete(reference);
     else batch.update(reference, { published });
   });
 }
@@ -136,9 +149,28 @@ window.FirebaseBackend = {
   async deleteCourseImage(id) {
     await deleteDoc(doc(db, "courseImages", id));
   },
+  async saveFile(file) {
+    const normalized = {
+      id: String(file.id || CourseContent.id("file")),
+      courseId: String(file.courseId),
+      dataUrl: String(file.dataUrl),
+      name: String(file.name || "fiche-exercices.pdf").trim().slice(0, 160),
+      published: Boolean(file.published),
+      createdAt: String(file.createdAt || new Date().toISOString()),
+    };
+    await setDoc(doc(db, "courseFiles", normalized.id), normalized);
+    return normalized;
+  },
+  async getCourseFile(id) {
+    const snapshot = await getDoc(doc(db, "courseFiles", id));
+    return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+  },
+  async deleteCourseFile(id) {
+    await deleteDoc(doc(db, "courseFiles", id));
+  },
   async save(course) {
     const normalized = normalizeCourse(course);
-    const [courses, images] = await Promise.all([readAllCourses(), readCourseImages(normalized.id)]);
+    const [courses, images, files] = await Promise.all([readAllCourses(), readCourseImages(normalized.id), readCourseFiles(normalized.id)]);
     const nextCourses = [...courses.filter((item) => item.id !== normalized.id), normalized];
     const referencedIds = normalized.blocks.flatMap((block) => block.imageIds);
     const batch = writeBatch(db);
@@ -146,6 +178,7 @@ window.FirebaseBackend = {
     if (normalized.status === "published") batch.set(doc(db, "publishedCourses", normalized.id), CourseContent.publicCourse(normalized));
     else batch.delete(doc(db, "publishedCourses", normalized.id));
     syncImages(batch, images, referencedIds, normalized.status === "published");
+    syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published");
     rebuildCatalogs(batch, nextCourses);
     await batch.commit();
     return normalized;
@@ -163,11 +196,12 @@ window.FirebaseBackend = {
     await batch.commit();
   },
   async remove(id) {
-    const [courses, images] = await Promise.all([readAllCourses(), readCourseImages(id)]);
+    const [courses, images, files] = await Promise.all([readAllCourses(), readCourseImages(id), readCourseFiles(id)]);
     const batch = writeBatch(db);
     batch.delete(doc(db, "courses", id));
     batch.delete(doc(db, "publishedCourses", id));
     images.forEach((image) => batch.delete(doc(db, "courseImages", image.id)));
+    files.forEach((file) => batch.delete(doc(db, "courseFiles", file.id)));
     rebuildCatalogs(batch, courses.filter((course) => course.id !== id));
     await batch.commit();
   },

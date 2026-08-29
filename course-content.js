@@ -110,6 +110,8 @@
       chapterNumber: String(course.chapterNumber || "").trim().slice(0, 20),
       level: LEVELS.includes(String(course.level)) ? String(course.level) : "6",
       blocks,
+      exerciseFileId: String(course.exerciseFileId || "").trim(),
+      exerciseFileName: String(course.exerciseFileName || "").trim().slice(0, 160),
       slideCount: blocks.length ? groupSlides(blocks).length : Math.max(1, Number(course.slideCount) || 1),
       status: course.status === "published" ? "published" : "draft",
       manualOrder,

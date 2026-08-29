@@ -6,8 +6,18 @@
   let subscriptions = [];
   const publishedContents = new Map();
   const images = new Map();
+  const files = new Map();
 
   const sort = (items) => CourseContent.sortCourses(items);
+
+  function fileBlob(dataUrl) {
+    const [header, encoded] = String(dataUrl || "").split(",", 2);
+    const mime = header.match(/^data:([^;]+)/)?.[1] || "application/pdf";
+    const binary = atob(encoded || "");
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return new Blob([bytes], { type: mime });
+  }
 
   function notify(detail = {}) {
     window.dispatchEvent(new CustomEvent("courses:changed", { detail }));
@@ -73,6 +83,58 @@
       items.forEach((image) => images.set(image.id, image));
       return items;
     },
+    async getFile(id) {
+      if (!id) return null;
+      if (files.has(id)) return files.get(id);
+      if (!firebaseMode) return null;
+      const file = await FirebaseBackend.getCourseFile(id);
+      if (file) files.set(id, file);
+      return file;
+    },
+    async saveFile(file) {
+      if (!firebaseMode) throw new Error("Firebase is not configured");
+      const saved = await FirebaseBackend.saveFile(file);
+      files.set(saved.id, saved);
+      return saved;
+    },
+    async deleteFile(id) {
+      if (!firebaseMode || !id) return;
+      files.delete(id);
+      await FirebaseBackend.deleteCourseFile(id);
+    },
+    async openFile(id, page = 1) {
+      const opened = window.open("", "_blank");
+      const file = await this.getFile(id);
+      if (!file) {
+        opened?.close();
+        return false;
+      }
+      const url = URL.createObjectURL(fileBlob(file.dataUrl));
+      const destination = `${url}#page=${Math.max(1, Number(page) || 1)}`;
+      if (opened) opened.location.href = destination;
+      else {
+        const link = document.createElement("a");
+        link.href = destination;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.click();
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return true;
+    },
+    async downloadFile(id) {
+      const file = await this.getFile(id);
+      if (!file) return false;
+      const url = URL.createObjectURL(fileBlob(file.dataUrl));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name || "fiche-exercices.pdf";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
+    },
     startPublic() {
       this.stopSubscriptions();
       if (!firebaseMode) return;
@@ -110,6 +172,14 @@
         return [imageId, copy.id];
       }));
       const mapping = new Map(pairs);
+      let exerciseFileId = "";
+      if (source.exerciseFileId) {
+        const exerciseFile = await this.getFile(source.exerciseFileId);
+        if (exerciseFile) {
+          const copy = await this.saveFile({ ...exerciseFile, id: CourseContent.id("file"), courseId: nextId, published: false, createdAt: new Date().toISOString() });
+          exerciseFileId = copy.id;
+        }
+      }
       return this.save({
         ...source,
         id: nextId,
@@ -117,6 +187,8 @@
         chapterNumber: "",
         manualOrder: null,
         status: "draft",
+        exerciseFileId,
+        exerciseFileName: exerciseFileId ? source.exerciseFileName : "",
         createdAt: new Date().toISOString(),
         blocks: source.blocks.map((block) => ({
           ...block,

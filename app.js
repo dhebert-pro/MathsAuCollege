@@ -18,6 +18,7 @@
         <p>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""} · Lecture et PDF</p>
         <div class="course-card-actions">
           <button type="button" class="read-course-button" data-read-course="${course.id}">Consulter le cours <span aria-hidden="true">→</span></button>
+          ${course.exerciseFileId ? `<button class="exercise-button" type="button" data-exercises-course="${course.id}" data-exercise-file="${course.exerciseFileId}"><span aria-hidden="true">✎</span> Voir la fiche d’exercices</button>` : ""}
           <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> Télécharger le PDF</button>
         </div>
       </article>
@@ -60,7 +61,13 @@
   document.addEventListener("click", async (event) => {
     const readButton = event.target.closest("[data-read-course]");
     const pdfButton = event.target.closest("[data-pdf-course]");
+    const exerciseButton = event.target.closest("[data-exercises-course]");
     if (readButton) window.location.href = `presentation.html?course=${encodeURIComponent(readButton.dataset.readCourse)}`;
+    if (exerciseButton) {
+      exerciseButton.disabled = true;
+      try { await CourseStore.openFile(exerciseButton.dataset.exerciseFile); }
+      finally { exerciseButton.disabled = false; }
+    }
     if (pdfButton) {
       pdfButton.disabled = true;
       try {
@@ -85,7 +92,7 @@
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {
-    const refreshKey = "sw-refreshed-0.25.0";
+    const refreshKey = "sw-refreshed-0.26.0";
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (sessionStorage.getItem(refreshKey)) return;
       sessionStorage.setItem(refreshKey, "true");

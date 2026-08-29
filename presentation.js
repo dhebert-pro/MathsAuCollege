@@ -11,6 +11,7 @@
   const zoomOut = document.querySelector("#zoom-out");
   const zoomIn = document.querySelector("#zoom-in");
   const zoomLabel = document.querySelector("#zoom-label");
+  const exerciseButton = document.querySelector("#presentation-exercises");
   let course = null;
   let slides = [];
   let slideIndex = 0;
@@ -61,15 +62,17 @@
 
   function blockHtml(block, stageNumber, revealedStage) {
     const type = CourseContent.TYPES[block.type];
-    const resourceLinks = block.links.filter((link) => link.url).map((link) => {
+    const validLinks = block.links.filter((link) => link.url);
+    const resourceLinks = validLinks.map((link, linkIndex) => {
       const resourceLabel = CourseContent.escapeHtml(link.label || "la ressource associée à ce bloc");
-      return `<a class="block-resource-link" href="${link.url}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir ${resourceLabel}" title="${resourceLabel}"><span aria-hidden="true">↗</span></a>`;
+      const marker = validLinks.length === 1 ? "↗" : String(linkIndex + 1);
+      return `<a class="block-resource-link" href="${link.url}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir ${resourceLabel}" title="${resourceLabel}"><span aria-hidden="true">${marker}</span></a>`;
     }).join("");
     const hidden = stageNumber > revealIndex;
     const newlyRevealed = !hidden && stageNumber > 0 && stageNumber === revealedStage;
     return `
       <section class="course-block block-${block.type}${block.admitted ? " admitted" : ""}${hidden ? " reveal-hidden" : ""}${newlyRevealed ? " reveal-new" : ""}" data-block-id="${block.id}">
-        ${resourceLinks ? `<nav class="block-resource-links" aria-label="Ressources associées">${resourceLinks}</nav>` : ""}
+        ${resourceLinks ? `<nav class="block-resource-links links-count-${Math.min(validLinks.length, 8)}" aria-label="Ressources associées">${resourceLinks}</nav>` : ""}
         ${block.type === "text" ? "" : `<h2>${type.label}${block.admitted ? " · admise" : ""}</h2>`}
         <div class="block-content">${CourseContent.sanitizeHtml(block.html)}</div>
         ${block.imageIds.length ? `<div class="block-images-view">${block.imageIds.map((id) => `<div data-presentation-image="${id}"></div>`).join("")}</div>` : ""}
@@ -161,6 +164,8 @@
     document.querySelector("#previous-step").disabled = slideIndex === 0 && revealIndex === 0;
     document.querySelector("#next-step").disabled = slideIndex === total - 1 && revealIndex >= maxReveal();
     document.querySelector("#reveal-hint").textContent = revealIndex < maxReveal() ? "Cliquez pour révéler la suite" : slideIndex < total - 1 ? "Continuer" : "Fin du cours";
+    exerciseButton.hidden = !course?.exerciseFileId || slideIndex === 0;
+    if (!exerciseButton.hidden) exerciseButton.textContent = `Ex. ${slideIndex * 2 - 1} et ${slideIndex * 2}`;
     saveProgress();
   }
 
@@ -268,6 +273,11 @@
     const button = event.currentTarget;
     button.disabled = true;
     try { await CoursePdf.download(course); } finally { button.disabled = false; }
+  });
+  exerciseButton.addEventListener("click", async () => {
+    exerciseButton.disabled = true;
+    try { await CourseStore.openFile(course.exerciseFileId, Math.ceil(slideIndex / 2)); }
+    finally { exerciseButton.disabled = false; }
   });
   document.querySelector("#fullscreen-button").addEventListener("click", () => document.documentElement.requestFullscreen?.());
   document.querySelector("#presentation-close").addEventListener("click", (event) => {

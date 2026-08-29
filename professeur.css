@@ -193,6 +193,10 @@ td:nth-child(2) { min-width: 220px; }
 .teacher-link-actions { display: flex; gap: 6px; }
 .teacher-link-actions button { padding: 8px 10px; }
 .add-link-button { margin: 10px 16px 0; }
+.exercise-file-panel { display: grid; gap: 10px; }
+.exercise-file-panel h2, .exercise-file-panel p { margin: 0; }
+.exercise-file-upload { display: grid; place-items: center; min-height: 44px; padding: 10px; color: var(--blue); background: var(--blue-light); border: 1px dashed #9bb7c3; border-radius: 9px; font-size: .78rem; font-weight: 800; text-align: center; cursor: pointer; }
+.exercise-file-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .field-help { margin: 7px 16px 13px; color: var(--muted); font-size: .7rem; }
 .palette-panel h2 { margin-bottom: 5px; }
 .palette-panel > p { margin: 0 0 12px; color: var(--muted); font-size: .75rem; line-height: 1.45; }

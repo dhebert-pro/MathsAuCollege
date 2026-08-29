@@ -14,6 +14,7 @@
   let editorBlocks = [];
   let editorPageIndex = 0;
   let uploadedDuringEdit = new Set();
+  let uploadedFileDuringEdit = "";
   let draggedBlockId = "";
   let savedSelectionRange = null;
   let savedSelectionEditor = null;
@@ -33,6 +34,7 @@
   function readableError(error) {
     const code = error?.code || "";
     if (code === "image-too-large") return "L’image reste trop lourde après compression.";
+    if (code === "file-too-large") return "Le PDF dépasse la limite de 650 Ko.";
     if (code.includes("popup-closed") || code.includes("cancelled-popup")) return "Connexion annulée.";
     if (code.includes("popup-blocked")) return "La fenêtre de connexion a été bloquée par le navigateur.";
     if (code.includes("unauthorized-domain")) return "Ce site doit encore être autorisé dans Firebase.";
@@ -302,6 +304,13 @@
     hydrateImages();
   }
 
+  function renderExerciseFile() {
+    const fileId = courseForm.elements.exerciseFileId.value;
+    const fileName = courseForm.elements.exerciseFileName.value;
+    document.querySelector("#exercise-file-status").textContent = fileId ? `Fichier attaché : ${fileName || "fiche-exercices.pdf"}` : "Aucune fiche attachée.";
+    document.querySelector("#remove-exercise-file").hidden = !fileId;
+  }
+
   function setBlockExpanded(card, expanded) {
     card.dataset.expanded = String(expanded);
     card.querySelector(".block-editor-body").hidden = !expanded;
@@ -313,6 +322,14 @@
         if (other !== card) setBlockExpanded(other, false);
       });
     }
+  }
+
+  function renderBlockSettings(blockId) {
+    renderBlocks();
+    const card = blockList.querySelector(`[data-block-id="${blockId}"]`);
+    if (!card) return;
+    setBlockExpanded(card, true);
+    card.querySelector(".block-settings")?.setAttribute("open", "");
   }
 
   function addBlock(type) {
@@ -362,21 +379,27 @@
     const ids = [...uploadedDuringEdit];
     uploadedDuringEdit = new Set();
     await Promise.allSettled(ids.map((id) => CourseStore.deleteImage(id)));
+    if (uploadedFileDuringEdit) await CourseStore.deleteFile(uploadedFileDuringEdit).catch(() => {});
+    uploadedFileDuringEdit = "";
   }
 
   function openEditor(id = "") {
     courseForm.reset();
     uploadedDuringEdit = new Set();
+    uploadedFileDuringEdit = "";
     editorPageIndex = 0;
     const course = id ? CourseStore.get(id) : null;
     courseForm.elements.id.value = course?.id || CourseContent.id("course");
     courseForm.elements.title.value = course?.title || "";
     courseForm.elements.chapterNumber.value = course?.chapterNumber || "";
     courseForm.elements.level.value = course?.level || "6";
+    courseForm.elements.exerciseFileId.value = course?.exerciseFileId || "";
+    courseForm.elements.exerciseFileName.value = course?.exerciseFileName || "";
     editorBlocks = course?.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds], links: block.links.map((link) => ({ ...link })) })) || [CourseContent.normalizeBlock({ type: "text" })];
     document.querySelector("#editor-title").textContent = course ? "Modifier le cours" : "Nouveau cours";
     updateEditorStatus(course?.status || "draft");
     renderBlocks();
+    renderExerciseFile();
     showView("editor");
     courseForm.elements.title.focus();
   }
@@ -573,18 +596,64 @@
         chapterNumber: courseForm.elements.chapterNumber.value,
         level: courseForm.elements.level.value,
         status,
+        exerciseFileId: courseForm.elements.exerciseFileId.value,
+        exerciseFileName: courseForm.elements.exerciseFileName.value,
         blocks: editorBlocks,
         manualOrder: existing?.manualOrder ?? null,
       });
       uploadedDuringEdit = new Set();
+      uploadedFileDuringEdit = "";
       editorBlocks = saved.blocks.map((block) => ({ ...block, imageIds: [...block.imageIds], links: block.links.map((link) => ({ ...link })) }));
       updateEditorStatus(saved.status);
       document.querySelector("#editor-title").textContent = "Modifier le cours";
+      renderExerciseFile();
       toast(!existing && status === "published" ? "Cours publié." : !existing ? "Brouillon enregistré." : "Modifications enregistrées.");
     } catch (error) {
       toast(readableError(error));
     } finally {
       buttons.forEach((button) => { button.disabled = false; });
+    }
+  }
+
+  async function uploadExerciseFile(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      toast("Choisissez un fichier PDF.");
+      input.value = "";
+      return;
+    }
+    if (file.size > 650000) {
+      toast(readableError({ code: "file-too-large" }));
+      input.value = "";
+      return;
+    }
+    input.disabled = true;
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Invalid file"));
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.readAsDataURL(file);
+      });
+      const saved = await CourseStore.saveFile({
+        id: CourseContent.id("file"),
+        courseId: courseForm.elements.id.value,
+        dataUrl,
+        name: file.name,
+        published: false,
+      });
+      if (uploadedFileDuringEdit) await CourseStore.deleteFile(uploadedFileDuringEdit).catch(() => {});
+      uploadedFileDuringEdit = saved.id;
+      courseForm.elements.exerciseFileId.value = saved.id;
+      courseForm.elements.exerciseFileName.value = saved.name;
+      renderExerciseFile();
+      toast("Fiche ajoutée. Enregistrez le cours pour confirmer.");
+    } catch (error) {
+      toast(readableError(error));
+    } finally {
+      input.disabled = false;
+      input.value = "";
     }
   }
 
@@ -605,6 +674,15 @@
   document.querySelectorAll("[data-go-editor]").forEach((button) => button.addEventListener("click", () => openEditor()));
   document.querySelectorAll("[data-go-courses]").forEach((button) => button.addEventListener("click", () => showView("courses")));
   document.querySelector("#cancel-editor").addEventListener("click", async () => { await cleanupNewUploads(); showView("courses"); });
+  document.querySelector("#exercise-file-input").addEventListener("change", (event) => uploadExerciseFile(event.target));
+  document.querySelector("#remove-exercise-file").addEventListener("click", async () => {
+    if (uploadedFileDuringEdit) await CourseStore.deleteFile(uploadedFileDuringEdit).catch(() => {});
+    uploadedFileDuringEdit = "";
+    courseForm.elements.exerciseFileId.value = "";
+    courseForm.elements.exerciseFileName.value = "";
+    renderExerciseFile();
+    toast("La fiche sera retirée lors de l’enregistrement.");
+  });
   document.querySelector("#reset-order").addEventListener("click", () => runMutation(() => CourseStore.resetOrder(document.querySelector("#level-filter").value), "Tri automatique rétabli."));
   ["#admin-search", "#level-filter", "#status-filter"].forEach((selector) => document.querySelector(selector).addEventListener("input", renderTable));
   document.querySelectorAll("[data-add-block]").forEach((button) => button.addEventListener("click", () => addBlock(button.dataset.addBlock)));
@@ -785,14 +863,14 @@
       syncBlocksFromDom();
       const block = editorBlocks.find((item) => item.id === card.dataset.blockId);
       if (block.links.length < 8) block.links.push({ id: CourseContent.id("link"), label: "", url: "" });
-      renderBlocks();
+      renderBlockSettings(block.id);
     }
     if (removeLink) {
       syncBlocksFromDom();
       const block = editorBlocks.find((item) => item.id === card.dataset.blockId);
       const linkId = removeLink.closest("[data-link-id]").dataset.linkId;
       block.links = block.links.filter((link) => link.id !== linkId);
-      renderBlocks();
+      renderBlockSettings(block.id);
     }
     if (testLink) {
       const url = CourseContent.safeUrl(testLink.closest("[data-link-id]").querySelector("[data-link-url]").value);
