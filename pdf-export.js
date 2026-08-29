@@ -263,12 +263,22 @@
     const validImages = block.imageIds.map((id) => imageMap.get(id)).filter(Boolean);
     const imageRows = Math.ceil(validImages.length / 2);
     const imagesHeight = imageRows ? imageRows * 53 + 3 : 0;
+    const linkText = block.teacherUrl
+      ? `Lien${block.teacherLabel ? ` - ${block.teacherLabel}` : ""} : ${block.teacherUrl}`
+      : "";
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7.5);
+    const linkLines = linkText ? pdf.splitTextToSize(normalizePdfText(linkText), width - 18) : [];
+    const linkHeight = linkLines.length ? 5 + linkLines.length * 3.6 : 0;
     return {
       lines,
       validImages,
+      imagesHeight,
       labelHeight,
       lineHeight,
-      height: (block.type === "text" ? 6 : 12) + labelHeight + Math.max(lineHeight, richLinesHeight(lines, lineHeight)) + imagesHeight,
+      linkLines,
+      linkHeight,
+      height: (block.type === "text" ? 6 : 12) + labelHeight + Math.max(lineHeight, richLinesHeight(lines, lineHeight)) + imagesHeight + linkHeight,
     };
   }
 
@@ -289,6 +299,24 @@
       pdf.setDrawColor(...COLORS.line);
       pdf.roundedRect(x + column * (cellWidth + gap), y + row * 53, cellWidth, cellHeight, 2, 2, "FD");
       pdf.addImage(image.dataUrl, "JPEG", imageX, imageY, imageWidth, imageHeight, undefined, "FAST");
+    });
+  }
+
+  function drawBlockLink(pdf, block, lines, x, y, width) {
+    if (!lines.length || !block.teacherUrl) return;
+    pdf.setDrawColor(...COLORS.line);
+    pdf.setLineWidth(.25);
+    pdf.line(x, y, x + width, y);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(...COLORS.blue);
+    lines.forEach((line, index) => {
+      const baseline = y + 3.8 + index * 3.6;
+      pdf.text(line, x, baseline);
+      const lineWidth = Math.min(width, pdf.getTextWidth(line));
+      pdf.setLineWidth(.18);
+      pdf.line(x, baseline + .45, x + lineWidth, baseline + .45);
+      pdf.link(x, baseline - 2.8, lineWidth, 3.6, { url: block.teacherUrl });
     });
   }
 
@@ -332,6 +360,14 @@
     }
     cursorY = drawRichLines(pdf, layout.lines, contentX, cursorY, fontSize, layout.lineHeight);
     if (layout.validImages.length) drawImageGrid(pdf, layout.validImages, plainTextBlock ? x + 1 : x + 9, cursorY + 2, plainTextBlock ? width - 2 : width - 18);
+    drawBlockLink(
+      pdf,
+      block,
+      layout.linkLines,
+      plainTextBlock ? x + 1 : x + 9,
+      cursorY + layout.imagesHeight + 1,
+      plainTextBlock ? width - 2 : width - 18,
+    );
   }
 
   function drawDocumentHeader(pdf, course) {
