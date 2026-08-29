@@ -295,10 +295,13 @@
       const imageHeight = image.height * ratio;
       const imageX = x + column * (cellWidth + gap) + (cellWidth - imageWidth) / 2;
       const imageY = y + row * 53 + (cellHeight - imageHeight) / 2;
-      pdf.setFillColor(255, 255, 255);
-      pdf.setDrawColor(...COLORS.line);
-      pdf.roundedRect(x + column * (cellWidth + gap), y + row * 53, cellWidth, cellHeight, 2, 2, "FD");
-      pdf.addImage(image.dataUrl, "JPEG", imageX, imageY, imageWidth, imageHeight, undefined, "FAST");
+      const format = image.dataUrl.startsWith("data:image/png") ? "PNG" : image.dataUrl.startsWith("data:image/webp") ? "WEBP" : "JPEG";
+      if (format !== "PNG") {
+        pdf.setFillColor(255, 255, 255);
+        pdf.setDrawColor(...COLORS.line);
+        pdf.roundedRect(x + column * (cellWidth + gap), y + row * 53, cellWidth, cellHeight, 2, 2, "FD");
+      }
+      pdf.addImage(image.dataUrl, format, imageX, imageY, imageWidth, imageHeight, undefined, "FAST");
     });
   }
 

@@ -84,6 +84,7 @@ button, a { font: inherit; }
 .slide[data-block-count="5"] .course-block, .slide[data-block-count="6"] .course-block { padding-block: 12px; font-size: 1em; }
 .block-images-view { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); align-items: center; gap: 12px; margin-top: 14px; }
 .block-images-view img { display: block; width: auto; max-width: 100%; height: auto; max-height: var(--presentation-image-height); margin-inline: auto; object-fit: contain; background: white; border: 1px solid #dce3e5; border-radius: 11px; box-shadow: 0 7px 18px rgba(20,55,73,.08); }
+.block-images-view img.transparent-image { background: transparent; border-color: transparent; border-radius: 0; box-shadow: none; }
 .presentation-controls { display: grid; grid-template-columns: 52px minmax(0, 430px) 52px; justify-content: center; align-items: center; gap: 20px; padding: 8px 20px; color: white; background: rgba(8, 34, 49, .98); border-top: 1px solid rgba(255,255,255,.08); }
 .presentation-controls > button { width: 48px; height: 48px; color: var(--blue); background: white; border: 0; border-radius: 50%; box-shadow: 0 6px 16px rgba(0,0,0,.2); font-size: 1.35rem; font-weight: 900; cursor: pointer; transition: transform .2s; }
 .presentation-controls > button:not(:disabled):hover { transform: scale(1.07); }

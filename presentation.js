@@ -84,6 +84,7 @@
         const element = document.createElement("img");
         element.src = image.dataUrl;
         element.alt = image.alt;
+        if (image.dataUrl.startsWith("data:image/png")) element.classList.add("transparent-image");
         holder.replaceWith(element);
       } catch {
         holder.remove();

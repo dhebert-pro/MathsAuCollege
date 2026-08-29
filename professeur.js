@@ -435,17 +435,33 @@
         }
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(image, 0, 0, width, height);
+        const supportsTransparency = ["image/png", "image/webp"].includes(file.type);
+        let preserveTransparency = false;
+        if (supportsTransparency) {
+          const pixels = context.getImageData(0, 0, width, height).data;
+          for (let index = 3; index < pixels.length; index += 4) {
+            if (pixels[index] < 255) {
+              preserveTransparency = true;
+              break;
+            }
+          }
+        }
         let quality = 0.88;
         let dataUrl = "";
         for (let attempt = 0; attempt < 8; attempt += 1) {
           canvas.width = width;
           canvas.height = height;
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, width, height);
+          if (!preserveTransparency) {
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, width, height);
+          }
           context.drawImage(image, 0, 0, width, height);
-          dataUrl = canvas.toDataURL("image/jpeg", quality);
+          dataUrl = canvas.toDataURL(preserveTransparency ? "image/png" : "image/jpeg", quality);
           if (dataUrl.length <= 650000) break;
-          quality = Math.max(0.55, quality - 0.07);
+          if (!preserveTransparency) quality = Math.max(0.55, quality - 0.07);
           width = Math.round(width * 0.85);
           height = Math.round(height * 0.85);
         }
