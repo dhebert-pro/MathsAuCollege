@@ -405,6 +405,69 @@
     }
   }
 
+  function groupHeight(entries, start, end, gap) {
+    return entries.slice(start, end).reduce((height, entry, index) => height + entry.layout.height + (index ? gap : 0), 0);
+  }
+
+  function greedyPageGroups(entries, firstPageY, pageTop, pageBottom, gap) {
+    if (!entries.length) return [[]];
+    const groups = [[]];
+    let used = 0;
+    entries.forEach((entry) => {
+      const page = groups.length - 1;
+      const capacity = pageBottom - (page === 0 ? firstPageY : pageTop);
+      const nextHeight = used + (groups[page].length ? gap : 0) + entry.layout.height;
+      if (groups[page].length && nextHeight > capacity) {
+        groups.push([entry]);
+        used = entry.layout.height;
+      } else {
+        groups[page].push(entry);
+        used = nextHeight;
+      }
+    });
+    return groups;
+  }
+
+  function balancedPageGroups(entries, pageCount, firstPageY, pageTop, pageBottom, gap, minimumFirstCount = 1) {
+    if (entries.length < pageCount) return null;
+    const capacities = Array.from({ length: pageCount }, (_, page) => pageBottom - (page === 0 ? firstPageY : pageTop));
+    const totalHeight = entries.reduce((height, entry) => height + entry.layout.height, 0) + gap * Math.max(0, entries.length - pageCount);
+    const targetFill = totalHeight / capacities.reduce((sum, capacity) => sum + capacity, 0);
+    const memo = new Map();
+
+    function solve(page, start) {
+      const key = `${page}:${start}`;
+      if (memo.has(key)) return memo.get(key);
+      if (page === pageCount) return start === entries.length ? { cost: 0, cuts: [] } : null;
+      const remainingPages = pageCount - page;
+      const maximumEnd = entries.length - (remainingPages - 1);
+      let best = null;
+      const minimumEnd = page === 0 ? Math.max(start + 1, minimumFirstCount) : start + 1;
+      for (let end = minimumEnd; end <= maximumEnd; end += 1) {
+        const height = groupHeight(entries, start, end, gap);
+        if (height > capacities[page]) break;
+        const next = solve(page + 1, end);
+        if (!next) continue;
+        const density = height / capacities[page];
+        let cost = Math.pow(density - targetFill, 2) + next.cost;
+        if (page < pageCount - 1) cost += entries[end]?.block.slideBreakBefore ? -.012 : .012;
+        if (!best || cost < best.cost) best = { cost, cuts: [end, ...next.cuts] };
+      }
+      memo.set(key, best);
+      return best;
+    }
+
+    const plan = solve(0, 0);
+    if (!plan) return null;
+    const groups = [];
+    let start = 0;
+    plan.cuts.forEach((end) => {
+      groups.push(entries.slice(start, end));
+      start = end;
+    });
+    return groups;
+  }
+
   async function createDocument(course) {
     if (!window.jspdf?.jsPDF) throw new Error("Le module PDF n’est pas disponible.");
     const { jsPDF } = window.jspdf;
@@ -417,9 +480,9 @@
     const pageTop = 13;
     const pageBottom = 281;
     const baseFontSize = 10.5;
-    let y = drawDocumentHeader(pdf, normalized);
-
-    normalized.blocks.forEach((block) => {
+    const firstPageY = drawDocumentHeader(pdf, normalized);
+    const gap = 3.2;
+    const entries = normalized.blocks.map((block) => {
       let fontSize = baseFontSize;
       let layout = blockLayout(pdf, block, fontSize, width, imageMap);
       const maximumBlockHeight = pageBottom - pageTop;
@@ -427,12 +490,21 @@
         fontSize = Math.max(8.5, fontSize * (maximumBlockHeight / layout.height));
         layout = blockLayout(pdf, block, fontSize, width, imageMap);
       }
-      if (y + layout.height > pageBottom) {
-        pdf.addPage("a4", "portrait");
-        y = pageTop;
-      }
-      drawBlock(pdf, block, layout, 15, y, width, fontSize);
-      y += layout.height + 3.2;
+      return { block, fontSize, layout };
+    });
+    const naturalGroups = greedyPageGroups(entries, firstPageY, pageTop, pageBottom, gap);
+    const groups = naturalGroups.length === 3
+      ? balancedPageGroups(entries, 4, firstPageY, pageTop, pageBottom, gap, naturalGroups[0].length) || naturalGroups
+      : naturalGroups;
+
+    groups.forEach((group, page) => {
+      if (page) pdf.addPage("a4", "portrait");
+      let y = page ? pageTop : firstPageY;
+      group.forEach(({ block, fontSize, layout }, index) => {
+        if (index) y += gap;
+        drawBlock(pdf, block, layout, 15, y, width, fontSize);
+        y += layout.height;
+      });
     });
     addFooters(pdf);
     return pdf;
