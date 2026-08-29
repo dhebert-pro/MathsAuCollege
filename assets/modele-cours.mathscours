@@ -1,0 +1,39 @@
+{
+  "format": "maths-au-college/course-package",
+  "version": 1,
+  "course": {
+    "title": "Nom du chapitre",
+    "chapterNumber": "2",
+    "level": "6",
+    "blocks": [
+      {
+        "type": "definition",
+        "html": "<p>Une <mark data-tone=\"yellow\">notion importante</mark> est expliquée ici.</p>",
+        "admitted": false,
+        "slideBreakBefore": false,
+        "revealBreakBefore": false,
+        "images": [],
+        "links": []
+      },
+      {
+        "type": "example",
+        "html": "<p>Un exemple court qui applique directement la définition.</p>",
+        "admitted": false,
+        "slideBreakBefore": false,
+        "revealBreakBefore": true,
+        "images": [],
+        "links": []
+      },
+      {
+        "type": "method",
+        "html": "<ol><li>Première étape.</li><li>Deuxième étape.</li></ol>",
+        "admitted": false,
+        "slideBreakBefore": true,
+        "revealBreakBefore": false,
+        "images": [],
+        "links": []
+      }
+    ]
+  },
+  "exercisePdf": null
+}

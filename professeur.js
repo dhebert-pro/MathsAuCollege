@@ -33,6 +33,7 @@
 
   function readableError(error) {
     const code = error?.code || "";
+    if (code === "invalid-course-package") return error.message;
     if (code === "image-too-large") return "L’image reste trop lourde après compression.";
     if (code === "file-too-large") return "Le PDF dépasse la limite de 650 Ko.";
     if (code.includes("popup-closed") || code.includes("cancelled-popup")) return "Connexion annulée.";
@@ -383,12 +384,12 @@
     uploadedFileDuringEdit = "";
   }
 
-  function openEditor(id = "") {
+  function openEditor(id = "", importedCourse = null) {
     courseForm.reset();
     uploadedDuringEdit = new Set();
     uploadedFileDuringEdit = "";
     editorPageIndex = 0;
-    const course = id ? CourseStore.get(id) : null;
+    const course = importedCourse || (id ? CourseStore.get(id) : null);
     courseForm.elements.id.value = course?.id || CourseContent.id("course");
     courseForm.elements.title.value = course?.title || "";
     courseForm.elements.chapterNumber.value = course?.chapterNumber || "";
@@ -657,6 +658,87 @@
     }
   }
 
+  async function importCoursePackage(input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const status = document.querySelector("#course-package-status");
+    const uploadLabel = input.closest(".course-package-upload");
+    const uploadedImageIds = [];
+    let uploadedFileId = "";
+    let courseSaved = false;
+    input.disabled = true;
+    uploadLabel.classList.add("is-busy");
+    status.classList.remove("error");
+    status.textContent = "Contrôle du paquet…";
+    try {
+      const imported = await CoursePackage.read(file);
+      const courseId = CourseContent.id("course");
+      const blocks = [];
+      let imageCount = 0;
+
+      for (const sourceBlock of imported.blocks) {
+        const imageIds = [];
+        for (const image of sourceBlock.images) {
+          status.textContent = `Enregistrement des images… ${imageCount + 1}`;
+          const savedImage = await CourseStore.saveImage({
+            id: CourseContent.id("image"),
+            courseId,
+            dataUrl: image.dataUrl,
+            alt: image.alt,
+            published: false,
+          });
+          imageIds.push(savedImage.id);
+          uploadedImageIds.push(savedImage.id);
+          imageCount += 1;
+        }
+        const { images, ...block } = sourceBlock;
+        blocks.push(CourseContent.normalizeBlock({ ...block, imageIds }));
+      }
+
+      if (imported.exercisePdf) {
+        status.textContent = "Enregistrement de la fiche d’exercices…";
+        const savedFile = await CourseStore.saveFile({
+          id: CourseContent.id("file"),
+          courseId,
+          dataUrl: imported.exercisePdf.dataUrl,
+          name: imported.exercisePdf.name,
+          published: false,
+        });
+        uploadedFileId = savedFile.id;
+      }
+
+      status.textContent = "Création du brouillon…";
+      const saved = await CourseStore.save({
+        id: courseId,
+        title: imported.title,
+        chapterNumber: imported.chapterNumber,
+        level: imported.level,
+        status: "draft",
+        blocks,
+        exerciseFileId: uploadedFileId,
+        exerciseFileName: imported.exercisePdf?.name || "",
+        manualOrder: null,
+        createdAt: new Date().toISOString(),
+      });
+      courseSaved = true;
+      status.textContent = `« ${CourseContent.displayTitle(saved)} » a été importé en brouillon.`;
+      toast("Cours importé en brouillon. Vérifiez-le avant de le publier.");
+      openEditor(saved.id, saved);
+    } catch (error) {
+      if (!courseSaved) {
+        await Promise.all(uploadedImageIds.map((id) => CourseStore.deleteImage(id).catch(() => {})));
+        if (uploadedFileId) await CourseStore.deleteFile(uploadedFileId).catch(() => {});
+      }
+      status.classList.add("error");
+      status.textContent = readableError(error);
+      toast(readableError(error));
+    } finally {
+      input.disabled = false;
+      uploadLabel.classList.remove("is-busy");
+      input.value = "";
+    }
+  }
+
   loginButton.addEventListener("click", async () => {
     loginButton.disabled = true;
     loginMessage.textContent = "Ouverture de la connexion Google…";
@@ -675,6 +757,7 @@
   document.querySelectorAll("[data-go-courses]").forEach((button) => button.addEventListener("click", () => showView("courses")));
   document.querySelector("#cancel-editor").addEventListener("click", async () => { await cleanupNewUploads(); showView("courses"); });
   document.querySelector("#exercise-file-input").addEventListener("change", (event) => uploadExerciseFile(event.target));
+  document.querySelector("#course-package-input").addEventListener("change", (event) => importCoursePackage(event.target));
   document.querySelector("#remove-exercise-file").addEventListener("click", async () => {
     if (uploadedFileDuringEdit) await CourseStore.deleteFile(uploadedFileDuringEdit).catch(() => {});
     uploadedFileDuringEdit = "";

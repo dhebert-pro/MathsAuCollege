@@ -1,13 +1,13 @@
 {
   "name": "maths-au-college",
   "private": true,
-  "version": "0.26.0",
+  "version": "0.27.0",
   "description": "Application de ressources de mathématiques pour les élèves du collège.",
   "scripts": {
     "vendor": "node scripts/copy-vendor.mjs",
     "build:firebase": "esbuild firebase-source.js --bundle --format=iife --global-name=MathsFirebaseBundle --outfile=firebase-bundle.js --minify",
     "build:site": "node scripts/build-site.mjs",
-    "check": "node --check app.js && node --check professeur.js && node --check presentation.js && node --check course-content.js && node --check course-store.js && node --check pdf-export.js && node --check sw.js"
+    "check": "node --check app.js && node --check professeur.js && node --check presentation.js && node --check course-content.js && node --check course-package.js && node --check course-store.js && node --check pdf-export.js && node --check sw.js"
   },
   "dependencies": {
     "firebase": "12.16.0",
