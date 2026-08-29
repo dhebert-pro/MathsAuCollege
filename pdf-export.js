@@ -19,7 +19,55 @@
     method: { border: [40, 106, 162], fill: [239, 247, 252] },
     reminder: { border: [101, 114, 122], fill: [245, 247, 248] },
   };
-  const SYMBOL_GLYPHS = { belongs: "\u00ce", "not-belongs": "\u00cf" };
+  const PDF_FONT_FAMILY = "DejaVuSans";
+  const PDF_FONTS = [
+    { file: "DejaVuSans.ttf", style: "normal" },
+    { file: "DejaVuSans-Bold.ttf", style: "bold" },
+    { file: "DejaVuSans-Oblique.ttf", style: "italic" },
+    { file: "DejaVuSans-BoldOblique.ttf", style: "bolditalic" },
+  ];
+  const fontDataPromises = new Map();
+
+  function fontStyle(token = {}) {
+    const bold = token.bold || token.highlight;
+    if (bold && token.italic) return "bolditalic";
+    if (bold) return "bold";
+    return token.italic ? "italic" : "normal";
+  }
+
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const chunks = [];
+    for (let index = 0; index < bytes.length; index += 32768) {
+      chunks.push(String.fromCharCode(...bytes.subarray(index, index + 32768)));
+    }
+    return btoa(chunks.join(""));
+  }
+
+  async function loadFont(font) {
+    if (!fontDataPromises.has(font.file)) {
+      fontDataPromises.set(font.file, (async () => {
+        const response = await fetch(`assets/fonts/${font.file}`);
+        if (!response.ok) throw new Error("La police Unicode du PDF n’a pas pu être chargée.");
+        return { ...font, data: arrayBufferToBase64(await response.arrayBuffer()) };
+      })());
+    }
+    return fontDataPromises.get(font.file);
+  }
+
+  async function registerFonts(pdf, course) {
+    const styles = new Set(["normal", "bold"]);
+    if (course.blocks.some((block) => block.html.includes("<em>"))) {
+      styles.add("italic");
+      styles.add("bolditalic");
+    }
+    const fonts = await Promise.all(PDF_FONTS.filter((font) => styles.has(font.style)).map(loadFont));
+    fonts.forEach((font) => {
+      pdf.addFileToVFS(font.file, font.data);
+      pdf.addFont(font.file, PDF_FONT_FAMILY, font.style);
+    });
+    pdf.setFont(PDF_FONT_FAMILY, "normal");
+  }
 
   function safeFilename(value) {
     return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_]+/g, "-").replace(/(^-|-$)/g, "").toLowerCase();
@@ -68,18 +116,12 @@
     const lines = [[]];
     let width = 0;
     function applyFont(token) {
-      pdf.setFont("helvetica", token.bold || token.highlight ? "bold" : token.italic ? "italic" : "normal");
+      pdf.setFont(PDF_FONT_FAMILY, fontStyle(token));
       pdf.setFontSize(fontSize);
     }
     function measure(token, text) {
       applyFont(token);
-      let measured = pdf.getTextWidth(text) + (token.math === "root" ? 3 : 0);
-      if (SYMBOL_GLYPHS[token.math]) {
-        pdf.setFont("symbol", "normal");
-        pdf.setFontSize(fontSize);
-        measured = pdf.getTextWidth(SYMBOL_GLYPHS[token.math]);
-      }
-      return measured;
+      return pdf.getTextWidth(text) + (token.math === "root" ? 3 : 0);
     }
     tokens.forEach((token) => {
       const value = ["belongs", "not-belongs"].includes(token.math) ? token.text : normalizePdfText(token.text);
@@ -201,7 +243,7 @@
       y += mathTopGap(line);
       let cursor = x;
       line.forEach((token) => {
-        pdf.setFont("helvetica", token.bold || token.highlight ? "bold" : token.italic ? "italic" : "normal");
+        pdf.setFont(PDF_FONT_FAMILY, fontStyle(token));
         pdf.setFontSize(fontSize);
         pdf.setTextColor(...(token.highlight ? [138, 60, 32] : COLORS.ink));
         if (token.highlight) {
@@ -222,10 +264,6 @@
           pdf.setLineWidth(.3);
           pdf.line(cursor, y - fontSize * .3, cursor + token.width / 2, y - fontSize * .43);
           pdf.line(cursor + token.width / 2, y - fontSize * .43, cursor + token.width, y - fontSize * .3);
-        } else if (["belongs", "not-belongs"].includes(token.math)) {
-          pdf.setFont("symbol", "normal");
-          pdf.setFontSize(fontSize);
-          pdf.text(SYMBOL_GLYPHS[token.math], cursor, y);
         } else pdf.text(token.text, cursor, y);
         cursor += token.width;
       });
@@ -263,7 +301,7 @@
     const validImages = block.imageIds.map((id) => imageMap.get(id)).filter(Boolean);
     const imageRows = Math.ceil(validImages.length / 2);
     const imagesHeight = imageRows ? imageRows * 53 + 3 : 0;
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont(PDF_FONT_FAMILY, "normal");
     pdf.setFontSize(7.5);
     const linkEntries = block.links.filter((link) => link.url).map((link) => {
       const text = `Lien${link.label ? ` - ${link.label}` : ""} : ${link.url}`;
@@ -310,7 +348,7 @@
     pdf.setDrawColor(...COLORS.line);
     pdf.setLineWidth(.25);
     pdf.line(x, y, x + width, y);
-    pdf.setFont("helvetica", "normal");
+    pdf.setFont(PDF_FONT_FAMILY, "normal");
     pdf.setFontSize(7.5);
     pdf.setTextColor(...COLORS.blue);
     let cursorY = y + 3.8;
@@ -356,7 +394,7 @@
     let cursorY = y + (plainTextBlock ? 4 : 8);
     if (block.type !== "text") {
       const type = CourseContent.TYPES[block.type];
-      pdf.setFont("helvetica", "bold");
+      pdf.setFont(PDF_FONT_FAMILY, "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...palette.border);
       pdf.text(`${type.label.toUpperCase()}${block.admitted ? " · ADMISE" : ""}`, x + 9, cursorY);
@@ -377,7 +415,7 @@
   }
 
   function drawDocumentHeader(pdf, course) {
-    pdf.setFont("helvetica", "bold");
+    pdf.setFont(PDF_FONT_FAMILY, "bold");
     pdf.setFontSize(9);
     pdf.setTextColor(...COLORS.green);
     pdf.text(course.chapterNumber ? `CHAPITRE ${course.chapterNumber}` : `${course.level}e`, 15, 17);
@@ -404,7 +442,7 @@
       pdf.setDrawColor(...COLORS.line);
       pdf.setLineWidth(.3);
       pdf.line(15, 286, 195, 286);
-      pdf.setFont("helvetica", "normal");
+      pdf.setFont(PDF_FONT_FAMILY, "normal");
       pdf.setFontSize(7.5);
       pdf.setTextColor(...COLORS.muted);
       pdf.text(`${page} / ${total}`, 195, 291, { align: "right" });
@@ -477,8 +515,9 @@
   async function createDocument(course) {
     if (!window.jspdf?.jsPDF) throw new Error("Le module PDF n’est pas disponible.");
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
     const normalized = CourseContent.normalizeCourse(course);
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true, putOnlyUsedFonts: true });
+    await registerFonts(pdf, normalized);
     const imageMap = await loadImages(normalized);
     pdf.setProperties({ title: CourseContent.displayTitle(normalized), subject: "Mathématiques" });
 
