@@ -19,7 +19,7 @@
         <div class="course-card-actions">
           <button type="button" class="read-course-button" data-read-course="${course.id}">Consulter le cours <span aria-hidden="true">→</span></button>
           ${course.exerciseFileId ? `<button class="exercise-button" type="button" data-exercises-course="${course.id}" data-exercise-file="${course.exerciseFileId}"><span aria-hidden="true">✎</span> Voir la fiche d’exercices</button>` : ""}
-          <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> Télécharger le PDF</button>
+          <button class="pdf-button" type="button" data-pdf-course="${course.id}"><span aria-hidden="true">↓</span> Télécharger le cours</button>
         </div>
       </article>
     `).join("");
@@ -92,7 +92,7 @@
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {
-    const refreshKey = "sw-refreshed-0.29.0";
+    const refreshKey = "sw-refreshed-0.29.1";
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (sessionStorage.getItem(refreshKey)) return;
       sessionStorage.setItem(refreshKey, "true");
