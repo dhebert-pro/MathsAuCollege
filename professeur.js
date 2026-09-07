@@ -10,6 +10,7 @@
   const saveButton = document.querySelector("#save-course");
   const publishButton = document.querySelector("#publish-course");
   const unpublishButton = document.querySelector("#unpublish-course");
+  const rollbackImportButton = document.querySelector("#rollback-course-import");
   let accessGranted = false;
   let editorBlocks = [];
   let editorPageIndex = 0;
@@ -64,6 +65,7 @@
       FirebaseBackend.signOut().catch(() => {});
     });
     renderAll();
+    refreshRollbackButton();
   }
 
   function showView(name) {
@@ -74,7 +76,10 @@
     });
     document.querySelectorAll("[data-admin-view]").forEach((button) => button.classList.toggle("active", button.dataset.adminView === name));
     document.querySelector(".admin-sidebar").classList.remove("open");
-    if (name === "courses") renderTable();
+    if (name === "courses") {
+      renderTable();
+      refreshRollbackButton();
+    }
     if (name === "images") renderImageLibrary();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -669,7 +674,19 @@
     status.textContent = "Contrôle du paquet…";
     try {
       const imported = await CoursePackage.read(file);
-      const courseId = CourseContent.id("course");
+      const sameLevel = CourseStore.all().filter((course) => course.level === imported.level);
+      const sameChapter = imported.chapterNumber
+        ? sameLevel.filter((course) => normalizeSearch(course.chapterNumber) === normalizeSearch(imported.chapterNumber))
+        : [];
+      const sameTitle = sameLevel.filter((course) => normalizeSearch(course.title) === normalizeSearch(imported.title));
+      const existing = sameChapter.find((course) => normalizeSearch(course.title) === normalizeSearch(imported.title)) || sameChapter[0] || sameTitle[0] || null;
+      const importAction = existing ? await chooseImportAction(existing, imported) : "add";
+      if (importAction === "cancel") {
+        status.textContent = "Import annulé. Aucun cours n’a été modifié.";
+        return;
+      }
+      const replacing = importAction === "replace";
+      const courseId = replacing ? existing.id : CourseContent.id("course");
       const blocks = [];
       let imageCount = 0;
 
@@ -704,22 +721,28 @@
         uploadedFileId = savedFile.id;
       }
 
-      status.textContent = "Création du brouillon…";
-      const saved = await CourseStore.save({
+      status.textContent = replacing ? "Remplacement du cours…" : "Création du brouillon…";
+      const courseToSave = {
         id: courseId,
         title: imported.title,
         chapterNumber: imported.chapterNumber,
         level: imported.level,
-        status: "draft",
+        status: replacing ? existing.status : "draft",
         blocks,
         exerciseFileId: uploadedFileId,
         exerciseFileName: imported.exercisePdf?.name || "",
-        manualOrder: null,
-        createdAt: new Date().toISOString(),
-      });
+        manualOrder: replacing ? existing.manualOrder : null,
+        createdAt: replacing ? existing.createdAt : new Date().toISOString(),
+      };
+      const saved = replacing
+        ? await CourseStore.replaceWithBackup(courseToSave)
+        : await CourseStore.save(courseToSave);
       courseSaved = true;
-      status.textContent = `« ${CourseContent.displayTitle(saved)} » a été importé en brouillon.`;
-      toast("Cours importé en brouillon. Vérifiez-le avant de le publier.");
+      status.textContent = replacing
+        ? `« ${CourseContent.displayTitle(saved)} » a remplacé le cours existant. La version précédente peut être restaurée.`
+        : `« ${CourseContent.displayTitle(saved)} » a été importé en brouillon.`;
+      toast(replacing ? "Cours remplacé. Une sauvegarde est disponible." : "Cours importé en brouillon. Vérifiez-le avant de le publier.");
+      await refreshRollbackButton();
       openEditor(saved.id, saved);
     } catch (error) {
       if (!courseSaved) {
@@ -733,6 +756,27 @@
       input.disabled = false;
       uploadLabel.classList.remove("is-busy");
       input.value = "";
+    }
+  }
+
+  function chooseImportAction(existing, imported) {
+    const dialog = document.querySelector("#import-conflict-dialog");
+    const currentTitle = CourseContent.displayTitle(existing);
+    const importedTitle = imported.chapterNumber ? `${imported.chapterNumber} — ${imported.title}` : imported.title;
+    document.querySelector("#import-conflict-message").textContent = `Le cours « ${currentTitle} » existe déjà en ${existing.level}e. Le fichier contient « ${importedTitle} ». Le remplacement conservera son adresse, son classement et son état de publication.`;
+    dialog.returnValue = "cancel";
+    dialog.showModal();
+    return new Promise((resolve) => dialog.addEventListener("close", () => resolve(["replace", "add"].includes(dialog.returnValue) ? dialog.returnValue : "cancel"), { once: true }));
+  }
+
+  async function refreshRollbackButton() {
+    if (!accessGranted) return;
+    try {
+      const backup = await CourseStore.getReplacementBackup();
+      rollbackImportButton.hidden = !backup;
+      rollbackImportButton.title = backup ? `Restaurer « ${CourseContent.displayTitle(backup.course)} » dans sa version précédente` : "";
+    } catch {
+      rollbackImportButton.hidden = true;
     }
   }
 
@@ -815,6 +859,23 @@
   document.querySelector("#cancel-editor").addEventListener("click", async () => { await cleanupNewUploads(); showView("courses"); });
   document.querySelector("#exercise-file-input").addEventListener("change", (event) => uploadExerciseFile(event.target));
   document.querySelector("#course-package-input").addEventListener("change", (event) => importCoursePackage(event.target));
+  rollbackImportButton.addEventListener("click", async () => {
+    const backup = await CourseStore.getReplacementBackup().catch(() => null);
+    if (!backup || !window.confirm(`Restaurer la version précédente de « ${CourseContent.displayTitle(backup.course)} » ? La version actuelle sera supprimée.`)) return;
+    rollbackImportButton.disabled = true;
+    try {
+      const restored = await CourseStore.rollbackReplacement();
+      if (!restored) throw new Error("Backup not found");
+      document.querySelector("#course-package-status").textContent = `La version précédente de « ${CourseContent.displayTitle(restored)} » a été restaurée.`;
+      toast("Version précédente restaurée.");
+      renderAll();
+    } catch (error) {
+      toast(readableError(error));
+    } finally {
+      rollbackImportButton.disabled = false;
+      await refreshRollbackButton();
+    }
+  });
   document.querySelector("#remove-exercise-file").addEventListener("click", async () => {
     if (uploadedFileDuringEdit) await CourseStore.deleteFile(uploadedFileDuringEdit).catch(() => {});
     uploadedFileDuringEdit = "";

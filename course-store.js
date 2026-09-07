@@ -79,9 +79,10 @@
     },
     async listImages() {
       if (!firebaseMode) return [];
-      const items = await FirebaseBackend.listCourseImages();
+      const [items, backup] = await Promise.all([FirebaseBackend.listCourseImages(), FirebaseBackend.getReplacementBackup()]);
+      const backupImageIds = new Set(backup?.course?.blocks?.flatMap((block) => block.imageIds) || []);
       items.forEach((image) => images.set(image.id, image));
-      return items;
+      return items.filter((image) => !backupImageIds.has(image.id));
     },
     async getFile(id) {
       if (!id) return null;
@@ -159,6 +160,21 @@
       const course = normalize(input);
       publishedContents.clear();
       return FirebaseBackend.save(course);
+    },
+    async getReplacementBackup() {
+      if (!firebaseMode) return null;
+      return FirebaseBackend.getReplacementBackup();
+    },
+    async replaceWithBackup(input) {
+      if (!firebaseMode) throw new Error("Firebase is not configured");
+      const course = normalize(input);
+      publishedContents.clear();
+      return FirebaseBackend.replaceWithBackup(course);
+    },
+    async rollbackReplacement() {
+      if (!firebaseMode) throw new Error("Firebase is not configured");
+      publishedContents.clear();
+      return FirebaseBackend.rollbackReplacement();
     },
     async duplicate(id) {
       const source = this.get(id);

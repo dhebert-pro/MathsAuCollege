@@ -43,6 +43,18 @@ if (configured) {
 }
 
 const normalizeCourse = (course) => CourseContent.normalizeCourse(course);
+const replacementBackupReference = () => doc(db, "courseBackups", "lastReplacement");
+
+async function readReplacementBackup() {
+  const snapshot = await getDoc(replacementBackupReference());
+  if (!snapshot.exists()) return null;
+  const value = snapshot.data();
+  return value?.course ? { course: normalizeCourse(value.course), createdAt: String(value.createdAt || "") } : null;
+}
+
+function referencedImageIds(course) {
+  return new Set(course?.blocks?.flatMap((block) => block.imageIds) || []);
+}
 
 async function readAllCourses() {
   const snapshot = await getDocs(collection(db, "courses"));
@@ -72,20 +84,23 @@ function rebuildCatalogs(batch, courses) {
   });
 }
 
-function syncImages(batch, images, referencedIds, published) {
+function syncImages(batch, images, referencedIds, published, preservedIds = []) {
   const references = new Set(referencedIds);
+  const preserved = new Set(preservedIds);
   images.forEach((image) => {
     const reference = doc(db, "courseImages", image.id);
-    if (!references.has(image.id)) batch.delete(reference);
-    else batch.update(reference, { published });
+    if (references.has(image.id)) batch.update(reference, { published });
+    else if (preserved.has(image.id)) batch.update(reference, { published: false });
+    else batch.delete(reference);
   });
 }
 
-function syncFiles(batch, files, referencedId, published) {
+function syncFiles(batch, files, referencedId, published, preservedId = "") {
   files.forEach((file) => {
     const reference = doc(db, "courseFiles", file.id);
-    if (file.id !== referencedId) batch.delete(reference);
-    else batch.update(reference, { published });
+    if (file.id === referencedId) batch.update(reference, { published });
+    else if (preservedId && file.id === preservedId) batch.update(reference, { published: false });
+    else batch.delete(reference);
   });
 }
 
@@ -170,18 +185,78 @@ window.FirebaseBackend = {
   },
   async save(course) {
     const normalized = normalizeCourse(course);
-    const [courses, images, files] = await Promise.all([readAllCourses(), readCourseImages(normalized.id), readCourseFiles(normalized.id)]);
+    const [courses, images, files, backup] = await Promise.all([readAllCourses(), readCourseImages(normalized.id), readCourseFiles(normalized.id), readReplacementBackup()]);
     const nextCourses = [...courses.filter((item) => item.id !== normalized.id), normalized];
     const referencedIds = normalized.blocks.flatMap((block) => block.imageIds);
+    const preservedCourse = backup?.course?.id === normalized.id ? backup.course : null;
     const batch = writeBatch(db);
     batch.set(doc(db, "courses", normalized.id), normalized);
     if (normalized.status === "published") batch.set(doc(db, "publishedCourses", normalized.id), CourseContent.publicCourse(normalized));
     else batch.delete(doc(db, "publishedCourses", normalized.id));
-    syncImages(batch, images, referencedIds, normalized.status === "published");
-    syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published");
+    syncImages(batch, images, referencedIds, normalized.status === "published", referencedImageIds(preservedCourse));
+    syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published", preservedCourse?.exerciseFileId);
     rebuildCatalogs(batch, nextCourses);
     await batch.commit();
     return normalized;
+  },
+  async getReplacementBackup() {
+    return readReplacementBackup();
+  },
+  async replaceWithBackup(course) {
+    const normalized = normalizeCourse(course);
+    const [courses, images, files, previousBackup] = await Promise.all([
+      readAllCourses(),
+      readCourseImages(normalized.id),
+      readCourseFiles(normalized.id),
+      readReplacementBackup(),
+    ]);
+    const current = courses.find((item) => item.id === normalized.id);
+    if (!current) throw new Error("Course to replace not found");
+    const previousBackupImages = previousBackup?.course?.id && previousBackup.course.id !== normalized.id
+      ? await readCourseImages(previousBackup.course.id)
+      : [];
+    const previousBackupFiles = previousBackup?.course?.id && previousBackup.course.id !== normalized.id
+      ? await readCourseFiles(previousBackup.course.id)
+      : [];
+    const nextCourses = [...courses.filter((item) => item.id !== normalized.id), normalized];
+    const batch = writeBatch(db);
+    batch.set(replacementBackupReference(), { course: current, createdAt: new Date().toISOString() });
+    batch.set(doc(db, "courses", normalized.id), normalized);
+    if (normalized.status === "published") batch.set(doc(db, "publishedCourses", normalized.id), CourseContent.publicCourse(normalized));
+    else batch.delete(doc(db, "publishedCourses", normalized.id));
+    syncImages(batch, images, referencedImageIds(normalized), normalized.status === "published", referencedImageIds(current));
+    syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published", current.exerciseFileId);
+    if (previousBackup?.course?.id !== normalized.id) {
+      const staleImages = referencedImageIds(previousBackup?.course);
+      previousBackupImages.forEach((image) => { if (staleImages.has(image.id)) batch.delete(doc(db, "courseImages", image.id)); });
+      if (previousBackup?.course?.exerciseFileId) {
+        previousBackupFiles.forEach((file) => { if (file.id === previousBackup.course.exerciseFileId) batch.delete(doc(db, "courseFiles", file.id)); });
+      }
+    }
+    rebuildCatalogs(batch, nextCourses);
+    await batch.commit();
+    return normalized;
+  },
+  async rollbackReplacement() {
+    const backup = await readReplacementBackup();
+    if (!backup?.course) return null;
+    const [courses, images, files] = await Promise.all([
+      readAllCourses(),
+      readCourseImages(backup.course.id),
+      readCourseFiles(backup.course.id),
+    ]);
+    const restored = normalizeCourse({ ...backup.course, updatedAt: new Date().toISOString() });
+    const nextCourses = [...courses.filter((item) => item.id !== restored.id), restored];
+    const batch = writeBatch(db);
+    batch.set(doc(db, "courses", restored.id), restored);
+    if (restored.status === "published") batch.set(doc(db, "publishedCourses", restored.id), CourseContent.publicCourse(restored));
+    else batch.delete(doc(db, "publishedCourses", restored.id));
+    syncImages(batch, images, referencedImageIds(restored), restored.status === "published");
+    syncFiles(batch, files, restored.exerciseFileId, restored.status === "published");
+    batch.delete(replacementBackupReference());
+    rebuildCatalogs(batch, nextCourses);
+    await batch.commit();
+    return restored;
   },
   async updateOrder(updatedCourses) {
     const courses = await readAllCourses();
@@ -196,12 +271,13 @@ window.FirebaseBackend = {
     await batch.commit();
   },
   async remove(id) {
-    const [courses, images, files] = await Promise.all([readAllCourses(), readCourseImages(id), readCourseFiles(id)]);
+    const [courses, images, files, backup] = await Promise.all([readAllCourses(), readCourseImages(id), readCourseFiles(id), readReplacementBackup()]);
     const batch = writeBatch(db);
     batch.delete(doc(db, "courses", id));
     batch.delete(doc(db, "publishedCourses", id));
     images.forEach((image) => batch.delete(doc(db, "courseImages", image.id)));
     files.forEach((file) => batch.delete(doc(db, "courseFiles", file.id)));
+    if (backup?.course?.id === id) batch.delete(replacementBackupReference());
     rebuildCatalogs(batch, courses.filter((course) => course.id !== id));
     await batch.commit();
   },

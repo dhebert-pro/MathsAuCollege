@@ -110,6 +110,15 @@ service cloud.firestore {
       allow delete: if isProfessor();
     }
 
+    match /courseBackups/{backupId} {
+      allow read, delete: if isProfessor() && backupId == 'lastReplacement';
+      allow create, update: if isProfessor()
+        && backupId == 'lastReplacement'
+        && request.resource.data.keys().hasOnly(['course', 'createdAt'])
+        && validCourse(request.resource.data.course)
+        && request.resource.data.createdAt is string;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
