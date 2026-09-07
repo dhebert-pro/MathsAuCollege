@@ -11,7 +11,6 @@
         "html": "<p>Une <mark data-tone=\"yellow\">notion importante</mark> est expliquée ici.</p>",
         "admitted": false,
         "slideBreakBefore": false,
-        "revealBreakBefore": false,
         "images": [],
         "links": []
       },
@@ -20,7 +19,6 @@
         "html": "<p>Un exemple court qui applique directement la définition.</p>",
         "admitted": false,
         "slideBreakBefore": false,
-        "revealBreakBefore": true,
         "images": [],
         "links": []
       },
@@ -29,7 +27,6 @@
         "html": "<ol><li>Première étape.</li><li>Deuxième étape.</li></ol>",
         "admitted": false,
         "slideBreakBefore": true,
-        "revealBreakBefore": false,
         "images": [],
         "links": []
       }

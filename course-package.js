@@ -73,7 +73,6 @@
   function validateBlock(block, index) {
     const blockNumber = index + 1;
     if (!CourseContent.TYPES[block?.type]) invalid(`Le type du bloc ${blockNumber} est inconnu.`);
-    if (block.slideBreakBefore && block.revealBreakBefore) invalid(`Le bloc ${blockNumber} ne peut pas commencer à la fois une page et une révélation.`);
     const images = Array.isArray(block.images) ? block.images : [];
     const links = Array.isArray(block.links) ? block.links : [];
     if (images.length > 8) invalid(`Le bloc ${blockNumber} contient plus de 8 images.`);
@@ -87,7 +86,7 @@
       html,
       admitted: block.type === "property" && Boolean(block.admitted),
       slideBreakBefore: index > 0 && Boolean(block.slideBreakBefore),
-      revealBreakBefore: index > 0 && Boolean(block.revealBreakBefore),
+      revealBreakBefore: index > 0 && !Boolean(block.slideBreakBefore),
       images: images.map((image, imageIndex) => validateImage(image, blockNumber, imageIndex + 1)),
       links: links.map((link, linkIndex) => validateLink(link, blockNumber, linkIndex + 1)),
     };

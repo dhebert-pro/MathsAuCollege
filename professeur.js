@@ -208,10 +208,6 @@
           ${block.type === "property" ? `<label class="admitted-option"><input type="checkbox" data-admitted ${block.admitted ? "checked" : ""} /> Propriété admise <small>Elle sera présentée avec un style distinct.</small></label>` : ""}
           <details class="block-settings">
             <summary>Réglages, images et liens</summary>
-            <div class="block-options">
-              <p class="break-help"><strong>Apparition différée</strong> : réserve la place du bloc et le révèle au clic. La création et la navigation entre les pages se font au-dessus du document.</p>
-              <label><input type="checkbox" data-reveal-break ${block.revealBreakBefore ? "checked" : ""} /> Faire apparaître ce bloc au clic suivant</label>
-            </div>
             <div class="block-images">${imagePreviews}</div>
             <label class="image-upload">Ajouter une ou plusieurs images<input type="file" data-image-upload accept="image/png,image/jpeg,image/webp" multiple /></label>
             <p class="field-help">Vous pouvez sélectionner plusieurs fichiers en une fois. Les images sont automatiquement compressées, avec un maximum de 8 par bloc.</p>
@@ -239,7 +235,6 @@
           ...previous,
           html: card.querySelector(".block-richtext").innerHTML,
           admitted: Boolean(card.querySelector("[data-admitted]")?.checked),
-          revealBreakBefore: card.querySelector("[data-reveal-break]").checked,
           links,
         }),
         links: links.slice(0, 8),
@@ -764,7 +759,6 @@
           html: block.html,
           admitted: block.type === "property" && Boolean(block.admitted),
           slideBreakBefore: Boolean(block.slideBreakBefore),
-          revealBreakBefore: !block.slideBreakBefore && Boolean(block.revealBreakBefore),
           images,
           links: block.links.map((link) => ({ label: link.label, url: link.url })),
         });
@@ -1054,7 +1048,7 @@
       const image = await CourseStore.getImage(preview.dataset.imageId);
       if (image) await CourseStore.saveImage({ ...image, alt: event.target.value });
     }
-    if (event.target.matches("[data-admitted], [data-reveal-break]")) {
+    if (event.target.matches("[data-admitted]")) {
       syncBlocksFromDom();
       renderBlocks();
     }

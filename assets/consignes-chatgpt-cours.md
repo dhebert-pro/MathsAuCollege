@@ -47,13 +47,12 @@ Chaque bloc accepte :
 - de 0 à 8 images intégrées ;
 - de 0 à 8 liens associés ;
 - un début de nouvelle page de présentation ;
-- une révélation différée dans la même page.
+- une apparition automatique, bloc par bloc, dans la même page.
 
 DÉCOUPAGE DE LA PRÉSENTATION
 - slideBreakBefore: true commence une nouvelle page de présentation avant le bloc. Le premier bloc doit toujours avoir false.
-- revealBreakBefore: true conserve la place du bloc dans la page, mais le masque jusqu’à l’action Suivant du professeur. Cette révélation sert à éviter de dévoiler une définition, un résultat ou une correction trop tôt. Le premier bloc doit toujours avoir false.
+- Dans chaque page, le premier bloc est visible immédiatement. Chaque bloc suivant conserve sa place, mais reste masqué jusqu’à l’action Suivant du professeur. Ce comportement est automatique : n’ajoute pas de champ revealBreakBefore.
 - Une page doit être assez aérée pour être lisible au fond de la classe, généralement 2 à 4 blocs selon leur longueur.
-- Ne mets jamais les deux indicateurs à true sur le même bloc : un nouveau début de page est déjà une étape.
 
 HTML AUTORISÉ DANS html
 Utilise uniquement : p, ul, ol, li, br, strong, em, mark et les deux spans mathématiques décrits ci-dessous. N’ajoute aucun style, script, tableau ou iframe.
@@ -99,7 +98,6 @@ Le fichier doit être un JSON strictement valide ayant exactement cette structur
         "html": "<p>Contenu du bloc.</p>",
         "admitted": false,
         "slideBreakBefore": false,
-        "revealBreakBefore": false,
         "images": [],
         "links": []
       }
@@ -127,13 +125,12 @@ Avant de me donner le fichier :
 1. parse à nouveau le JSON avec Python ;
 2. vérifie tous les types de blocs et les niveaux ;
 3. vérifie les limites de taille du paquet, de chaque image et du PDF ;
-4. vérifie que le premier bloc ne commence ni une nouvelle page ni une révélation ;
-5. vérifie qu’aucun bloc n’a simultanément slideBreakBefore et revealBreakBefore ;
-6. vérifie les URL et les textes alternatifs ;
-7. ouvre ou rends le PDF et contrôle qu’aucun texte, symbole, égalité, figure ou bouton ne déborde ou ne se coupe ;
-8. vérifie les symboles ∈, les angles et les racines carrées ;
-9. vérifie la cohérence entre chaque page de présentation et ses deux exercices ;
-10. livre le fichier `.mathscours` et donne dans le message un très bref rapport : nombre de pages de présentation, nombre de blocs, nombre d’exercices, nombre de pages PDF, sources consultées et points à relire par le professeur.
+4. vérifie que le premier bloc ne commence pas une nouvelle page ;
+5. vérifie les URL et les textes alternatifs ;
+6. ouvre ou rends le PDF et contrôle qu’aucun texte, symbole, égalité, figure ou bouton ne déborde ou ne se coupe ;
+7. vérifie les symboles ∈, les angles et les racines carrées ;
+8. vérifie la cohérence entre chaque page de présentation et ses deux exercices ;
+9. livre le fichier `.mathscours` et donne dans le message un très bref rapport : nombre de pages de présentation, nombre de blocs, nombre d’exercices, nombre de pages PDF, sources consultées et points à relire par le professeur.
 ```
 
 ## Remarques importantes

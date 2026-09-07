@@ -82,7 +82,7 @@
       html: sanitizeHtml(block.html || block.content || ""),
       admitted: type === "property" && Boolean(block.admitted),
       slideBreakBefore: Boolean(block.slideBreakBefore),
-      revealBreakBefore: Boolean(block.revealBreakBefore),
+      revealBreakBefore: !Boolean(block.slideBreakBefore),
       imageIds: Array.isArray(block.imageIds) ? [...new Set(block.imageIds.map(String))].slice(0, 8) : [],
       links,
     };

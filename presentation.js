@@ -55,7 +55,7 @@
   function stagesFor(slide) {
     let stageNumber = 0;
     return slide.map((block, index) => {
-      if (index > 0 && block.revealBreakBefore) stageNumber += 1;
+      if (index > 0) stageNumber += 1;
       return { block, stageNumber };
     });
   }
