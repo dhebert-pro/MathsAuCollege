@@ -15,12 +15,11 @@
   const journalClass = document.querySelector("#journal-class");
   const journalOutput = document.querySelector("#journal-output");
   const journalStatus = document.querySelector("#journal-status");
+  const journalClassList = document.querySelector("#journal-class-list");
+  const journalClassStatus = document.querySelector("#journal-class-status");
   let accessGranted = false;
   let journalClasses = [];
   let journalRequestToken = 0;
-  let journalDirty = false;
-  let journalLoadedClass = "";
-  let journalLoadedDate = "";
   let editorBlocks = [];
   let editorPageIndex = 0;
   let uploadedDuringEdit = new Set();
@@ -106,73 +105,88 @@
     try {
       const selected = journalClass.value;
       journalClasses = await ClassJournal.listClasses();
-      journalClass.replaceChildren(new Option("Choisir une classe", ""));
-      journalClasses.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }))
-        .forEach((item) => journalClass.add(new Option(`${item.name} · ${item.level}e`, item.id)));
-      journalClass.value = selected && journalClasses.some((item) => item.id === selected) ? selected : "";
-      if (journalClass.value && !journalDirty) loadJournalText();
+      renderJournalClassOptions(selected);
+      renderJournalClassList();
+      loadJournalText();
     } catch (error) {
       journalStatus.textContent = journalError(error);
     }
   }
 
-  async function loadJournalText(forceRegenerate = false) {
+  function renderJournalClassOptions(selected = journalClass.value) {
+    journalClass.replaceChildren(new Option("Choisir une classe", ""));
+    journalClasses.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }))
+      .forEach((item) => journalClass.add(new Option(`${item.name} · ${item.level}e`, item.id)));
+    journalClass.value = selected && journalClasses.some((item) => item.id === selected) ? selected : "";
+  }
+
+  function renderJournalClassList() {
+    journalClassList.replaceChildren();
+    if (!journalClasses.length) {
+      journalClassList.textContent = "Aucune classe suivie pour le moment.";
+      return;
+    }
+    journalClasses.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "journal-class-row";
+      const name = document.createElement("strong");
+      name.textContent = item.name;
+      const level = document.createElement("select");
+      level.setAttribute("aria-label", `Niveau de ${item.name}`);
+      ["6", "5", "4", "3"].forEach((value) => level.add(new Option(`${value}e`, value)));
+      level.value = item.level;
+      const save = document.createElement("button");
+      save.type = "button";
+      save.className = "admin-button secondary";
+      save.textContent = "Corriger";
+      save.disabled = true;
+      level.addEventListener("change", () => { save.disabled = level.value === item.level; });
+      save.addEventListener("click", async () => {
+        save.disabled = true;
+        level.disabled = true;
+        journalClassStatus.textContent = `Correction du niveau de ${item.name}…`;
+        try {
+          await ClassJournal.updateClassLevel(item.id, level.value);
+          item.level = level.value;
+          renderJournalClassOptions();
+          if (journalClass.value === item.id) await loadJournalText();
+          journalClassStatus.textContent = `${item.name} est maintenant une classe de ${item.level}e.`;
+        } catch (error) {
+          level.value = item.level;
+          journalClassStatus.textContent = journalError(error);
+        } finally {
+          level.disabled = false;
+        }
+      });
+      row.append(name, level, save);
+      journalClassList.append(row);
+    });
+  }
+
+  async function loadJournalText() {
     const classId = journalClass.value;
     const date = journalDate.value;
     const token = ++journalRequestToken;
     journalOutput.value = "";
-    journalDirty = false;
-    journalLoadedClass = classId;
-    journalLoadedDate = date;
     if (!classId || !date) {
       journalStatus.textContent = "Choisissez une date et une classe.";
       return;
     }
     journalStatus.textContent = "Recherche des activités…";
     try {
-      const [courses, draft] = await Promise.all([
-        ClassJournal.listCourses(classId, date),
-        forceRegenerate ? Promise.resolve(null) : ClassJournal.getDraft(classId, date),
-      ]);
+      const selectedClass = journalClasses.find((item) => item.id === classId);
+      if (!selectedClass) throw new Error("Classe introuvable");
+      const allCourses = await ClassJournal.listCourses(classId, date);
       if (token !== journalRequestToken) return;
-      const hasSavedText = draft && Object.hasOwn(draft, "text");
-      journalOutput.value = hasSavedText ? draft.text : ClassJournal.formatCourses(courses);
-      journalDirty = forceRegenerate && Boolean(journalOutput.value);
+      const courses = ClassJournal.coursesForLevel(allCourses, selectedClass.level);
+      journalOutput.value = ClassJournal.formatCourses(courses);
+      const ignored = allCourses.length - courses.length;
       journalStatus.textContent = courses.length
-        ? forceRegenerate ? "Texte régénéré : enregistrez-le si vous voulez le retrouver." : hasSavedText ? "Texte précédemment enregistré. Vous pouvez le modifier." : `${courses.length} cours retrouvé${courses.length > 1 ? "s" : ""} pour cette séance.`
-        : hasSavedText ? "Texte précédemment enregistré." : "Aucune activité enregistrée à cette date. Vous pouvez saisir le texte manuellement.";
+        ? `${courses.length} cours retrouvé${courses.length > 1 ? "s" : ""} pour cette séance.${ignored ? ` ${ignored} cours d’un autre niveau ignoré${ignored > 1 ? "s" : ""}.` : ""}`
+        : `Aucune activité de ${selectedClass.level}e enregistrée à cette date.${ignored ? ` ${ignored} cours d’un autre niveau ignoré${ignored > 1 ? "s" : ""}.` : ""}`;
     } catch (error) {
       if (token === journalRequestToken) journalStatus.textContent = journalError(error);
     }
-  }
-
-  async function saveJournalText() {
-    const classId = journalClass.value;
-    const date = journalDate.value;
-    if (!classId || !date) {
-      journalStatus.textContent = "Choisissez une date et une classe.";
-      return false;
-    }
-    try {
-      await ClassJournal.saveDraft(classId, date, {
-        classId, date, text: journalOutput.value.slice(0, 20000), updatedAt: new Date().toISOString(),
-      });
-      journalDirty = false;
-      journalStatus.textContent = "Texte enregistré.";
-      return true;
-    } catch (error) {
-      journalStatus.textContent = journalError(error);
-      return false;
-    }
-  }
-
-  function journalFilterChanged() {
-    if (journalDirty && !window.confirm("Le texte modifié n’est pas enregistré. Abandonner ces modifications ?")) {
-      journalClass.value = journalLoadedClass;
-      journalDate.value = journalLoadedDate;
-      return;
-    }
-    loadJournalText();
   }
 
   function renderStats() {
@@ -944,17 +958,8 @@
 
   document.querySelector("#logout").addEventListener("click", () => FirebaseBackend.signOut());
   journalDate.value = ClassJournal.dayKey();
-  journalDate.addEventListener("change", journalFilterChanged);
-  journalClass.addEventListener("change", journalFilterChanged);
-  journalOutput.addEventListener("input", () => {
-    journalDirty = true;
-    journalStatus.textContent = "Texte modifié : pensez à l’enregistrer si vous voulez le retrouver.";
-  });
-  document.querySelector("#journal-generate").addEventListener("click", () => {
-    if (journalDirty && !window.confirm("Remplacer votre texte modifié par le contenu de la séance ?")) return;
-    loadJournalText(true);
-  });
-  document.querySelector("#journal-save").addEventListener("click", saveJournalText);
+  journalDate.addEventListener("change", loadJournalText);
+  journalClass.addEventListener("change", loadJournalText);
   document.querySelector("#journal-copy").addEventListener("click", async () => {
     if (!journalOutput.value.trim()) {
       journalStatus.textContent = "Il n’y a pas encore de texte à copier.";

@@ -7,8 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.32.0" />
-    <link rel="stylesheet" href="professeur.css?v=0.32.0" />
+    <link rel="stylesheet" href="styles.css?v=0.33.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.33.0" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -28,7 +28,7 @@
           <div id="login-message" class="form-message" role="status"></div>
         </div>
         <a class="back-link" href="index.html">← Retour aux cours</a>
-        <span class="app-version login-version">v0.32.0</span>
+        <span class="app-version login-version">v0.33.0</span>
       </section>
 
       <section id="admin-app" class="admin-app" hidden>
@@ -47,7 +47,7 @@
           <div class="sidebar-bottom">
             <a href="index.html">Voir les cours ↗</a>
             <button id="logout" type="button">Se déconnecter</button>
-            <span class="app-version">v0.32.0</span>
+            <span class="app-version">v0.33.0</span>
           </div>
         </aside>
 
@@ -69,21 +69,25 @@
           </section>
 
           <section class="admin-view" data-admin-page="journal" hidden>
-            <div class="admin-heading"><div><p class="eyebrow">Suivi des séances</p><h1>Cahier de texte</h1><p>Préparez le texte à coller dans Pronote pour une classe et une date.</p></div></div>
+            <div class="admin-heading"><div><p class="eyebrow">Suivi des séances</p><h1>Cahier de texte</h1><p>Choisissez une classe et une date, puis copiez le résumé dans Pronote.</p></div></div>
             <section class="admin-panel journal-panel">
               <div class="journal-filters">
                 <label for="journal-date">Date de la séance<input id="journal-date" type="date" /></label>
                 <label for="journal-class">Classe<select id="journal-class"><option value="">Choisir une classe</option></select></label>
-                <button id="journal-generate" class="admin-button primary" type="button">Générer le texte</button>
               </div>
-              <p class="journal-help">Le texte reprend les blocs montrés dans la présentation et les exercices cochés ce jour-là. Vous pouvez le corriger ou ajouter une activité faite hors de l’application.</p>
+              <p class="journal-help">Le résumé se met à jour automatiquement et ne reprend que les cours du niveau de la classe. Vous pourrez le compléter directement dans Pronote.</p>
               <label class="journal-output-label" for="journal-output">Texte pour Pronote</label>
-              <textarea id="journal-output" rows="15" maxlength="20000" placeholder="Choisissez une date et une classe, puis générez le texte."></textarea>
+              <textarea id="journal-output" rows="15" readonly placeholder="Choisissez une date et une classe."></textarea>
               <div class="journal-actions">
-                <button id="journal-save" class="admin-button secondary" type="button">Enregistrer le texte</button>
                 <button id="journal-copy" class="admin-button primary" type="button">Copier pour Pronote</button>
               </div>
               <p id="journal-status" class="journal-status" role="status" aria-live="polite"></p>
+            </section>
+            <section class="admin-panel journal-panel" aria-labelledby="journal-classes-title">
+              <h2 id="journal-classes-title">Niveau de mes classes</h2>
+              <p class="journal-help">Si une classe a été créée depuis un cours du mauvais niveau, corrigez-la ici. Ses anciens cours d’un autre niveau ne seront plus repris dans le cahier de texte.</p>
+              <div id="journal-class-list" class="journal-class-list"></div>
+              <p id="journal-class-status" class="journal-status" role="status" aria-live="polite"></p>
             </section>
           </section>
 
@@ -203,14 +207,14 @@
       </form>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.32.0" defer></script>
-    <script src="course-content.js?v=0.32.0" defer></script>
-    <script src="firebase-config.js?v=0.32.0" defer></script>
-    <script src="firebase-bundle.js?v=0.32.0" defer></script>
-    <script src="course-store.js?v=0.32.0" defer></script>
-    <script src="pdf-export.js?v=0.32.0" defer></script>
-    <script src="course-package.js?v=0.32.0" defer></script>
-    <script src="class-journal.js?v=0.32.0" defer></script>
-    <script src="professeur.js?v=0.32.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.33.0" defer></script>
+    <script src="course-content.js?v=0.33.0" defer></script>
+    <script src="firebase-config.js?v=0.33.0" defer></script>
+    <script src="firebase-bundle.js?v=0.33.0" defer></script>
+    <script src="course-store.js?v=0.33.0" defer></script>
+    <script src="pdf-export.js?v=0.33.0" defer></script>
+    <script src="course-package.js?v=0.33.0" defer></script>
+    <script src="class-journal.js?v=0.33.0" defer></script>
+    <script src="professeur.js?v=0.33.0" defer></script>
   </body>
 </html>

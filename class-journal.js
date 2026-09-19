@@ -95,11 +95,20 @@
     }).join("\n\n");
   }
 
+  function coursesForLevel(courses, level) {
+    return courses.filter((item) => String(item.level) === String(level));
+  }
+
   window.ClassJournal = {
     dayKey,
     formatCourses,
+    coursesForLevel,
     setUser(value) { user = value; },
     listClasses() { return list("teacherClasses"); },
+    updateClassLevel(classId, level) {
+      if (!["6", "5", "4", "3"].includes(String(level))) throw new Error("Niveau invalide");
+      return save(`teacherClasses/${segment(classId)}?updateMask.fieldPaths=level`, { level: String(level) });
+    },
     async getCourse(classId, date, courseId) { return documentData(await request(coursePath(classId, date, courseId))); },
     saveCourse(classId, date, courseId, value) { return save(coursePath(classId, date, courseId), value); },
     listCourses(classId, date) { return list(`teacherClasses/${segment(classId)}/journal/${segment(date)}/courses`); },

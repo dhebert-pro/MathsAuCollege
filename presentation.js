@@ -15,6 +15,8 @@
   const trackingToggle = document.querySelector("#tracking-toggle");
   const trackingPanel = document.querySelector("#tracking-panel");
   const trackingSelect = document.querySelector("#tracking-class");
+  const trackingNewLevel = document.querySelector("#tracking-new-level");
+  const trackingActiveClass = document.querySelector("#tracking-active-class");
   const trackingPosition = document.querySelector("#tracking-position");
   const trackingExercises = document.querySelector("#tracking-exercises");
   const trackingStatus = document.querySelector("#tracking-status");
@@ -161,6 +163,9 @@
     trackingMarkCurrent.disabled = !trackingReady || !activeClass || slideIndex === 0;
     trackingToggle.classList.toggle("needs-class", !activeClass);
     trackingToggle.title = activeClass ? `Suivi de ${activeClass.name} (touche S)` : "Choisir une classe pour enregistrer le suivi (touche S)";
+    trackingActiveClass.hidden = !teacherMode;
+    trackingActiveClass.classList.toggle("needs-class", !activeClass);
+    trackingActiveClass.textContent = activeClass ? `Classe suivie : ${activeClass.name} · ${activeClass.level}e` : "Aucune classe sélectionnée";
     if (!activeClass) {
       trackingPosition.textContent = "Choisissez une classe pour reprendre son cours.";
       return;
@@ -179,8 +184,12 @@
     };
   }
 
-  function recordActivity({ blocks = [], exerciseId = "", checked = true } = {}) {
+  function recordActivity({ blocks = [], exerciseId = "", checked = true, manual = false } = {}) {
     if (!teacherMode || !trackingReady || !activeClass || !course) return;
+    if (activeClass.level !== course.level) {
+      trackingStatus.textContent = "Ce cours n’est pas du niveau de la classe suivie. Rien n’a été noté.";
+      return;
+    }
     const classId = activeClass.id;
     const date = ClassJournal.dayKey();
     const courseSnapshot = course;
@@ -200,11 +209,14 @@
       const nextExercises = new Set(recorded.exercises);
       if (exerciseId && checked) nextExercises.add(exerciseId);
       if (exerciseId && !checked) nextExercises.delete(exerciseId);
-      if (nextBlocks.length === recorded.blocks.length && nextExercises.size === recorded.exercises.length) return;
+      if (nextBlocks.length === recorded.blocks.length && nextExercises.size === recorded.exercises.length) {
+        if (manual && activeClass?.id === classId) trackingStatus.textContent = "Cette page est déjà notée pour aujourd’hui.";
+        return;
+      }
       const updated = { ...recorded, blocks: nextBlocks, exercises: [...nextExercises], updatedAt: new Date().toISOString() };
       await ClassJournal.saveCourse(classId, date, courseSnapshot.id, updated);
       journalCache.set(key, updated);
-      if (activeClass?.id === classId) trackingStatus.textContent = "Séance notée pour le cahier de texte";
+      if (activeClass?.id === classId) trackingStatus.textContent = manual ? "Page ajoutée à la séance d’aujourd’hui." : "Séance notée pour le cahier de texte";
     }).catch(() => {
       if (activeClass?.id === classId) trackingStatus.textContent = "Séance non enregistrée. Vérifiez la connexion.";
     });
@@ -212,7 +224,8 @@
 
   function recordCurrentVisible() {
     if (slideIndex === 0) return;
-    recordActivity({ blocks: slides[slideIndex - 1].slice(0, revealIndex + 1) });
+    trackingStatus.textContent = "Vérification de la séance d’aujourd’hui…";
+    recordActivity({ blocks: slides[slideIndex - 1].slice(0, revealIndex + 1), manual: true });
   }
 
   function trackingErrorMessage(error) {
@@ -539,6 +552,7 @@
     }
     document.title = `${CourseContent.displayTitle(course)} · Maths au collège`;
     document.querySelector("#presentation-level").textContent = `${course.level}e`;
+    trackingNewLevel.value = course.level;
     document.querySelector("#teacher-mode-badge").hidden = !teacherMode;
     document.querySelector("#presentation-close").href = teacherMode ? "professeur.html" : `index.html#niveau-${course.level}`;
     loading.hidden = true;
@@ -573,29 +587,35 @@
     const input = document.querySelector("#tracking-new-class");
     const name = input.value.trim();
     if (!name || !course) return;
-    const existing = teacherClasses.find((item) => item.level === course.level && item.name.toLocaleLowerCase("fr") === name.toLocaleLowerCase("fr"));
+    const level = trackingNewLevel.value;
+    const existing = teacherClasses.find((item) => item.level === level && item.name.toLocaleLowerCase("fr") === name.toLocaleLowerCase("fr"));
     if (existing) {
-      await selectTeachingClass(existing.id);
-      if (activeClass?.id === existing.id) trackingStatus.textContent = "Cette classe existait déjà : elle est maintenant sélectionnée.";
+      if (level === course.level) {
+        await selectTeachingClass(existing.id);
+        if (activeClass?.id === existing.id) trackingStatus.textContent = "Cette classe existait déjà : elle est maintenant sélectionnée.";
+      } else trackingStatus.textContent = `Cette classe de ${level}e existe déjà. Ouvrez un cours de ${level}e pour la suivre.`;
       return;
     }
     const button = event.currentTarget.querySelector("button");
     button.disabled = true;
     try {
-      const added = await trackingApi.addTeachingClass(course.level, name);
+      const added = await trackingApi.addTeachingClass(level, name);
       teacherClasses.push(added);
       input.value = "";
       renderTeachingClasses();
-      await selectTeachingClass(added.id);
+      if (level === course.level) await selectTeachingClass(added.id);
+      else trackingStatus.textContent = `${name} créée en ${level}e. Ouvrez un cours de ${level}e pour la suivre.`;
     } catch (error) {
       try {
         teacherClasses = await trackingApi.listTeachingClasses();
         renderTeachingClasses();
-        const recovered = teacherClasses.find((item) => item.level === course.level && item.name.toLocaleLowerCase("fr") === name.toLocaleLowerCase("fr"));
+        const recovered = teacherClasses.find((item) => item.level === level && item.name.toLocaleLowerCase("fr") === name.toLocaleLowerCase("fr"));
         if (recovered) {
           input.value = "";
-          await selectTeachingClass(recovered.id);
-          if (activeClass?.id === recovered.id) trackingStatus.textContent = "Classe retrouvée et sélectionnée.";
+          if (level === course.level) {
+            await selectTeachingClass(recovered.id);
+            if (activeClass?.id === recovered.id) trackingStatus.textContent = "Classe retrouvée et sélectionnée.";
+          } else trackingStatus.textContent = `Classe de ${level}e retrouvée. Ouvrez un cours de ${level}e pour la suivre.`;
           return;
         }
       } catch {}

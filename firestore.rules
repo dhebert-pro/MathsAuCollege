@@ -9,6 +9,13 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
 
+    function classMatchesCourseLevel(classId, courseId) {
+      return exists(/databases/$(database)/documents/teacherClasses/$(classId))
+        && exists(/databases/$(database)/documents/courses/$(courseId))
+        && get(/databases/$(database)/documents/teacherClasses/$(classId)).data.level
+          == get(/databases/$(database)/documents/courses/$(courseId)).data.level;
+    }
+
     function validCourse(data) {
       return data.keys().hasOnly([
           'id', 'title', 'slug', 'chapterNumber', 'level', 'blocks',
@@ -140,6 +147,7 @@ service cloud.firestore {
           ])
           && request.resource.data.classId == classId
           && request.resource.data.courseId == courseId
+          && classMatchesCourseLevel(classId, courseId)
           && request.resource.data.slideIndex is int
           && request.resource.data.slideIndex >= 0
           && request.resource.data.slideIndex <= 200
@@ -173,6 +181,9 @@ service cloud.firestore {
             && request.resource.data.classId == classId
             && request.resource.data.date == date
             && request.resource.data.courseId == courseId
+            && classMatchesCourseLevel(classId, courseId)
+            && request.resource.data.level
+              == get(/databases/$(database)/documents/teacherClasses/$(classId)).data.level
             && request.resource.data.title is string
             && request.resource.data.title.size() <= 120
             && request.resource.data.chapterNumber is string

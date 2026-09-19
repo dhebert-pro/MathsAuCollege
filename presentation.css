@@ -26,6 +26,8 @@ button, a { font: inherit; }
 #presentation-level { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; color: var(--blue-deep); background: var(--orange); border-radius: 10px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.12); font-weight: 900; }
 .presentation-context { display: flex; align-items: center; gap: 8px; }
 #teacher-mode-badge { padding: 5px 8px; color: #17384a; background: #d8eee6; border-radius: 999px; font-size: .68rem; font-weight: 900; }
+.tracking-active-class { max-width: min(25vw, 250px); padding: 5px 9px; overflow: hidden; color: #0e342d; background: #b9e7d8; border-radius: 999px; font-size: .72rem; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.tracking-active-class.needs-class { color: #513713; background: #f8d99c; }
 .presentation-version { color: #8fa7b4; font-size: .64rem; letter-spacing: .08em; }
 .presentation-tools { display: flex; align-items: center; gap: 7px; }
 .presentation-tools button, #presentation-close { padding: 7px 10px; color: white; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.17); border-radius: 9px; cursor: pointer; text-decoration: none; transition: background .2s, transform .2s; }
@@ -45,6 +47,9 @@ button, a { font: inherit; }
 .tracking-panel > label, .tracking-add-form > label { display: block; margin-bottom: 6px; font-weight: 800; }
 .tracking-panel select, .tracking-panel input[type="text"] { width: 100%; min-height: 38px; padding: 7px 9px; color: var(--ink); background: white; border: 1px solid #b8cbd5; border-radius: 8px; }
 .tracking-add-form { margin-top: 15px; }
+.tracking-add-level { align-items: center; margin: 0 0 8px; }
+.tracking-add-level label { font-weight: 800; }
+.tracking-panel .tracking-add-level select { width: 90px; }
 .tracking-add-form > div { display: flex; gap: 6px; }
 .tracking-add-form button { padding: 6px 10px; color: white; background: var(--blue); border: 0; border-radius: 8px; cursor: pointer; }
 .tracking-add-form button:disabled { opacity: .5; }
@@ -162,6 +167,8 @@ button, a { font: inherit; }
 @media (max-width: 430px) {
   #presentation-pdf { display: none; }
   .presentation-tools { gap: 4px; }
+  #teacher-mode-badge, .presentation-version { display: none; }
+  .tracking-active-class { max-width: 105px; }
   .block-images-view { grid-template-columns: 1fr; }
 }
 @media print { .tracking-panel, #tracking-toggle { display: none !important; } }
