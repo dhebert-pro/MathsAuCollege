@@ -19,6 +19,7 @@ const files = [
   "course-content.js",
   "course-package.js",
   "course-store.js",
+  "class-journal.js",
   "pdf-export.js",
   "firebase-config.js",
   "firebase-bundle.js",

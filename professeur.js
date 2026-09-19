@@ -11,7 +11,16 @@
   const publishButton = document.querySelector("#publish-course");
   const unpublishButton = document.querySelector("#unpublish-course");
   const rollbackImportButton = document.querySelector("#rollback-course-import");
+  const journalDate = document.querySelector("#journal-date");
+  const journalClass = document.querySelector("#journal-class");
+  const journalOutput = document.querySelector("#journal-output");
+  const journalStatus = document.querySelector("#journal-status");
   let accessGranted = false;
+  let journalClasses = [];
+  let journalRequestToken = 0;
+  let journalDirty = false;
+  let journalLoadedClass = "";
+  let journalLoadedDate = "";
   let editorBlocks = [];
   let editorPageIndex = 0;
   let uploadedDuringEdit = new Set();
@@ -48,6 +57,7 @@
 
   function showLogin(message = "") {
     accessGranted = false;
+    ClassJournal.setUser(null);
     CourseStore.stopSubscriptions();
     adminApp.hidden = true;
     loginView.hidden = false;
@@ -57,6 +67,7 @@
 
   function showAdmin(user) {
     accessGranted = true;
+    ClassJournal.setUser(user);
     loginView.hidden = true;
     adminApp.hidden = false;
     document.querySelector("#account-label").textContent = user.email;
@@ -81,7 +92,87 @@
       refreshRollbackButton();
     }
     if (name === "images") renderImageLibrary();
+    if (name === "journal") refreshJournalClasses();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function journalError(error) {
+    if (error?.status === 401 || error?.status === 403) return "Accès au journal refusé. Reconnectez-vous au compte professeur.";
+    if (!navigator.onLine) return "Connexion absente. Réessayez lorsque vous serez en ligne.";
+    return error?.status ? `Le journal n’a pas pu être chargé (erreur ${error.status}).` : "Le journal n’a pas pu être chargé. Réessayez.";
+  }
+
+  async function refreshJournalClasses() {
+    try {
+      const selected = journalClass.value;
+      journalClasses = await ClassJournal.listClasses();
+      journalClass.replaceChildren(new Option("Choisir une classe", ""));
+      journalClasses.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }))
+        .forEach((item) => journalClass.add(new Option(`${item.name} · ${item.level}e`, item.id)));
+      journalClass.value = selected && journalClasses.some((item) => item.id === selected) ? selected : "";
+      if (journalClass.value && !journalDirty) loadJournalText();
+    } catch (error) {
+      journalStatus.textContent = journalError(error);
+    }
+  }
+
+  async function loadJournalText(forceRegenerate = false) {
+    const classId = journalClass.value;
+    const date = journalDate.value;
+    const token = ++journalRequestToken;
+    journalOutput.value = "";
+    journalDirty = false;
+    journalLoadedClass = classId;
+    journalLoadedDate = date;
+    if (!classId || !date) {
+      journalStatus.textContent = "Choisissez une date et une classe.";
+      return;
+    }
+    journalStatus.textContent = "Recherche des activités…";
+    try {
+      const [courses, draft] = await Promise.all([
+        ClassJournal.listCourses(classId, date),
+        forceRegenerate ? Promise.resolve(null) : ClassJournal.getDraft(classId, date),
+      ]);
+      if (token !== journalRequestToken) return;
+      const hasSavedText = draft && Object.hasOwn(draft, "text");
+      journalOutput.value = hasSavedText ? draft.text : ClassJournal.formatCourses(courses);
+      journalDirty = forceRegenerate && Boolean(journalOutput.value);
+      journalStatus.textContent = courses.length
+        ? forceRegenerate ? "Texte régénéré : enregistrez-le si vous voulez le retrouver." : hasSavedText ? "Texte précédemment enregistré. Vous pouvez le modifier." : `${courses.length} cours retrouvé${courses.length > 1 ? "s" : ""} pour cette séance.`
+        : hasSavedText ? "Texte précédemment enregistré." : "Aucune activité enregistrée à cette date. Vous pouvez saisir le texte manuellement.";
+    } catch (error) {
+      if (token === journalRequestToken) journalStatus.textContent = journalError(error);
+    }
+  }
+
+  async function saveJournalText() {
+    const classId = journalClass.value;
+    const date = journalDate.value;
+    if (!classId || !date) {
+      journalStatus.textContent = "Choisissez une date et une classe.";
+      return false;
+    }
+    try {
+      await ClassJournal.saveDraft(classId, date, {
+        classId, date, text: journalOutput.value.slice(0, 20000), updatedAt: new Date().toISOString(),
+      });
+      journalDirty = false;
+      journalStatus.textContent = "Texte enregistré.";
+      return true;
+    } catch (error) {
+      journalStatus.textContent = journalError(error);
+      return false;
+    }
+  }
+
+  function journalFilterChanged() {
+    if (journalDirty && !window.confirm("Le texte modifié n’est pas enregistré. Abandonner ces modifications ?")) {
+      journalClass.value = journalLoadedClass;
+      journalDate.value = journalLoadedDate;
+      return;
+    }
+    loadJournalText();
   }
 
   function renderStats() {
@@ -852,6 +943,34 @@
   });
 
   document.querySelector("#logout").addEventListener("click", () => FirebaseBackend.signOut());
+  journalDate.value = ClassJournal.dayKey();
+  journalDate.addEventListener("change", journalFilterChanged);
+  journalClass.addEventListener("change", journalFilterChanged);
+  journalOutput.addEventListener("input", () => {
+    journalDirty = true;
+    journalStatus.textContent = "Texte modifié : pensez à l’enregistrer si vous voulez le retrouver.";
+  });
+  document.querySelector("#journal-generate").addEventListener("click", () => {
+    if (journalDirty && !window.confirm("Remplacer votre texte modifié par le contenu de la séance ?")) return;
+    loadJournalText(true);
+  });
+  document.querySelector("#journal-save").addEventListener("click", saveJournalText);
+  document.querySelector("#journal-copy").addEventListener("click", async () => {
+    if (!journalOutput.value.trim()) {
+      journalStatus.textContent = "Il n’y a pas encore de texte à copier.";
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(journalOutput.value);
+      journalStatus.textContent = "Texte copié : collez-le dans Pronote.";
+    } catch {
+      journalOutput.focus();
+      journalOutput.select();
+      journalStatus.textContent = document.execCommand("copy")
+        ? "Texte copié : collez-le dans Pronote."
+        : "Copie automatique indisponible. Sélectionnez le texte avec Ctrl+A, puis Ctrl+C.";
+    }
+  });
   document.querySelector("#sidebar-toggle").addEventListener("click", () => document.querySelector(".admin-sidebar").classList.toggle("open"));
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => button.dataset.adminView === "editor" ? openEditor() : showView(button.dataset.adminView)));
   document.querySelectorAll("[data-go-editor]").forEach((button) => button.addEventListener("click", () => openEditor()));

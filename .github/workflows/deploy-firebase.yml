@@ -1,0 +1,45 @@
+name: Publier sur Firebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le projet
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier le projet
+        run: npm run check
+
+      - name: Construire le site
+        run: |
+          npm run build:firebase
+          npm run build:site
+
+      - name: Authentifier le compte de publication
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Publier le site et les règles Firestore
+        run: npx firebase-tools deploy --only "firestore:rules,hosting:main,hosting:generic" --project maths-au-college-667a8 --non-interactive

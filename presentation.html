@@ -7,7 +7,7 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="presentation.css?v=0.30.0" />
+    <link rel="stylesheet" href="presentation.css?v=0.32.0" />
     <title>Présentation · Maths au collège</title>
   </head>
   <body>
@@ -22,7 +22,7 @@
       </section>
       <section id="presentation-stage" class="presentation-stage" hidden>
         <header class="presentation-topbar">
-          <div class="presentation-context"><span id="presentation-level"></span><span id="teacher-mode-badge" hidden>Mode professeur</span><span class="presentation-version">v0.30.0</span></div>
+          <div class="presentation-context"><span id="presentation-level"></span><span id="teacher-mode-badge" hidden>Mode professeur</span><span class="presentation-version">v0.32.0</span></div>
           <div class="presentation-tools">
             <div class="zoom-controls" role="group" aria-label="Zoom du cours">
               <button id="zoom-out" type="button" aria-label="Réduire le cours" title="Réduire le cours">−</button>
@@ -31,11 +31,26 @@
             </div>
             <button id="presentation-restart" type="button" title="Recommencer depuis le début (touche Début)">↺</button>
             <button id="presentation-exercises" type="button" hidden>Exercices</button>
+            <button id="tracking-toggle" type="button" aria-controls="tracking-panel" aria-expanded="false" title="Suivi des classes (touche S)" hidden>Suivi</button>
             <button id="presentation-pdf" type="button">PDF</button>
             <button id="fullscreen-button" type="button">Plein écran</button>
             <a id="presentation-close" href="index.html" aria-label="Quitter la présentation">×</a>
           </div>
         </header>
+        <aside id="tracking-panel" class="tracking-panel" aria-label="Suivi de la classe" hidden>
+          <div class="tracking-heading"><h2>Suivi de classe</h2><button id="tracking-close" type="button" aria-label="Fermer le suivi">×</button></div>
+          <label for="tracking-class">Classe</label>
+          <select id="tracking-class"><option value="">Choisir une classe</option></select>
+          <form id="tracking-add-form" class="tracking-add-form">
+            <label for="tracking-new-class">Ajouter une classe de ce niveau</label>
+            <div><input id="tracking-new-class" type="text" maxlength="50" placeholder="Ex. 6e A" required /><button type="submit">Ajouter</button></div>
+          </form>
+          <p id="tracking-position" class="tracking-position">Choisissez une classe pour reprendre son cours.</p>
+          <button id="tracking-mark-current" class="tracking-mark-current" type="button" disabled>Noter le contenu affiché dans la séance</button>
+          <div id="tracking-exercises" class="tracking-exercises" hidden></div>
+          <p id="tracking-status" class="tracking-status" role="status" aria-live="polite"></p>
+          <p class="tracking-tip">S pour ouvrir ou fermer · Échap pour masquer. Ce panneau n’apparaît pas dans l’espace élève.</p>
+        </aside>
         <div class="slide-shell">
           <article id="slide" class="slide"></article>
         </div>
@@ -47,12 +62,13 @@
       </section>
     </main>
 
-    <script src="vendor/jspdf.umd.min.js?v=0.30.0" defer></script>
-    <script src="course-content.js?v=0.30.0" defer></script>
-    <script src="firebase-config.js?v=0.30.0" defer></script>
-    <script src="firebase-bundle.js?v=0.30.0" defer></script>
-    <script src="course-store.js?v=0.30.0" defer></script>
-    <script src="pdf-export.js?v=0.30.0" defer></script>
-    <script src="presentation.js?v=0.30.0" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.32.0" defer></script>
+    <script src="course-content.js?v=0.32.0" defer></script>
+    <script src="firebase-config.js?v=0.32.0" defer></script>
+    <script src="firebase-bundle.js?v=0.32.0" defer></script>
+    <script src="course-store.js?v=0.32.0" defer></script>
+    <script src="pdf-export.js?v=0.32.0" defer></script>
+    <script src="class-journal.js?v=0.32.0" defer></script>
+    <script src="presentation.js?v=0.32.0" defer></script>
   </body>
 </html>

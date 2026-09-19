@@ -119,6 +119,76 @@ service cloud.firestore {
         && request.resource.data.createdAt is string;
     }
 
+    match /teacherClasses/{classId} {
+      allow read: if isProfessor();
+      allow create, update: if isProfessor()
+        && request.resource.data.keys().hasOnly(['id', 'level', 'name', 'createdAt'])
+        && request.resource.data.id == classId
+        && request.resource.data.level in ['6', '5', '4', '3']
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 50
+        && request.resource.data.createdAt is string;
+      allow delete: if false;
+
+      match /progress/{courseId} {
+        allow read: if isProfessor();
+        allow create, update: if isProfessor()
+          && request.resource.data.keys().hasOnly([
+            'classId', 'courseId', 'slideIndex', 'revealIndex',
+            'completedExercises', 'updatedAt'
+          ])
+          && request.resource.data.classId == classId
+          && request.resource.data.courseId == courseId
+          && request.resource.data.slideIndex is int
+          && request.resource.data.slideIndex >= 0
+          && request.resource.data.slideIndex <= 200
+          && request.resource.data.revealIndex is int
+          && request.resource.data.revealIndex >= 0
+          && request.resource.data.revealIndex <= 200
+          && request.resource.data.completedExercises is list
+          && request.resource.data.completedExercises.size() <= 401
+          && request.resource.data.updatedAt is string;
+        allow delete: if false;
+      }
+
+      match /journal/{date} {
+        allow read: if isProfessor();
+        allow create, update: if isProfessor()
+          && request.resource.data.keys().hasOnly(['classId', 'date', 'text', 'updatedAt'])
+          && request.resource.data.classId == classId
+          && request.resource.data.date == date
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 20000
+          && request.resource.data.updatedAt is string;
+        allow delete: if false;
+
+        match /courses/{courseId} {
+          allow read: if isProfessor();
+          allow create, update: if isProfessor()
+            && request.resource.data.keys().hasOnly([
+              'classId', 'date', 'courseId', 'title', 'chapterNumber',
+              'level', 'blocks', 'exercises', 'startedAt', 'updatedAt'
+            ])
+            && request.resource.data.classId == classId
+            && request.resource.data.date == date
+            && request.resource.data.courseId == courseId
+            && request.resource.data.title is string
+            && request.resource.data.title.size() <= 120
+            && request.resource.data.chapterNumber is string
+            && request.resource.data.chapterNumber.size() <= 20
+            && request.resource.data.level in ['6', '5', '4', '3']
+            && request.resource.data.blocks is list
+            && request.resource.data.blocks.size() <= 200
+            && request.resource.data.exercises is list
+            && request.resource.data.exercises.size() <= 401
+            && request.resource.data.startedAt is string
+            && request.resource.data.updatedAt is string;
+          allow delete: if false;
+        }
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

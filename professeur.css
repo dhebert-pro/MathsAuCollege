@@ -47,6 +47,14 @@
 .stats-grid span, .stats-grid small { display: block; color: var(--muted); font-size: .76rem; }
 .stats-grid strong { display: block; margin: 5px 0; font: 700 2.5rem/1.1 Georgia, serif; }
 .admin-panel { margin-top: 22px; padding: 25px; background: white; border: 1px solid var(--line); border-radius: 18px; }
+.journal-panel { max-width: 980px; }
+.journal-filters { display: grid; grid-template-columns: 180px minmax(220px, 1fr) auto; gap: 14px; align-items: end; }
+.journal-filters label { display: grid; gap: 7px; color: var(--ink); font-size: .85rem; font-weight: 700; }
+.journal-help { margin: 18px 0; color: var(--muted); font-size: .85rem; line-height: 1.5; }
+.journal-output-label { display: block; margin-bottom: 8px; font-weight: 750; }
+#journal-output { min-height: 300px; line-height: 1.6; resize: vertical; }
+.journal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.journal-status { min-height: 1.3em; margin: 12px 0 0; color: #286451; font-size: .82rem; }
 .course-import-panel { display: grid; grid-template-columns: minmax(260px, 1fr) auto; gap: 18px 28px; align-items: center; border-color: #bdd3cb; background: linear-gradient(135deg, #fff 0%, #f4faf7 100%); }
 .course-import-panel h2 { margin: 3px 0 7px; font-size: 1.35rem; }
 .course-import-panel p:not(.eyebrow) { max-width: 720px; margin: 0; color: var(--muted); font-size: .86rem; }
@@ -241,6 +249,8 @@ td:nth-child(2) { min-width: 220px; }
   .editor-page-navigation { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
+  .journal-filters { grid-template-columns: 1fr; }
+  .journal-filters button { justify-self: start; }
   .admin-sidebar { transform: translateX(-100%); transition: transform .2s; }
   .admin-sidebar.open { transform: translateX(0); }
   .admin-workspace { margin-left: 0; }
