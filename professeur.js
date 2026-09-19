@@ -129,36 +129,89 @@
     journalClasses.forEach((item) => {
       const row = document.createElement("div");
       row.className = "journal-class-row";
-      const name = document.createElement("strong");
-      name.textContent = item.name;
+      const nameLabel = document.createElement("label");
+      nameLabel.textContent = "Nom";
+      const name = document.createElement("input");
+      name.type = "text";
+      name.maxLength = 50;
+      name.value = item.name;
+      name.setAttribute("aria-label", `Nom de ${item.name}`);
+      nameLabel.append(name);
+      const levelLabel = document.createElement("label");
+      levelLabel.textContent = "Niveau";
       const level = document.createElement("select");
       level.setAttribute("aria-label", `Niveau de ${item.name}`);
       ["6", "5", "4", "3"].forEach((value) => level.add(new Option(`${value}e`, value)));
       level.value = item.level;
+      levelLabel.append(level);
+      const actions = document.createElement("div");
+      actions.className = "journal-class-actions";
       const save = document.createElement("button");
       save.type = "button";
       save.className = "admin-button secondary";
-      save.textContent = "Corriger";
+      save.textContent = "Enregistrer";
       save.disabled = true;
-      level.addEventListener("change", () => { save.disabled = level.value === item.level; });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "admin-button secondary journal-class-delete";
+      remove.textContent = "Supprimer";
+      const updateSaveState = () => {
+        save.disabled = !name.value.trim() || (name.value.trim() === item.name && level.value === item.level);
+      };
+      name.addEventListener("input", updateSaveState);
+      level.addEventListener("change", updateSaveState);
       save.addEventListener("click", async () => {
+        const cleanName = name.value.trim();
+        if (!cleanName || journalClasses.some((other) => other.id !== item.id && other.name.toLocaleLowerCase("fr") === cleanName.toLocaleLowerCase("fr") && other.level === level.value)) {
+          journalClassStatus.textContent = "Indiquez un nom non vide et distinct des autres classes du même niveau.";
+          return;
+        }
         save.disabled = true;
+        remove.disabled = true;
+        name.disabled = true;
         level.disabled = true;
-        journalClassStatus.textContent = `Correction du niveau de ${item.name}…`;
+        journalClassStatus.textContent = `Modification de ${item.name}…`;
         try {
-          await ClassJournal.updateClassLevel(item.id, level.value);
+          await ClassJournal.updateClass(item.id, cleanName, level.value);
+          item.name = cleanName;
           item.level = level.value;
           renderJournalClassOptions();
+          renderJournalClassList();
           if (journalClass.value === item.id) await loadJournalText();
           journalClassStatus.textContent = `${item.name} est maintenant une classe de ${item.level}e.`;
         } catch (error) {
-          level.value = item.level;
           journalClassStatus.textContent = journalError(error);
-        } finally {
+          name.disabled = false;
           level.disabled = false;
+          remove.disabled = false;
+          updateSaveState();
         }
       });
-      row.append(name, level, save);
+      remove.addEventListener("click", async () => {
+        if (!window.confirm(`Supprimer définitivement la classe « ${item.name} » (${item.level}e), sa progression et toutes ses séances ? Cette action est irréversible.`)) return;
+        save.disabled = true;
+        remove.disabled = true;
+        name.disabled = true;
+        level.disabled = true;
+        journalClassStatus.textContent = `Suppression de ${item.name} et de ses séances…`;
+        try {
+          await ClassJournal.deleteClass(item.id);
+          journalClasses = journalClasses.filter((other) => other.id !== item.id);
+          renderJournalClassOptions();
+          renderJournalClassList();
+          await loadJournalText();
+          journalClassStatus.textContent = `La classe ${item.name} et son suivi ont été supprimés.`;
+        } catch (error) {
+          journalClassStatus.textContent = `Suppression interrompue : ${journalError(error)} Réessayez pour terminer.`;
+          save.disabled = false;
+          remove.disabled = false;
+          name.disabled = false;
+          level.disabled = false;
+          updateSaveState();
+        }
+      });
+      actions.append(save, remove);
+      row.append(nameLabel, levelLabel, actions);
       journalClassList.append(row);
     });
   }

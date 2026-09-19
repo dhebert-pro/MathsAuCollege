@@ -13,6 +13,10 @@ const context = {
       stored = JSON.parse(options.body);
       return { ok: true, status: 200, json: async () => stored };
     }
+    if (options.method === "DELETE") return { ok: true, status: 204 };
+    if (url.includes("/progress?")) return { ok: true, status: 200, json: async () => ({ documents: [{ name: "projects/test-project/databases/(default)/documents/teacherClasses/test-class/progress/test-course" }] }) };
+    if (url.includes("/journal?")) return { ok: true, status: 200, json: async () => ({ documents: [{ name: "projects/test-project/databases/(default)/documents/teacherClasses/test-class/journal/2026-09-20" }] }) };
+    if (url.includes("/journal/2026-09-20/courses?")) return { ok: true, status: 200, json: async () => ({ documents: [{ name: "projects/test-project/databases/(default)/documents/teacherClasses/test-class/journal/2026-09-20/courses/test-course" }] }) };
     if (url.endsWith("/courses/test-course")) return { ok: true, status: 200, json: async () => stored };
     return { ok: true, status: 200, json: async () => ({ documents: [stored] }) };
   },
@@ -39,7 +43,16 @@ assert.match(journal.formatCourses([record]), /Exercices faits : n° 1\./);
 assert.match(journal.formatCourses([record]), /Tâche complexe réalisée/);
 assert.equal(journal.coursesForLevel([record], "4").length, 0);
 assert.equal(journal.coursesForLevel([record], "6").length, 1);
-await journal.updateClassLevel("test-class", "6");
-assert.match(calls.at(-1).url, /updateMask\.fieldPaths=level/);
+await journal.updateClass("test-class", "6SLE", "6");
+assert.match(calls.at(-1).url, /updateMask\.fieldPaths=name&updateMask\.fieldPaths=level/);
+assert.equal(stored.fields.name.stringValue, "6SLE");
 assert.equal(stored.fields.level.stringValue, "6");
+await journal.deleteClass("test-class");
+const deletions = calls.filter((call) => call.options.method === "DELETE").map((call) => call.url);
+assert.equal(deletions.length, 4);
+assert.match(deletions[0], /\/progress\/test-course$/);
+assert.match(deletions[1], /\/journal\/2026-09-20\/courses\/test-course$/);
+assert.match(deletions[2], /\/journal\/2026-09-20$/);
+assert.match(deletions[3], /\/teacherClasses\/test-class$/);
+assert.ok(calls.some((call) => call.url.includes("/journal?pageSize=100&showMissing=true")));
 console.log("Class journal tests passed");

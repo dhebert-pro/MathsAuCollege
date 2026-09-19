@@ -43,13 +43,13 @@
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       cache: "no-store",
     });
-    if (response.status === 404 && !options.method) return null;
+    if (response.status === 404 && (!options.method || options.method === "DELETE")) return null;
     if (!response.ok) {
       const error = new Error(`Firestore ${response.status}`);
       error.status = response.status;
       throw error;
     }
-    return response.json();
+    return response.status === 204 ? null : response.json();
   }
 
   function coursePath(classId, date, courseId) {
@@ -66,6 +66,18 @@
       pageToken = result?.nextPageToken || "";
     } while (pageToken);
     return documents;
+  }
+
+  async function listDocumentIds(path, showMissing = false) {
+    const ids = [];
+    let pageToken = "";
+    do {
+      const suffix = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+      const result = await request(`${path}?pageSize=100${showMissing ? "&showMissing=true" : ""}${suffix}`);
+      ids.push(...(result?.documents || []).map((document) => decodeURIComponent(document.name.split("/").pop())));
+      pageToken = result?.nextPageToken || "";
+    } while (pageToken);
+    return ids;
   }
 
   async function save(path, value) {
@@ -105,9 +117,26 @@
     coursesForLevel,
     setUser(value) { user = value; },
     listClasses() { return list("teacherClasses"); },
-    updateClassLevel(classId, level) {
+    updateClass(classId, name, level) {
+      const cleanName = String(name).trim();
+      if (!cleanName || cleanName.length > 50) throw new Error("Nom de classe invalide");
       if (!["6", "5", "4", "3"].includes(String(level))) throw new Error("Niveau invalide");
-      return save(`teacherClasses/${segment(classId)}?updateMask.fieldPaths=level`, { level: String(level) });
+      return save(`teacherClasses/${segment(classId)}?updateMask.fieldPaths=name&updateMask.fieldPaths=level`, { name: cleanName, level: String(level) });
+    },
+    async deleteClass(classId) {
+      const path = `teacherClasses/${segment(classId)}`;
+      // Firestore does not cascade deletes: remove all nested records first.
+      for (const courseId of await listDocumentIds(`${path}/progress`)) {
+        await request(`${path}/progress/${segment(courseId)}`, { method: "DELETE" });
+      }
+      for (const date of await listDocumentIds(`${path}/journal`, true)) {
+        const dayPath = `${path}/journal/${segment(date)}`;
+        for (const courseId of await listDocumentIds(`${dayPath}/courses`)) {
+          await request(`${dayPath}/courses/${segment(courseId)}`, { method: "DELETE" });
+        }
+        await request(dayPath, { method: "DELETE" });
+      }
+      await request(path, { method: "DELETE" });
     },
     async getCourse(classId, date, courseId) { return documentData(await request(coursePath(classId, date, courseId))); },
     saveCourse(classId, date, courseId, value) { return save(coursePath(classId, date, courseId), value); },

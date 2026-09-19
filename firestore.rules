@@ -136,7 +136,7 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 50
         && request.resource.data.createdAt is string;
-      allow delete: if false;
+      allow delete: if isProfessor();
 
       match /progress/{courseId} {
         allow read: if isProfessor();
@@ -157,7 +157,7 @@ service cloud.firestore {
           && request.resource.data.completedExercises is list
           && request.resource.data.completedExercises.size() <= 401
           && request.resource.data.updatedAt is string;
-        allow delete: if false;
+        allow delete: if isProfessor();
       }
 
       match /journal/{date} {
@@ -169,7 +169,7 @@ service cloud.firestore {
           && request.resource.data.text is string
           && request.resource.data.text.size() <= 20000
           && request.resource.data.updatedAt is string;
-        allow delete: if false;
+        allow delete: if isProfessor();
 
         match /courses/{courseId} {
           allow read: if isProfessor();
@@ -195,7 +195,7 @@ service cloud.firestore {
             && request.resource.data.exercises.size() <= 401
             && request.resource.data.startedAt is string
             && request.resource.data.updatedAt is string;
-          allow delete: if false;
+          allow delete: if isProfessor();
         }
       }
     }
