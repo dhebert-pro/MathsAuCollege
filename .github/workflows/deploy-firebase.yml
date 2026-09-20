@@ -41,10 +41,5 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_DEPLOY_SERVICE_ACCOUNT }}
 
-      - name: Limiter les cours publics à la progression des classes
-        env:
-          FIREBASE_PROJECT_ID: maths-au-college-667a8
-        run: node scripts/sync-public-releases.mjs
-
       - name: Publier le site et les règles Firestore
         run: npx firebase-tools deploy --only "firestore:rules,hosting:main,hosting:generic" --project maths-au-college-667a8 --non-interactive

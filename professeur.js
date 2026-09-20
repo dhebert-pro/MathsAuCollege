@@ -76,6 +76,8 @@
     });
     renderAll();
     refreshRollbackButton();
+    FirebaseBackend.syncReleasedLevels(CourseContent.LEVELS)
+      .catch(() => toast("La publication progressive n’a pas pu être synchronisée. Rechargez cette page."));
   }
 
   function showView(name) {

@@ -1,7 +1,7 @@
 {
   "name": "maths-au-college",
   "private": true,
-  "version": "0.35.0",
+  "version": "0.35.1",
   "description": "Application de ressources de mathématiques pour les élèves du collège.",
   "scripts": {
     "vendor": "node scripts/copy-vendor.mjs",
@@ -15,7 +15,6 @@
   },
   "devDependencies": {
     "esbuild": "0.28.1",
-    "firebase-tools": "15.23.0",
-    "google-auth-library": "9.15.1"
+    "firebase-tools": "15.23.0"
   }
 }

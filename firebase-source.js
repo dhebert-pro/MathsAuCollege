@@ -306,7 +306,8 @@ window.FirebaseBackend = {
     await batch.commit();
   },
   async syncReleasedLevels(levels) {
-    const courses = await readAllCourses();
+    const courseSnapshot = await getDocsFromServer(collection(db, "courses"));
+    const courses = courseSnapshot.docs.map((item) => normalizeCourse({ id: item.id, ...item.data() }));
     const plan = await readReleasePlan(courses, levels);
     const published = await getDocsFromServer(collection(db, "publishedCourses"));
     const current = new Map(published.docs.map((item) => [item.id, item.data()]));
