@@ -76,8 +76,11 @@
     });
     renderAll();
     refreshRollbackButton();
+    const releaseStatus = document.querySelector("#release-status");
+    releaseStatus.textContent = "Synchronisation des cours élèves…";
     FirebaseBackend.syncReleasedLevels(CourseContent.LEVELS)
-      .catch(() => toast("La publication progressive n’a pas pu être synchronisée. Rechargez cette page."));
+      .then(() => { releaseStatus.textContent = "Cours élèves synchronisés avec la progression des classes."; })
+      .catch(() => { releaseStatus.textContent = "Synchronisation impossible. Rechargez cette page pour réessayer."; });
   }
 
   function showView(name) {
