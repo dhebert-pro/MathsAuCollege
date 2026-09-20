@@ -15,7 +15,7 @@
       <article class="student-course-card">
         <div class="course-card-top"><span class="course-level">${course.level}e</span><span class="course-category">${course.chapterNumber ? `Chapitre ${escapeHtml(course.chapterNumber)}` : "Cours"}</span></div>
         <h2>${escapeHtml(CourseContent.displayTitle(course))}</h2>
-        <p>${course.slideCount} partie${course.slideCount > 1 ? "s" : ""} · Lecture et PDF</p>
+        <p>Lecture et PDF selon l’avancement du cours</p>
         <div class="course-card-actions">
           <button type="button" class="read-course-button" data-read-course="${course.id}">Consulter le cours <span aria-hidden="true">→</span></button>
           ${course.exerciseFileId ? `<button class="exercise-button" type="button" data-exercises-course="${course.id}" data-exercise-file="${course.exerciseFileId}"><span aria-hidden="true">✎</span> Voir la fiche d’exercices</button>` : ""}
@@ -72,7 +72,8 @@
       pdfButton.disabled = true;
       try {
         const course = await CourseStore.getPublished(pdfButton.dataset.pdfCourse);
-        if (course) await CoursePdf.download(course);
+        if (course?.blocks.length) await CoursePdf.download(course);
+        else window.alert("Ce chapitre n’a pas encore été commencé en classe.");
       } finally {
         pdfButton.disabled = false;
       }

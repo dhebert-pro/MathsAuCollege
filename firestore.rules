@@ -143,6 +143,7 @@ service cloud.firestore {
         allow create, update: if isProfessor()
           && request.resource.data.keys().hasOnly([
             'classId', 'courseId', 'slideIndex', 'revealIndex',
+            'maxSlideIndex', 'maxRevealIndex',
             'completedExercises', 'updatedAt'
           ])
           && request.resource.data.classId == classId
@@ -154,6 +155,12 @@ service cloud.firestore {
           && request.resource.data.revealIndex is int
           && request.resource.data.revealIndex >= 0
           && request.resource.data.revealIndex <= 200
+          && request.resource.data.maxSlideIndex is int
+          && request.resource.data.maxSlideIndex >= 0
+          && request.resource.data.maxSlideIndex <= 200
+          && request.resource.data.maxRevealIndex is int
+          && request.resource.data.maxRevealIndex >= 0
+          && request.resource.data.maxRevealIndex <= 200
           && request.resource.data.completedExercises is list
           && request.resource.data.completedExercises.size() <= 401
           && request.resource.data.updatedAt is string;

@@ -11,6 +11,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   getDocsFromServer,
   initializeFirestore,
@@ -23,6 +24,7 @@ import {
   where,
   writeBatch,
 } from "firebase/firestore";
+import { releasePlan } from "./course-release.mjs";
 
 const config = window.FIREBASE_CONFIG;
 const configured = Boolean(config?.projectId && config?.apiKey && window.CourseContent);
@@ -69,6 +71,27 @@ async function readCourseImages(courseId) {
 async function readCourseFiles(courseId) {
   const snapshot = await getDocs(query(collection(db, "courseFiles"), where("courseId", "==", courseId)));
   return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+}
+
+async function readReleasePlan(courses, levels) {
+  const snapshot = await getDocsFromServer(collection(db, "teacherClasses"));
+  const classes = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => levels.includes(item.level));
+  const progressGroups = await Promise.all(classes.map(async (item) => {
+    const progress = await getDocsFromServer(collection(db, "teacherClasses", item.id, "progress"));
+    return progress.docs.map((record) => ({ classId: item.id, courseId: record.id, ...record.data() }));
+  }));
+  return releasePlan(courses.filter((course) => levels.includes(course.level)), classes, progressGroups.flat());
+}
+
+async function applyPublicReleases(batch, courses, levels) {
+  const plan = await readReleasePlan(courses, levels);
+  plan.forEach((course, id) => batch.set(doc(db, "publishedCourses", id), course));
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
 }
 
 function rebuildCatalogs(batch, courses) {
@@ -134,7 +157,7 @@ window.FirebaseBackend = {
     }, onError);
   },
   async getPublished(id) {
-    const snapshot = await getDoc(doc(db, "publishedCourses", id));
+    const snapshot = await getDocFromServer(doc(db, "publishedCourses", id));
     return snapshot.exists() ? normalizeCourse({ id: snapshot.id, ...snapshot.data() }) : null;
   },
   async getPrivate(id) {
@@ -191,8 +214,8 @@ window.FirebaseBackend = {
     const preservedCourse = backup?.course?.id === normalized.id ? backup.course : null;
     const batch = writeBatch(db);
     batch.set(doc(db, "courses", normalized.id), normalized);
-    if (normalized.status === "published") batch.set(doc(db, "publishedCourses", normalized.id), CourseContent.publicCourse(normalized));
-    else batch.delete(doc(db, "publishedCourses", normalized.id));
+    if (normalized.status !== "published") batch.delete(doc(db, "publishedCourses", normalized.id));
+    await applyPublicReleases(batch, nextCourses, [...new Set([normalized.level, courses.find((item) => item.id === normalized.id)?.level].filter(Boolean))]);
     syncImages(batch, images, referencedIds, normalized.status === "published", referencedImageIds(preservedCourse));
     syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published", preservedCourse?.exerciseFileId);
     rebuildCatalogs(batch, nextCourses);
@@ -222,8 +245,8 @@ window.FirebaseBackend = {
     const batch = writeBatch(db);
     batch.set(replacementBackupReference(), { course: current, createdAt: new Date().toISOString() });
     batch.set(doc(db, "courses", normalized.id), normalized);
-    if (normalized.status === "published") batch.set(doc(db, "publishedCourses", normalized.id), CourseContent.publicCourse(normalized));
-    else batch.delete(doc(db, "publishedCourses", normalized.id));
+    if (normalized.status !== "published") batch.delete(doc(db, "publishedCourses", normalized.id));
+    await applyPublicReleases(batch, nextCourses, [...new Set([normalized.level, current.level])]);
     syncImages(batch, images, referencedImageIds(normalized), normalized.status === "published", referencedImageIds(current));
     syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published", current.exerciseFileId);
     if (previousBackup?.course?.id !== normalized.id) {
@@ -249,8 +272,8 @@ window.FirebaseBackend = {
     const nextCourses = [...courses.filter((item) => item.id !== restored.id), restored];
     const batch = writeBatch(db);
     batch.set(doc(db, "courses", restored.id), restored);
-    if (restored.status === "published") batch.set(doc(db, "publishedCourses", restored.id), CourseContent.publicCourse(restored));
-    else batch.delete(doc(db, "publishedCourses", restored.id));
+    if (restored.status !== "published") batch.delete(doc(db, "publishedCourses", restored.id));
+    await applyPublicReleases(batch, nextCourses, [restored.level]);
     syncImages(batch, images, referencedImageIds(restored), restored.status === "published");
     syncFiles(batch, files, restored.exerciseFileId, restored.status === "published");
     batch.delete(replacementBackupReference());
@@ -265,8 +288,8 @@ window.FirebaseBackend = {
     const batch = writeBatch(db);
     updates.forEach((course) => {
       batch.set(doc(db, "courses", course.id), course);
-      if (course.status === "published") batch.set(doc(db, "publishedCourses", course.id), CourseContent.publicCourse(course));
     });
+    await applyPublicReleases(batch, nextCourses, CourseContent.LEVELS);
     rebuildCatalogs(batch, nextCourses);
     await batch.commit();
   },
@@ -275,10 +298,26 @@ window.FirebaseBackend = {
     const batch = writeBatch(db);
     batch.delete(doc(db, "courses", id));
     batch.delete(doc(db, "publishedCourses", id));
+    await applyPublicReleases(batch, courses.filter((course) => course.id !== id), [courses.find((course) => course.id === id)?.level].filter(Boolean));
     images.forEach((image) => batch.delete(doc(db, "courseImages", image.id)));
     files.forEach((file) => batch.delete(doc(db, "courseFiles", file.id)));
     if (backup?.course?.id === id) batch.delete(replacementBackupReference());
     rebuildCatalogs(batch, courses.filter((course) => course.id !== id));
     await batch.commit();
+  },
+  async syncReleasedLevels(levels) {
+    const courses = await readAllCourses();
+    const plan = await readReleasePlan(courses, levels);
+    const published = await getDocsFromServer(collection(db, "publishedCourses"));
+    const current = new Map(published.docs.map((item) => [item.id, item.data()]));
+    const batch = writeBatch(db);
+    let changes = 0;
+    plan.forEach((course, id) => {
+      if (stableStringify(current.get(id)) !== stableStringify(course)) {
+        batch.set(doc(db, "publishedCourses", id), course);
+        changes += 1;
+      }
+    });
+    if (changes) await batch.commit();
   },
 };

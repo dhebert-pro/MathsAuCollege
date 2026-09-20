@@ -172,9 +172,11 @@
         level.disabled = true;
         journalClassStatus.textContent = `Modification de ${item.name}…`;
         try {
+          const previousLevel = item.level;
           await ClassJournal.updateClass(item.id, cleanName, level.value);
           item.name = cleanName;
           item.level = level.value;
+          if (previousLevel !== item.level) await FirebaseBackend.syncReleasedLevels([previousLevel, item.level]);
           renderJournalClassOptions();
           renderJournalClassList();
           if (journalClass.value === item.id) await loadJournalText();
@@ -196,6 +198,7 @@
         journalClassStatus.textContent = `Suppression de ${item.name} et de ses séances…`;
         try {
           await ClassJournal.deleteClass(item.id);
+          await FirebaseBackend.syncReleasedLevels([item.level]);
           journalClasses = journalClasses.filter((other) => other.id !== item.id);
           renderJournalClassOptions();
           renderJournalClassList();

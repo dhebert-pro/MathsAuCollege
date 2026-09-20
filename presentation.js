@@ -25,6 +25,10 @@
   let slides = [];
   let slideIndex = 0;
   let revealIndex = 0;
+  let furthestSlideIndex = 0;
+  let furthestRevealIndex = 0;
+  let releasedSlideIndex = 0;
+  let releasedRevealIndex = 0;
   let zoomLevel = 1;
   let teacherClasses = [];
   let activeClass = null;
@@ -91,6 +95,8 @@
       return {
         slideIndex: Number(fields.slideIndex?.integerValue) || 0,
         revealIndex: Number(fields.revealIndex?.integerValue) || 0,
+        maxSlideIndex: Number(fields.maxSlideIndex?.integerValue ?? fields.slideIndex?.integerValue) || 0,
+        maxRevealIndex: Number(fields.maxRevealIndex?.integerValue ?? fields.revealIndex?.integerValue) || 0,
         completedExercises: (fields.completedExercises?.arrayValue?.values || []).map((value) => value.stringValue).filter(Boolean),
       };
     },
@@ -102,6 +108,8 @@
           courseId: { stringValue: courseId },
           slideIndex: { integerValue: String(progress.slideIndex) },
           revealIndex: { integerValue: String(progress.revealIndex) },
+          maxSlideIndex: { integerValue: String(progress.maxSlideIndex) },
+          maxRevealIndex: { integerValue: String(progress.maxRevealIndex) },
           completedExercises: { arrayValue: { values: progress.completedExercises.map((value) => ({ stringValue: value })) } },
           updatedAt: { stringValue: new Date().toISOString() },
         } }),
@@ -283,11 +291,23 @@
     if (!trackingReady || !activeClass || !course) return trackingSaveChain;
     const classId = activeClass.id;
     const courseIdToSave = course.id;
-    const snapshot = { slideIndex, revealIndex, completedExercises: [...completedExercises] };
+    const snapshot = {
+      slideIndex, revealIndex, maxSlideIndex: furthestSlideIndex, maxRevealIndex: furthestRevealIndex,
+      completedExercises: [...completedExercises],
+    };
+    const needsRelease = snapshot.maxSlideIndex > releasedSlideIndex ||
+      (snapshot.maxSlideIndex === releasedSlideIndex && snapshot.maxRevealIndex > releasedRevealIndex);
     trackingStatus.textContent = "Enregistrement…";
     trackingSaveChain = trackingSaveChain.catch(() => {}).then(() =>
       trackingApi.saveTeachingProgress(classId, courseIdToSave, snapshot)
-    ).then(() => { if (activeClass?.id === classId) trackingStatus.textContent = "Suivi enregistré"; })
+    ).then(async () => {
+      if (needsRelease) {
+        await FirebaseBackend.syncReleasedLevels([course.level]);
+        releasedSlideIndex = snapshot.maxSlideIndex;
+        releasedRevealIndex = snapshot.maxRevealIndex;
+      }
+      if (activeClass?.id === classId) trackingStatus.textContent = "Suivi enregistré";
+    })
       .catch(() => { if (activeClass?.id === classId) trackingStatus.textContent = "Échec de l’enregistrement. Vérifiez la connexion."; });
     return trackingSaveChain;
   }
@@ -312,6 +332,7 @@
     if (!activeClass) {
       try { localStorage.removeItem(`maths-teacher-class:${course.level}`); } catch {}
       completedExercises = new Set();
+      furthestSlideIndex = furthestRevealIndex = releasedSlideIndex = releasedRevealIndex = 0;
       renderExerciseTracking();
       updateTrackingPosition();
       return;
@@ -322,6 +343,8 @@
       if (selectionToken !== trackingSelectionToken) return;
       slideIndex = Math.max(0, Math.min(Number(saved?.slideIndex) || 0, slides.length));
       revealIndex = Math.max(0, Math.min(Number(saved?.revealIndex) || 0, maxReveal()));
+      furthestSlideIndex = releasedSlideIndex = Math.max(0, Number(saved?.maxSlideIndex) || 0);
+      furthestRevealIndex = releasedRevealIndex = Math.max(0, Number(saved?.maxRevealIndex) || 0);
       completedExercises = new Set(Array.isArray(saved?.completedExercises) ? saved.completedExercises : []);
       try { localStorage.setItem(`maths-teacher-class:${course.level}`, activeClass.id); } catch {}
       render();
@@ -462,6 +485,11 @@
   }
 
   function updateControls() {
+    if (teacherMode && trackingReady && activeClass &&
+      (slideIndex > furthestSlideIndex || (slideIndex === furthestSlideIndex && revealIndex > furthestRevealIndex))) {
+      furthestSlideIndex = slideIndex;
+      furthestRevealIndex = revealIndex;
+    }
     const total = slides.length + 1;
     document.querySelector("#slide-counter").textContent = `${slideIndex + 1} / ${total}`;
     document.querySelector("#progress-bar").style.width = `${((slideIndex + 1) / total) * 100}%`;
@@ -569,6 +597,7 @@
     try {
       const value = await CourseStore.getPublished(courseId);
       if (!value) fail("Ce cours n’est pas publié ou n’existe plus.");
+      else if (!value.blocks.length) fail("Ce chapitre n’a pas encore été commencé en classe.");
       else showCourse(value);
     } catch {
       fail("Le cours n’a pas pu être chargé. Vérifiez votre connexion.");
@@ -601,6 +630,7 @@
     try {
       const added = await trackingApi.addTeachingClass(level, name);
       teacherClasses.push(added);
+      await FirebaseBackend.syncReleasedLevels([level]);
       input.value = "";
       renderTeachingClasses();
       if (level === course.level) await selectTeachingClass(added.id);

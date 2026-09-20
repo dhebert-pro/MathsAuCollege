@@ -49,7 +49,6 @@
       return courses.find((course) => course.id === id) || null;
     },
     async getPublished(id) {
-      if (publishedContents.has(id)) return publishedContents.get(id);
       if (!firebaseMode) return null;
       const course = await FirebaseBackend.getPublished(id);
       if (course) publishedContents.set(id, course);

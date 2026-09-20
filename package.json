@@ -1,13 +1,13 @@
 {
   "name": "maths-au-college",
   "private": true,
-  "version": "0.34.0",
+  "version": "0.35.0",
   "description": "Application de ressources de mathématiques pour les élèves du collège.",
   "scripts": {
     "vendor": "node scripts/copy-vendor.mjs",
     "build:firebase": "esbuild firebase-source.js --bundle --format=iife --global-name=MathsFirebaseBundle --outfile=firebase-bundle.js --minify",
     "build:site": "node scripts/build-site.mjs",
-    "check": "node --check app.js && node --check professeur.js && node --check presentation.js && node --check class-journal.js && node --check course-content.js && node --check course-package.js && node --check course-store.js && node --check pdf-export.js && node --check sw.js && node scripts/test-class-journal.mjs"
+    "check": "node --check app.js && node --check professeur.js && node --check presentation.js && node --check class-journal.js && node --check course-content.js && node --check course-package.js && node --check course-store.js && node --check course-release.mjs && node --check pdf-export.js && node --check sw.js && node scripts/test-class-journal.mjs && node scripts/test-course-release.mjs"
   },
   "dependencies": {
     "firebase": "12.16.0",
@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "esbuild": "0.28.1",
-    "firebase-tools": "15.23.0"
+    "firebase-tools": "15.23.0",
+    "google-auth-library": "9.15.1"
   }
 }
