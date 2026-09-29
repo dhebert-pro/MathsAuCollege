@@ -69,7 +69,8 @@
     pdf.setTextColor(18, 52, 72);
     pdf.setFont(FAMILY, "bold");
     pdf.setFontSize(17);
-    pdf.text("Interrogation de mathématiques", left, y);
+    const documentTitle = sheet.practice ? "Feuille d’entraînement" : "Interrogation de mathématiques";
+    pdf.text(documentTitle, left, y);
     pdf.setFont(FAMILY, "normal");
     pdf.setFontSize(9);
     pdf.setTextColor(77, 98, 109);
@@ -119,7 +120,7 @@
       y += 5;
     });
     footer();
-    pdf.setProperties({ title: `Interrogation ${sheet.level}e`, subject: "Mathématiques" });
+    pdf.setProperties({ title: `${sheet.practice ? "Entraînement" : "Interrogation"} ${sheet.level}e`, subject: "Mathématiques" });
     return pdf;
   }
 
@@ -128,7 +129,7 @@
     const url = URL.createObjectURL(pdf.output("blob"));
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${safeFilename(`interrogation-${sheet.level}e-${sheet.estimatedMinutes}min`)}.pdf`;
+    link.download = `${safeFilename(`${sheet.practice ? "entrainement" : "interrogation"}-${sheet.level}e-${sheet.estimatedMinutes}min`)}.pdf`;
     document.body.append(link);
     link.click();
     link.remove();

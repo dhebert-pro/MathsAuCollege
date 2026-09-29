@@ -114,12 +114,27 @@
       return;
     }
     container.innerHTML = banks.map((bank) => `
-      <div class="assessment-bank-row">
-        <strong>${escapeHtml(bank.level)}e</strong>
-        <span><strong>${escapeHtml(bank.chapterNumber ? `${bank.chapterNumber} - ${bank.courseTitle}` : bank.courseTitle)}</strong></span>
-        <span>${bank.exercises.length} exercice${bank.exercises.length > 1 ? "s" : ""}</span>
-        <button type="button" data-delete-assessment-bank="${escapeHtml(bank.courseId)}">Supprimer</button>
-      </div>
+      <article class="assessment-bank-card">
+        <div class="assessment-bank-row">
+          <strong>${escapeHtml(bank.level)}e</strong>
+          <span><strong>${escapeHtml(bank.chapterNumber ? `${bank.chapterNumber} - ${bank.courseTitle}` : bank.courseTitle)}</strong></span>
+          <span>${bank.exercises.length} exercice${bank.exercises.length > 1 ? "s" : ""}</span>
+          <button type="button" data-delete-assessment-bank="${escapeHtml(bank.courseId)}">Supprimer la banque</button>
+        </div>
+        <details class="assessment-exercise-details">
+          <summary>Voir et gérer les exercices</summary>
+          <div class="assessment-exercise-list">
+            ${bank.exercises.map((exercise) => `
+              <div class="assessment-exercise-row">
+                <code>${escapeHtml(exercise.id)}</code>
+                <strong>${escapeHtml(exercise.title)}</strong>
+                <span>Page${exercise.pages.length > 1 ? "s" : ""} ${exercise.pages.join(", ")} · ${exercise.durationMinutes} min · importance ${exercise.importance}/10</span>
+                <button type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button>
+              </div>
+            `).join("")}
+          </div>
+        </details>
+      </article>
     `).join("");
   }
 
@@ -138,14 +153,16 @@
       const byTitle = courses.find((course) => normalizeSearch(course.title) === normalizeSearch(imported.courseTitle));
       const course = exact || byChapter || byTitle;
       if (!course) throw new Error(`Aucun cours de ${imported.level}e ne correspond au chapitre ${imported.chapterNumber || imported.courseTitle}.`);
+      const existing = AssessmentStore.all().find((item) => item.courseId === course.id);
+      const merged = AssessmentBank.mergeExercises(existing?.exercises, imported.exercises);
       const bank = AssessmentBank.validate({
         format: imported.format,
         version: imported.version,
         course: { id: course.id, level: course.level, chapterNumber: course.chapterNumber, title: course.title, slideCount: course.slideCount },
-        exercises: imported.exercises,
+        exercises: merged.exercises,
       });
       await AssessmentStore.save(bank);
-      status.textContent = `${bank.exercises.length} exercices installés pour « ${CourseContent.displayTitle(course)} ». La banque précédente de ce chapitre a été remplacée.`;
+      status.textContent = `${bank.exercises.length} exercices disponibles pour « ${CourseContent.displayTitle(course)} » : ${merged.additions} ajouté${merged.additions > 1 ? "s" : ""}, ${merged.replacements} remplacé${merged.replacements > 1 ? "s" : ""} grâce à leur identifiant.`;
       toast("Banque d’exercices importée.");
       renderAssessmentBanks();
     } catch (error) {
@@ -1104,6 +1121,31 @@
   document.querySelector("#exercise-file-input").addEventListener("change", (event) => uploadExerciseFile(event.target));
   document.querySelector("#course-package-input").addEventListener("change", (event) => importCoursePackage(event.target));
   document.querySelector("#assessment-bank-input").addEventListener("change", (event) => importAssessmentBank(event.target));
+  const assessmentGuide = document.querySelector("#assessment-chatgpt-guide");
+  async function loadAssessmentInstructions() {
+    const instructions = document.querySelector("#assessment-chatgpt-instructions");
+    instructions.hidden = false;
+    if (assessmentGuide.dataset.loaded) return instructions.textContent;
+    instructions.textContent = "Chargement des consignes complètes…";
+    const response = await fetch("assets/consignes-chatgpt-evaluations.md");
+    if (!response.ok) throw new Error("Consignes indisponibles");
+    instructions.textContent = await response.text();
+    assessmentGuide.dataset.loaded = "true";
+    return instructions.textContent;
+  }
+  assessmentGuide.addEventListener("toggle", async () => {
+    if (!assessmentGuide.open || assessmentGuide.dataset.loaded) return;
+    try { await loadAssessmentInstructions(); }
+    catch { document.querySelector("#assessment-chatgpt-instructions").textContent = "Les consignes complètes ne sont pas disponibles hors connexion."; }
+  });
+  document.querySelector("#copy-assessment-chatgpt-request").addEventListener("click", async () => {
+    try {
+      const request = document.querySelector("#assessment-chatgpt-request").value;
+      const instructions = await loadAssessmentInstructions();
+      await navigator.clipboard.writeText(`${request}\n\n${instructions}`);
+      toast("Toutes les consignes pour ChatGPT ont été copiées.");
+    } catch { toast("La copie automatique est indisponible. Sélectionnez le message manuellement."); }
+  });
   rollbackImportButton.addEventListener("click", async () => {
     const backup = await CourseStore.getReplacementBackup().catch(() => null);
     if (!backup || !window.confirm(`Restaurer la version précédente de « ${CourseContent.displayTitle(backup.course)} » ? La version actuelle sera supprimée.`)) return;
@@ -1427,6 +1469,7 @@
     const move = event.target.closest("[data-move-course]");
     const deleteImage = event.target.closest("[data-delete-library-image]");
     const deleteAssessment = event.target.closest("[data-delete-assessment-bank]");
+    const deleteAssessmentExercise = event.target.closest("[data-delete-assessment-exercise]");
     if (edit) openEditor(edit.dataset.editCourse);
     if (present) window.open(`presentation.html?course=${encodeURIComponent(present.dataset.presentCourse)}&mode=teacher`, "_blank");
     if (deleteImage) {
@@ -1438,6 +1481,16 @@
       if (bank && window.confirm(`Supprimer la banque d’exercices de « ${bank.chapterNumber ? `${bank.chapterNumber} - ` : ""}${bank.courseTitle} » ?`)) {
         await AssessmentStore.remove(bank.courseId);
         toast("Banque d’exercices supprimée.");
+      }
+    }
+    if (deleteAssessmentExercise) {
+      const bank = AssessmentStore.all().find((item) => item.courseId === deleteAssessmentExercise.dataset.assessmentCourse);
+      const exercise = bank?.exercises.find((item) => item.id === deleteAssessmentExercise.dataset.deleteAssessmentExercise);
+      if (bank && exercise && window.confirm(`Supprimer l’exercice « ${exercise.title} » (${exercise.id}) ?`)) {
+        const exercises = bank.exercises.filter((item) => item.id !== exercise.id);
+        if (exercises.length) await AssessmentStore.save({ ...bank, exercises });
+        else await AssessmentStore.remove(bank.courseId);
+        toast("Exercice supprimé.");
       }
     }
     if (pdf) await runMutation(() => CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse)), "PDF généré.");

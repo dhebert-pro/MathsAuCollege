@@ -72,9 +72,28 @@
 .course-package-status { grid-column: 1 / -1; min-height: 1.2em; color: #285e4d !important; font-weight: 700; }
 .course-package-status.error { color: #93452e !important; }
 .assessment-bank-list { display: grid; gap: 9px; margin-top: 14px; }
-.assessment-bank-row { display: grid; grid-template-columns: 70px minmax(180px, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; background: #f8faf9; border: 1px solid var(--line); border-radius: 10px; }
+.assessment-bank-help { margin: 4px 0 14px; color: var(--muted); font-size: .84rem; }
+.assessment-bank-card { overflow: hidden; background: #f8faf9; border: 1px solid var(--line); border-radius: 10px; }
+.assessment-bank-row { display: grid; grid-template-columns: 70px minmax(180px, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; }
 .assessment-bank-row > span { color: var(--muted); font-size: .8rem; }
 .assessment-bank-row button { padding: 7px 10px; color: #963e32; background: white; border: 1px solid #dfbab5; border-radius: 7px; cursor: pointer; }
+.assessment-exercise-details { border-top: 1px solid var(--line); }
+.assessment-exercise-details summary { padding: 10px 14px; color: var(--blue); font-size: .8rem; font-weight: 800; cursor: pointer; }
+.assessment-exercise-list { display: grid; gap: 7px; padding: 0 14px 14px; }
+.assessment-exercise-row { display: grid; grid-template-columns: minmax(130px, .7fr) minmax(170px, 1fr) minmax(210px, 1.4fr) auto; align-items: center; gap: 10px; padding: 9px 10px; background: white; border: 1px solid #dce5e4; border-radius: 8px; }
+.assessment-exercise-row code { overflow-wrap: anywhere; color: #315d73; font-size: .75rem; }
+.assessment-exercise-row strong { font-size: .82rem; }
+.assessment-exercise-row span { color: var(--muted); font-size: .75rem; }
+.assessment-exercise-row button { padding: 6px 8px; color: #963e32; background: #fff7f5; border: 1px solid #e4c2bd; border-radius: 6px; cursor: pointer; }
+.chatgpt-guide { padding: 0; overflow: hidden; }
+.chatgpt-guide > summary { padding: 18px 22px; color: var(--blue); font-weight: 850; cursor: pointer; }
+.chatgpt-guide[open] > summary { border-bottom: 1px solid var(--line); }
+.chatgpt-guide-content { padding: 20px 22px 22px; }
+.chatgpt-guide-content ol { margin: 0 0 18px; padding-left: 22px; color: var(--muted); line-height: 1.65; }
+.chatgpt-guide-content label { display: block; margin-bottom: 7px; font-weight: 800; }
+#assessment-chatgpt-request { width: 100%; min-height: 140px; resize: vertical; line-height: 1.55; background: #f8faf9; }
+.chatgpt-guide-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
+.chatgpt-instructions { max-height: 520px; margin: 18px 0 0; padding: 16px; overflow: auto; white-space: pre-wrap; color: var(--ink); background: #f6f8f7; border: 1px solid var(--line); border-radius: 9px; font: .78rem/1.55 ui-monospace, Consolas, monospace; }
 .admin-view[data-admin-page="assessments"] > .assessment-generator { max-width: 1100px; }
 .admin-dialog { width: min(590px, calc(100% - 32px)); padding: 0; color: var(--ink); background: #fffdf9; border: 1px solid #cbd8da; border-radius: 18px; box-shadow: 0 24px 70px rgba(17, 50, 67, .25); }
 .admin-dialog::backdrop { background: rgba(12, 35, 48, .48); backdrop-filter: blur(3px); }
@@ -262,6 +281,7 @@ td:nth-child(2) { min-width: 220px; }
 @media (max-width: 760px) {
   .assessment-bank-row { grid-template-columns: auto 1fr; }
   .assessment-bank-row > span, .assessment-bank-row button { grid-column: 2; }
+  .assessment-exercise-row { grid-template-columns: 1fr; }
   .journal-filters { grid-template-columns: 1fr; }
   .journal-class-row { grid-template-columns: minmax(0, 1fr) 100px; }
   .journal-class-actions { grid-column: 1 / -1; }

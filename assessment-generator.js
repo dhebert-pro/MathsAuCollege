@@ -18,22 +18,25 @@
     if (element.dataset.assessmentMounted) return;
     element.dataset.assessmentMounted = "true";
     const fixedLevel = element.dataset.level === "all" ? "" : element.dataset.level;
+    const adminMode = element.dataset.mode === "admin";
     element.classList.add("assessment-generator");
     element.innerHTML = `
       <div class="assessment-generator-heading">
-        <div><p class="eyebrow">Interrogation aléatoire</p><h2>Créer une feuille d’interrogation</h2></div>
+        <div><p class="eyebrow">${adminMode ? "Interrogation aléatoire" : "Pour s’exercer"}</p><h2>${adminMode ? "Créer une feuille d’interrogation" : "Créer une feuille d’entraînement"}</h2></div>
         <span class="assessment-dice" aria-hidden="true">⌁</span>
       </div>
-      <p class="assessment-intro">Choisissez les pages à réviser et la durée souhaitée. Les mêmes critères sélectionnent les mêmes types d’exercices, avec de nouvelles valeurs à chaque génération.</p>
+      <p class="assessment-intro">${adminMode
+        ? "Choisissez les pages évaluées et la durée souhaitée. Les mêmes critères sélectionnent les mêmes types d’exercices, avec de nouvelles valeurs à chaque génération."
+        : "Choisis les pages que tu souhaites travailler et le temps dont tu disposes. Une feuille d’exercices adaptée sera créée pour t’entraîner."}</p>
       <div class="assessment-fields">
         ${fixedLevel ? "" : `<label>Niveau<select data-assessment-level>${window.CourseContent.LEVELS.map((level) => `<option value="${level}">${level}e</option>`).join("")}</select></label>`}
         <label>Durée<input data-assessment-duration type="number" min="5" max="120" step="5" value="20" /><span>minutes</span></label>
         <fieldset><legend>Depuis</legend><select data-assessment-start-course aria-label="Cours de départ"></select><select data-assessment-start-page aria-label="Page de départ"></select></fieldset>
         <fieldset><legend>Jusqu’à</legend><select data-assessment-end-course aria-label="Cours de fin"></select><select data-assessment-end-page aria-label="Page de fin"></select></fieldset>
       </div>
-      <div class="assessment-actions"><button type="button" data-assessment-generate>Générer le PDF</button><span data-assessment-status role="status" aria-live="polite"></span></div>
+      <div class="assessment-actions"><button type="button" data-assessment-generate>${adminMode ? "Générer l’interrogation" : "Créer ma feuille d’exercices"}</button><span data-assessment-status role="status" aria-live="polite"></span></div>
     `;
-    const state = { element, fixedLevel };
+    const state = { element, fixedLevel, adminMode };
     mounts.add(state);
     const level = element.querySelector("[data-assessment-level]");
     level?.addEventListener("change", () => refresh(state));
@@ -124,7 +127,7 @@
       const exercises = result.exercises
         .sort((a, b) => a.courseIndex - b.courseIndex || Math.min(...a.matchedPages) - Math.min(...b.matchedPages) || a.id.localeCompare(b.id))
         .map(window.AssessmentBank.instantiate);
-      await window.AssessmentPdf.download({ level, estimatedMinutes: result.estimatedMinutes, exercises });
+      await window.AssessmentPdf.download({ level, estimatedMinutes: result.estimatedMinutes, exercises, practice: !state.adminMode });
       status.textContent = `${exercises.length} exercice${exercises.length > 1 ? "s" : ""}, durée estimée : ${result.estimatedMinutes} min.`;
     } catch (error) {
       status.textContent = error.message || "La feuille n’a pas pu être générée.";

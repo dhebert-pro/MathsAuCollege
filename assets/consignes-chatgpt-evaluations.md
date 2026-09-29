@@ -17,6 +17,7 @@ Crée une banque riche et variée d'exercices d'évaluation portant uniquement s
 - n'introduis aucune notion qui n'a pas encore été présentée dans les pages indiquées ;
 - estime honnêtement la durée de chaque exercice pour un élève moyen, lecture et rédaction comprises ;
 - attribue une importance de 1 à 10. Un exercice type ou indispensable doit avoir une importance élevée et pourra être sélectionné plus souvent ;
+- attribue à chaque exercice un identifiant stable : l’application remplace automatiquement un exercice existant lorsqu’un nouvel import contient exactement le même `id` ;
 - prévois assez de modèles pour que des interrogations de 10 à 45 minutes soient variées ;
 - ne fournis ni solution, ni réponse, ni barème dans le fichier : ce fichier sera partiellement accessible aux élèves.
 
@@ -95,6 +96,7 @@ Structure obligatoire :
 - `importance` est un entier de 1 à 10.
 - `answerLines` est un entier de 0 à 20.
 - Chaque `id` est unique, stable, court et composé de lettres non accentuées, chiffres, tirets ou underscores.
+- Pour corriger ou faire évoluer un exercice déjà présent, conserve exactement son `id`. Pour ajouter un exercice réellement différent, crée un nouvel `id`.
 - Chaque variable utilisée dans `{{...}}` est définie dans `variables`.
 - Pour un `range`, `min`, `max` et `step` sont des nombres ; `exclude` est facultatif.
 - Pour un `choice`, `values` contient de 1 à 100 valeurs.

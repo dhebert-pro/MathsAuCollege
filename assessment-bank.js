@@ -158,6 +158,16 @@
     return shortest ? { exercises: [shortest], estimatedMinutes: shortest.durationMinutes } : { exercises: [], estimatedMinutes: 0 };
   }
 
+  function mergeExercises(current, incoming) {
+    const merged = new Map((Array.isArray(current) ? current : []).map((exercise) => [exercise.id, exercise]));
+    let replacements = 0;
+    (Array.isArray(incoming) ? incoming : []).forEach((exercise) => {
+      if (merged.has(exercise.id)) replacements += 1;
+      merged.set(exercise.id, exercise);
+    });
+    return { exercises: [...merged.values()], replacements, additions: (Array.isArray(incoming) ? incoming.length : 0) - replacements };
+  }
+
   function secureIndex(length) {
     if (length <= 1) return 0;
     const maximum = Math.floor(0x100000000 / length) * length;
@@ -187,5 +197,5 @@
     return { ...exercise, content, generatedValues: values };
   }
 
-  window.AssessmentBank = { FORMAT, VERSION, validate, read, hash, selectExercises, instantiate };
+  window.AssessmentBank = { FORMAT, VERSION, validate, read, hash, selectExercises, mergeExercises, instantiate };
 })();
