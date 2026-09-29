@@ -43,6 +43,7 @@
   function readableError(error) {
     const code = error?.code || "";
     if (code === "invalid-course-package") return error.message;
+    if (code === "invalid-assessment-bank") return error.message;
     if (code === "export-missing-asset") return error.message;
     if (code === "image-too-large") return "L’image reste trop lourde après compression.";
     if (code === "file-too-large") return "Le PDF dépasse la limite de 650 Ko.";
@@ -58,6 +59,7 @@
     accessGranted = false;
     ClassJournal.setUser(null);
     CourseStore.stopSubscriptions();
+    AssessmentStore.stop();
     adminApp.hidden = true;
     loginView.hidden = false;
     loginMessage.textContent = message;
@@ -74,7 +76,9 @@
       showLogin(readableError(error));
       FirebaseBackend.signOut().catch(() => {});
     });
+    AssessmentStore.startAdmin((error) => toast(readableError(error)));
     renderAll();
+    AssessmentGenerator.mountAll();
     refreshRollbackButton();
     const releaseStatus = document.querySelector("#release-status");
     releaseStatus.textContent = "Synchronisation des cours élèves…";
@@ -96,8 +100,61 @@
       refreshRollbackButton();
     }
     if (name === "images") renderImageLibrary();
+    if (name === "assessments") renderAssessmentBanks();
     if (name === "journal") refreshJournalClasses();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function renderAssessmentBanks() {
+    const container = document.querySelector("#assessment-bank-list");
+    if (!container) return;
+    const banks = AssessmentStore.all().sort((a, b) => a.level.localeCompare(b.level) || String(a.chapterNumber).localeCompare(String(b.chapterNumber), "fr", { numeric: true }));
+    if (!banks.length) {
+      container.innerHTML = '<p class="table-empty">Aucune banque d’exercices importée.</p>';
+      return;
+    }
+    container.innerHTML = banks.map((bank) => `
+      <div class="assessment-bank-row">
+        <strong>${escapeHtml(bank.level)}e</strong>
+        <span><strong>${escapeHtml(bank.chapterNumber ? `${bank.chapterNumber} - ${bank.courseTitle}` : bank.courseTitle)}</strong></span>
+        <span>${bank.exercises.length} exercice${bank.exercises.length > 1 ? "s" : ""}</span>
+        <button type="button" data-delete-assessment-bank="${escapeHtml(bank.courseId)}">Supprimer</button>
+      </div>
+    `).join("");
+  }
+
+  async function importAssessmentBank(input) {
+    const status = document.querySelector("#assessment-bank-status");
+    const file = input.files?.[0];
+    if (!file) return;
+    input.disabled = true;
+    status.classList.remove("error");
+    status.textContent = "Vérification du fichier…";
+    try {
+      const imported = await AssessmentBank.read(file);
+      const courses = CourseStore.all().filter((course) => course.level === imported.level);
+      const exact = imported.courseId ? courses.find((course) => course.id === imported.courseId) : null;
+      const byChapter = imported.chapterNumber ? courses.find((course) => normalizeSearch(course.chapterNumber) === normalizeSearch(imported.chapterNumber)) : null;
+      const byTitle = courses.find((course) => normalizeSearch(course.title) === normalizeSearch(imported.courseTitle));
+      const course = exact || byChapter || byTitle;
+      if (!course) throw new Error(`Aucun cours de ${imported.level}e ne correspond au chapitre ${imported.chapterNumber || imported.courseTitle}.`);
+      const bank = AssessmentBank.validate({
+        format: imported.format,
+        version: imported.version,
+        course: { id: course.id, level: course.level, chapterNumber: course.chapterNumber, title: course.title, slideCount: course.slideCount },
+        exercises: imported.exercises,
+      });
+      await AssessmentStore.save(bank);
+      status.textContent = `${bank.exercises.length} exercices installés pour « ${CourseContent.displayTitle(course)} ». La banque précédente de ce chapitre a été remplacée.`;
+      toast("Banque d’exercices importée.");
+      renderAssessmentBanks();
+    } catch (error) {
+      status.classList.add("error");
+      status.textContent = error?.code ? readableError(error) : (error.message || "L’import a échoué.");
+    } finally {
+      input.disabled = false;
+      input.value = "";
+    }
   }
 
   function journalError(error) {
@@ -989,9 +1046,11 @@
         format: CoursePackage.FORMAT,
         version: CoursePackage.VERSION,
         course: {
+          id: course.id,
           title: course.title,
           chapterNumber: course.chapterNumber,
           level: course.level,
+          slideCount: course.slideCount,
           blocks,
         },
         exercisePdf,
@@ -1044,6 +1103,7 @@
   document.querySelector("#cancel-editor").addEventListener("click", async () => { await cleanupNewUploads(); showView("courses"); });
   document.querySelector("#exercise-file-input").addEventListener("change", (event) => uploadExerciseFile(event.target));
   document.querySelector("#course-package-input").addEventListener("change", (event) => importCoursePackage(event.target));
+  document.querySelector("#assessment-bank-input").addEventListener("change", (event) => importAssessmentBank(event.target));
   rollbackImportButton.addEventListener("click", async () => {
     const backup = await CourseStore.getReplacementBackup().catch(() => null);
     if (!backup || !window.confirm(`Restaurer la version précédente de « ${CourseContent.displayTitle(backup.course)} » ? La version actuelle sera supprimée.`)) return;
@@ -1073,6 +1133,7 @@
   ["#admin-search", "#level-filter", "#status-filter"].forEach((selector) => document.querySelector(selector).addEventListener("input", renderTable));
   document.querySelectorAll("[data-add-block]").forEach((button) => button.addEventListener("click", () => addBlock(button.dataset.addBlock)));
   window.addEventListener("courses:changed", () => { if (accessGranted) renderAll(); });
+  window.addEventListener("assessments:changed", () => { if (accessGranted) renderAssessmentBanks(); });
 
   function rememberSelection(editor) {
     const selection = window.getSelection();
@@ -1365,11 +1426,19 @@
     const toggle = event.target.closest("[data-toggle-course]");
     const move = event.target.closest("[data-move-course]");
     const deleteImage = event.target.closest("[data-delete-library-image]");
+    const deleteAssessment = event.target.closest("[data-delete-assessment-bank]");
     if (edit) openEditor(edit.dataset.editCourse);
     if (present) window.open(`presentation.html?course=${encodeURIComponent(present.dataset.presentCourse)}&mode=teacher`, "_blank");
     if (deleteImage) {
       try { await deleteLibraryImage(deleteImage.dataset.deleteLibraryImage); }
       catch (error) { toast(readableError(error)); }
+    }
+    if (deleteAssessment) {
+      const bank = AssessmentStore.all().find((item) => item.courseId === deleteAssessment.dataset.deleteAssessmentBank);
+      if (bank && window.confirm(`Supprimer la banque d’exercices de « ${bank.chapterNumber ? `${bank.chapterNumber} - ` : ""}${bank.courseTitle} » ?`)) {
+        await AssessmentStore.remove(bank.courseId);
+        toast("Banque d’exercices supprimée.");
+      }
     }
     if (pdf) await runMutation(() => CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse)), "PDF généré.");
     if (exportButton) await exportCoursePackage(exportButton.dataset.exportCourse, exportButton);

@@ -73,6 +73,29 @@ async function readCourseFiles(courseId) {
   return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 }
 
+async function readAssessmentBanks() {
+  const snapshot = await getDocs(collection(db, "assessmentBanks"));
+  return snapshot.docs.map((item) => ({ courseId: item.id, ...item.data() }));
+}
+
+function releasedAssessmentBank(bank, releasedCourse) {
+  if (!bank || !releasedCourse?.blocks?.length) return null;
+  const maximumPage = releasedCourse.slideCount;
+  const exercises = (bank.exercises || []).filter((exercise) => exercise.pages.every((page) => page <= maximumPage));
+  return exercises.length ? { ...bank, exercises, slideCount: Math.min(bank.slideCount, maximumPage) } : null;
+}
+
+async function applyAssessmentReleases(batch, plan) {
+  const banks = await readAssessmentBanks();
+  banks.forEach((bank) => {
+    if (!plan.has(bank.courseId)) return;
+    const released = releasedAssessmentBank(bank, plan.get(bank.courseId));
+    const reference = doc(db, "publishedAssessmentBanks", bank.courseId);
+    if (released) batch.set(reference, released);
+    else batch.delete(reference);
+  });
+}
+
 async function readReleasePlan(courses, levels) {
   const snapshot = await getDocsFromServer(collection(db, "teacherClasses"));
   const classes = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => levels.includes(item.level));
@@ -86,6 +109,7 @@ async function readReleasePlan(courses, levels) {
 async function applyPublicReleases(batch, courses, levels) {
   const plan = await readReleasePlan(courses, levels);
   plan.forEach((course, id) => batch.set(doc(db, "publishedCourses", id), course));
+  await applyAssessmentReleases(batch, plan);
 }
 
 function stableStringify(value) {
@@ -156,6 +180,16 @@ window.FirebaseBackend = {
       onData(snapshot.docs.map((item) => normalizeCourse({ id: item.id, ...item.data() })), snapshot.metadata.fromCache);
     }, onError);
   },
+  subscribePublishedAssessmentBanks(onData, onError) {
+    return onSnapshot(collection(db, "publishedAssessmentBanks"), { includeMetadataChanges: true }, (snapshot) => {
+      onData(snapshot.docs.map((item) => ({ courseId: item.id, ...item.data() })), snapshot.metadata.fromCache);
+    }, onError);
+  },
+  subscribeAssessmentBanks(onData, onError) {
+    return onSnapshot(collection(db, "assessmentBanks"), { includeMetadataChanges: true }, (snapshot) => {
+      onData(snapshot.docs.map((item) => ({ courseId: item.id, ...item.data() })), snapshot.metadata.fromCache);
+    }, onError);
+  },
   async getPublished(id) {
     const snapshot = await getDocFromServer(doc(db, "publishedCourses", id));
     return snapshot.exists() ? normalizeCourse({ id: snapshot.id, ...snapshot.data() }) : null;
@@ -206,6 +240,30 @@ window.FirebaseBackend = {
   async deleteCourseFile(id) {
     await deleteDoc(doc(db, "courseFiles", id));
   },
+  async saveAssessmentBank(bank) {
+    const normalized = window.AssessmentBank.validate({
+      format: bank.format,
+      version: bank.version,
+      course: { id: bank.courseId, level: bank.level, chapterNumber: bank.chapterNumber, title: bank.courseTitle, slideCount: bank.slideCount },
+      exercises: bank.exercises,
+    });
+    const courseSnapshot = await getDocFromServer(doc(db, "courses", normalized.courseId));
+    if (!courseSnapshot.exists()) throw new Error("Cours introuvable");
+    const course = normalizeCourse({ id: courseSnapshot.id, ...courseSnapshot.data() });
+    if (course.level !== normalized.level) throw new Error("Le niveau du fichier ne correspond pas au cours");
+    await setDoc(doc(db, "assessmentBanks", normalized.courseId), normalized);
+    const releasedSnapshot = await getDocFromServer(doc(db, "publishedCourses", normalized.courseId));
+    const released = releasedSnapshot.exists() ? releasedAssessmentBank(normalized, releasedSnapshot.data()) : null;
+    if (released) await setDoc(doc(db, "publishedAssessmentBanks", normalized.courseId), released);
+    else await deleteDoc(doc(db, "publishedAssessmentBanks", normalized.courseId));
+    return normalized;
+  },
+  async deleteAssessmentBank(courseId) {
+    await Promise.all([
+      deleteDoc(doc(db, "assessmentBanks", courseId)),
+      deleteDoc(doc(db, "publishedAssessmentBanks", courseId)),
+    ]);
+  },
   async save(course) {
     const normalized = normalizeCourse(course);
     const [courses, images, files, backup] = await Promise.all([readAllCourses(), readCourseImages(normalized.id), readCourseFiles(normalized.id), readReplacementBackup()]);
@@ -214,7 +272,10 @@ window.FirebaseBackend = {
     const preservedCourse = backup?.course?.id === normalized.id ? backup.course : null;
     const batch = writeBatch(db);
     batch.set(doc(db, "courses", normalized.id), normalized);
-    if (normalized.status !== "published") batch.delete(doc(db, "publishedCourses", normalized.id));
+    if (normalized.status !== "published") {
+      batch.delete(doc(db, "publishedCourses", normalized.id));
+      batch.delete(doc(db, "publishedAssessmentBanks", normalized.id));
+    }
     await applyPublicReleases(batch, nextCourses, [...new Set([normalized.level, courses.find((item) => item.id === normalized.id)?.level].filter(Boolean))]);
     syncImages(batch, images, referencedIds, normalized.status === "published", referencedImageIds(preservedCourse));
     syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published", preservedCourse?.exerciseFileId);
@@ -245,7 +306,10 @@ window.FirebaseBackend = {
     const batch = writeBatch(db);
     batch.set(replacementBackupReference(), { course: current, createdAt: new Date().toISOString() });
     batch.set(doc(db, "courses", normalized.id), normalized);
-    if (normalized.status !== "published") batch.delete(doc(db, "publishedCourses", normalized.id));
+    if (normalized.status !== "published") {
+      batch.delete(doc(db, "publishedCourses", normalized.id));
+      batch.delete(doc(db, "publishedAssessmentBanks", normalized.id));
+    }
     await applyPublicReleases(batch, nextCourses, [...new Set([normalized.level, current.level])]);
     syncImages(batch, images, referencedImageIds(normalized), normalized.status === "published", referencedImageIds(current));
     syncFiles(batch, files, normalized.exerciseFileId, normalized.status === "published", current.exerciseFileId);
@@ -272,7 +336,10 @@ window.FirebaseBackend = {
     const nextCourses = [...courses.filter((item) => item.id !== restored.id), restored];
     const batch = writeBatch(db);
     batch.set(doc(db, "courses", restored.id), restored);
-    if (restored.status !== "published") batch.delete(doc(db, "publishedCourses", restored.id));
+    if (restored.status !== "published") {
+      batch.delete(doc(db, "publishedCourses", restored.id));
+      batch.delete(doc(db, "publishedAssessmentBanks", restored.id));
+    }
     await applyPublicReleases(batch, nextCourses, [restored.level]);
     syncImages(batch, images, referencedImageIds(restored), restored.status === "published");
     syncFiles(batch, files, restored.exerciseFileId, restored.status === "published");
@@ -298,6 +365,8 @@ window.FirebaseBackend = {
     const batch = writeBatch(db);
     batch.delete(doc(db, "courses", id));
     batch.delete(doc(db, "publishedCourses", id));
+    batch.delete(doc(db, "assessmentBanks", id));
+    batch.delete(doc(db, "publishedAssessmentBanks", id));
     await applyPublicReleases(batch, courses.filter((course) => course.id !== id), [courses.find((course) => course.id === id)?.level].filter(Boolean));
     images.forEach((image) => batch.delete(doc(db, "courseImages", image.id)));
     files.forEach((file) => batch.delete(doc(db, "courseFiles", file.id)));
@@ -319,6 +388,7 @@ window.FirebaseBackend = {
         changes += 1;
       }
     });
-    if (changes) await batch.commit();
+    await applyAssessmentReleases(batch, plan);
+    await batch.commit();
   },
 };

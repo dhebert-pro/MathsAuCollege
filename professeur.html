@@ -7,8 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.35.2" />
-    <link rel="stylesheet" href="professeur.css?v=0.35.2" />
+    <link rel="stylesheet" href="styles.css?v=0.36.0" />
+    <link rel="stylesheet" href="professeur.css?v=0.36.0" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -28,7 +28,7 @@
           <div id="login-message" class="form-message" role="status"></div>
         </div>
         <a class="back-link" href="index.html">← Retour aux cours</a>
-        <span class="app-version login-version">v0.35.2</span>
+        <span class="app-version login-version">v0.36.0</span>
       </section>
 
       <section id="admin-app" class="admin-app" hidden>
@@ -41,13 +41,14 @@
             <button type="button" data-admin-view="dashboard" class="active"><span aria-hidden="true">⌂</span> Tableau de bord</button>
             <button type="button" data-admin-view="courses"><span aria-hidden="true">▤</span> Tous les cours</button>
             <button type="button" data-admin-view="journal"><span aria-hidden="true">✎</span> Cahier de texte</button>
+            <button type="button" data-admin-view="assessments"><span aria-hidden="true">✓</span> Évaluations</button>
             <button type="button" data-admin-view="images"><span aria-hidden="true">▧</span> Images</button>
             <button type="button" data-admin-view="editor"><span aria-hidden="true">＋</span> Ajouter un cours</button>
           </nav>
           <div class="sidebar-bottom">
             <a href="index.html">Voir les cours ↗</a>
             <button id="logout" type="button">Se déconnecter</button>
-            <span class="app-version">v0.35.2</span>
+            <span class="app-version">v0.36.0</span>
           </div>
         </aside>
 
@@ -125,6 +126,27 @@
               </div>
               <div id="table-empty" class="table-empty" hidden>Aucun cours ne correspond aux filtres.</div>
             </section>
+          </section>
+
+          <section class="admin-view" data-admin-page="assessments" hidden>
+            <div class="admin-heading"><div><p class="eyebrow">Interrogations</p><h1>Évaluations aléatoires</h1><p>Importez les modèles préparés par ChatGPT, puis générez des feuilles selon les pages travaillées.</p></div></div>
+            <section class="admin-panel course-import-panel" aria-labelledby="assessment-import-title">
+              <div>
+                <p class="eyebrow">Création avec ChatGPT</p>
+                <h2 id="assessment-import-title">Importer une banque d’exercices</h2>
+                <p>Exportez d’abord le cours concerné pour le joindre à ChatGPT avec les consignes. Le fichier <code>.mathseval</code> reçu remplacera la banque précédente de ce chapitre.</p>
+              </div>
+              <div class="course-import-actions">
+                <a class="admin-button secondary" href="assets/consignes-chatgpt-evaluations.md" download>Consignes pour ChatGPT</a>
+                <label class="admin-button primary course-package-upload">Importer des exercices<input id="assessment-bank-input" type="file" accept=".mathseval,application/json" /></label>
+              </div>
+              <p id="assessment-bank-status" class="course-package-status" role="status" aria-live="polite"></p>
+            </section>
+            <section class="admin-panel">
+              <h2>Banques installées</h2>
+              <div id="assessment-bank-list" class="assessment-bank-list"></div>
+            </section>
+            <div data-assessment-generator data-level="all" data-mode="admin"></div>
           </section>
 
           <section class="admin-view" data-admin-page="images" hidden>
@@ -208,14 +230,18 @@
       </form>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.35.2" defer></script>
-    <script src="course-content.js?v=0.35.2" defer></script>
-    <script src="firebase-config.js?v=0.35.2" defer></script>
-    <script src="firebase-bundle.js?v=0.35.2" defer></script>
-    <script src="course-store.js?v=0.35.2" defer></script>
-    <script src="pdf-export.js?v=0.35.2" defer></script>
-    <script src="course-package.js?v=0.35.2" defer></script>
-    <script src="class-journal.js?v=0.35.2" defer></script>
-    <script src="professeur.js?v=0.35.2" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.36.0" defer></script>
+    <script src="course-content.js?v=0.36.0" defer></script>
+    <script src="firebase-config.js?v=0.36.0" defer></script>
+    <script src="firebase-bundle.js?v=0.36.0" defer></script>
+    <script src="course-store.js?v=0.36.0" defer></script>
+    <script src="pdf-export.js?v=0.36.0" defer></script>
+    <script src="course-package.js?v=0.36.0" defer></script>
+    <script src="assessment-bank.js?v=0.36.0" defer></script>
+    <script src="assessment-store.js?v=0.36.0" defer></script>
+    <script src="assessment-pdf.js?v=0.36.0" defer></script>
+    <script src="assessment-generator.js?v=0.36.0" defer></script>
+    <script src="class-journal.js?v=0.36.0" defer></script>
+    <script src="professeur.js?v=0.36.0" defer></script>
   </body>
 </html>

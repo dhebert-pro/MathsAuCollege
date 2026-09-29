@@ -9,7 +9,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css?v=0.35.2" />
+    <link rel="stylesheet" href="styles.css?v=0.36.0" />
     <title>Maths au collège</title>
   </head>
   <body>
@@ -60,6 +60,7 @@
           <div><strong id="course-count-6">0 cours</strong><span> publié(s)</span></div>
           <label class="search-field">Rechercher <input type="search" data-course-search="6" placeholder="Numéro ou nom du chapitre" /></label>
         </div>
+        <div data-assessment-generator data-level="6"></div>
         <div id="course-grid-6" class="student-course-grid"></div>
         <div id="course-empty-6" class="empty-space" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2></div>
       </section>
@@ -73,6 +74,7 @@
           <div><strong id="course-count-5">0 cours</strong><span> publié(s)</span></div>
           <label class="search-field">Rechercher <input type="search" data-course-search="5" placeholder="Numéro ou nom du chapitre" /></label>
         </div>
+        <div data-assessment-generator data-level="5"></div>
         <div id="course-grid-5" class="student-course-grid"></div>
         <div id="course-empty-5" class="empty-space" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2></div>
       </section>
@@ -86,6 +88,7 @@
           <div><strong id="course-count-4">0 cours</strong><span> publié(s)</span></div>
           <label class="search-field">Rechercher <input type="search" data-course-search="4" placeholder="Numéro ou nom du chapitre" /></label>
         </div>
+        <div data-assessment-generator data-level="4"></div>
         <div id="course-grid-4" class="student-course-grid"></div>
         <div id="course-empty-4" class="empty-space" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2></div>
       </section>
@@ -99,6 +102,7 @@
           <div><strong id="course-count-3">0 cours</strong><span> publié(s)</span></div>
           <label class="search-field">Rechercher <input type="search" data-course-search="3" placeholder="Numéro ou nom du chapitre" /></label>
         </div>
+        <div data-assessment-generator data-level="3"></div>
         <div id="course-grid-3" class="student-course-grid"></div>
         <div id="course-empty-3" class="empty-space" hidden><span aria-hidden="true">＋</span><h2>Aucun cours publié</h2></div>
       </section>
@@ -117,15 +121,19 @@
     <footer>
       <p>Maths au collège</p>
       <p><span id="network-status" class="status-dot"></span> <span id="network-label">En ligne</span></p>
-      <p class="app-version">v0.35.2</p>
+      <p class="app-version">v0.36.0</p>
     </footer>
 
-    <script src="vendor/jspdf.umd.min.js?v=0.35.2" defer></script>
-    <script src="course-content.js?v=0.35.2" defer></script>
-    <script src="firebase-config.js?v=0.35.2" defer></script>
-    <script src="firebase-bundle.js?v=0.35.2" defer></script>
-    <script src="course-store.js?v=0.35.2" defer></script>
-    <script src="pdf-export.js?v=0.35.2" defer></script>
-    <script src="app.js?v=0.35.2" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.36.0" defer></script>
+    <script src="course-content.js?v=0.36.0" defer></script>
+    <script src="firebase-config.js?v=0.36.0" defer></script>
+    <script src="firebase-bundle.js?v=0.36.0" defer></script>
+    <script src="course-store.js?v=0.36.0" defer></script>
+    <script src="pdf-export.js?v=0.36.0" defer></script>
+    <script src="assessment-bank.js?v=0.36.0" defer></script>
+    <script src="assessment-store.js?v=0.36.0" defer></script>
+    <script src="assessment-pdf.js?v=0.36.0" defer></script>
+    <script src="assessment-generator.js?v=0.36.0" defer></script>
+    <script src="app.js?v=0.36.0" defer></script>
   </body>
 </html>

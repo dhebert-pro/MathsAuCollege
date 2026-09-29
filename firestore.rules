@@ -73,6 +73,22 @@ service cloud.firestore {
         && data.createdAt is string;
     }
 
+    function validAssessmentBank(data, courseId) {
+      return data.keys().hasOnly([
+          'format', 'version', 'courseId', 'level', 'chapterNumber',
+          'courseTitle', 'slideCount', 'exercises', 'updatedAt'
+        ])
+        && data.format == 'maths-au-college/assessment-bank'
+        && data.version == 1
+        && data.courseId == courseId
+        && data.level in ['6', '5', '4', '3']
+        && data.chapterNumber is string && data.chapterNumber.size() <= 20
+        && data.courseTitle is string && data.courseTitle.size() > 0 && data.courseTitle.size() <= 120
+        && data.slideCount is int && data.slideCount >= 1 && data.slideCount <= 200
+        && data.exercises is list && data.exercises.size() > 0 && data.exercises.size() <= 200
+        && data.updatedAt is string;
+    }
+
     match /courses/{courseId} {
       allow read: if isProfessor();
       allow create, update: if isProfessor()
@@ -124,6 +140,18 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['course', 'createdAt'])
         && validCourse(request.resource.data.course)
         && request.resource.data.createdAt is string;
+    }
+
+    match /assessmentBanks/{courseId} {
+      allow read: if isProfessor();
+      allow create, update: if isProfessor() && validAssessmentBank(request.resource.data, courseId);
+      allow delete: if isProfessor();
+    }
+
+    match /publishedAssessmentBanks/{courseId} {
+      allow read: if true;
+      allow create, update: if isProfessor() && validAssessmentBank(request.resource.data, courseId);
+      allow delete: if isProfessor();
     }
 
     match /teacherClasses/{classId} {

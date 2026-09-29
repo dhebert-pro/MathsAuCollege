@@ -90,6 +90,8 @@
   window.addEventListener("offline", updateNetworkStatus);
   window.addEventListener("courses:changed", renderAllCourses);
   CourseStore.startPublic();
+  AssessmentStore.startPublic();
+  AssessmentGenerator.mountAll();
   showPage();
   updateNetworkStatus();
   if ("serviceWorker" in navigator) {

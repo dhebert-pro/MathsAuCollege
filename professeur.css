@@ -71,6 +71,11 @@
 .course-package-upload.is-busy { cursor: wait; opacity: .55; }
 .course-package-status { grid-column: 1 / -1; min-height: 1.2em; color: #285e4d !important; font-weight: 700; }
 .course-package-status.error { color: #93452e !important; }
+.assessment-bank-list { display: grid; gap: 9px; margin-top: 14px; }
+.assessment-bank-row { display: grid; grid-template-columns: 70px minmax(180px, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; background: #f8faf9; border: 1px solid var(--line); border-radius: 10px; }
+.assessment-bank-row > span { color: var(--muted); font-size: .8rem; }
+.assessment-bank-row button { padding: 7px 10px; color: #963e32; background: white; border: 1px solid #dfbab5; border-radius: 7px; cursor: pointer; }
+.admin-view[data-admin-page="assessments"] > .assessment-generator { max-width: 1100px; }
 .admin-dialog { width: min(590px, calc(100% - 32px)); padding: 0; color: var(--ink); background: #fffdf9; border: 1px solid #cbd8da; border-radius: 18px; box-shadow: 0 24px 70px rgba(17, 50, 67, .25); }
 .admin-dialog::backdrop { background: rgba(12, 35, 48, .48); backdrop-filter: blur(3px); }
 .admin-dialog form { padding: 28px; }
@@ -255,6 +260,8 @@ td:nth-child(2) { min-width: 220px; }
   .editor-page-navigation { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
+  .assessment-bank-row { grid-template-columns: auto 1fr; }
+  .assessment-bank-row > span, .assessment-bank-row button { grid-column: 2; }
   .journal-filters { grid-template-columns: 1fr; }
   .journal-class-row { grid-template-columns: minmax(0, 1fr) 100px; }
   .journal-class-actions { grid-column: 1 / -1; }
