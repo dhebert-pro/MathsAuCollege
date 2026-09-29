@@ -111,31 +111,49 @@
     const banks = AssessmentStore.all().sort((a, b) => a.level.localeCompare(b.level) || String(a.chapterNumber).localeCompare(String(b.chapterNumber), "fr", { numeric: true }));
     if (!banks.length) {
       container.innerHTML = '<p class="table-empty">Aucune banque d’exercices importée.</p>';
+      renderAssessmentExerciseTable([]);
       return;
     }
     container.innerHTML = banks.map((bank) => `
-      <article class="assessment-bank-card">
-        <div class="assessment-bank-row">
-          <strong>${escapeHtml(bank.level)}e</strong>
-          <span><strong>${escapeHtml(bank.chapterNumber ? `${bank.chapterNumber} - ${bank.courseTitle}` : bank.courseTitle)}</strong></span>
-          <span>${bank.exercises.length} exercice${bank.exercises.length > 1 ? "s" : ""}</span>
-          <button type="button" data-delete-assessment-bank="${escapeHtml(bank.courseId)}">Supprimer la banque</button>
-        </div>
-        <details class="assessment-exercise-details">
-          <summary>Voir et gérer les exercices</summary>
-          <div class="assessment-exercise-list">
-            ${bank.exercises.map((exercise) => `
-              <div class="assessment-exercise-row">
-                <code>${escapeHtml(exercise.id)}</code>
-                <strong>${escapeHtml(exercise.title)}</strong>
-                <span>Page${exercise.pages.length > 1 ? "s" : ""} ${exercise.pages.join(", ")} · ${exercise.durationMinutes} min · importance ${exercise.importance}/10</span>
-                <button type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button>
-              </div>
-            `).join("")}
-          </div>
-        </details>
-      </article>
+      <div class="assessment-bank-row">
+        <strong>${escapeHtml(bank.level)}e</strong>
+        <span><strong>${escapeHtml(bank.chapterNumber ? `${bank.chapterNumber} - ${bank.courseTitle}` : bank.courseTitle)}</strong></span>
+        <span>${bank.exercises.length} exercice${bank.exercises.length > 1 ? "s" : ""}</span>
+        <button type="button" data-delete-assessment-bank="${escapeHtml(bank.courseId)}">Supprimer la banque</button>
+      </div>
     `).join("");
+    renderAssessmentExerciseTable(banks);
+  }
+
+  function renderAssessmentExerciseTable(sourceBanks = AssessmentStore.all()) {
+    const body = document.querySelector("#assessment-exercise-table-body");
+    const empty = document.querySelector("#assessment-exercise-empty");
+    if (!body || !empty) return;
+    const query = normalizeSearch(document.querySelector("#assessment-exercise-search")?.value || "");
+    const selectedLevel = document.querySelector("#assessment-exercise-level")?.value || "all";
+    const exercises = sourceBanks.flatMap((bank) => bank.exercises.map((exercise) => ({ bank, exercise })))
+      .filter(({ bank, exercise }) => {
+        if (selectedLevel !== "all" && bank.level !== selectedLevel) return false;
+        return !query || normalizeSearch([exercise.id, exercise.title, exercise.content, bank.chapterNumber, bank.courseTitle].join(" ")).includes(query);
+      })
+      .sort((a, b) => a.bank.level.localeCompare(b.bank.level)
+        || String(a.bank.chapterNumber).localeCompare(String(b.bank.chapterNumber), "fr", { numeric: true })
+        || Math.min(...a.exercise.pages) - Math.min(...b.exercise.pages)
+        || a.exercise.id.localeCompare(b.exercise.id, "fr"));
+    body.innerHTML = exercises.map(({ bank, exercise }) => `
+      <tr>
+        <td><code class="assessment-exercise-id">${escapeHtml(exercise.id)}</code></td>
+        <td><strong>${escapeHtml(exercise.title)}</strong></td>
+        <td><span class="assessment-level-chip">${escapeHtml(bank.level)}e</span></td>
+        <td>${escapeHtml(bank.chapterNumber ? `${bank.chapterNumber} - ${bank.courseTitle}` : bank.courseTitle)}</td>
+        <td>${exercise.pages.join(", ")}</td>
+        <td>${exercise.durationMinutes} min</td>
+        <td>${exercise.importance}/10</td>
+        <td><div class="assessment-exercise-statement">${escapeHtml(exercise.content).replace(/\n/g, "<br>")}</div></td>
+        <td><button class="assessment-exercise-delete" type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button></td>
+      </tr>
+    `).join("");
+    empty.hidden = Boolean(exercises.length);
   }
 
   async function importAssessmentBank(input) {
@@ -1173,6 +1191,7 @@
   });
   document.querySelector("#reset-order").addEventListener("click", () => runMutation(() => CourseStore.resetOrder(document.querySelector("#level-filter").value), "Tri automatique rétabli."));
   ["#admin-search", "#level-filter", "#status-filter"].forEach((selector) => document.querySelector(selector).addEventListener("input", renderTable));
+  ["#assessment-exercise-search", "#assessment-exercise-level"].forEach((selector) => document.querySelector(selector).addEventListener("input", () => renderAssessmentExerciseTable()));
   document.querySelectorAll("[data-add-block]").forEach((button) => button.addEventListener("click", () => addBlock(button.dataset.addBlock)));
   window.addEventListener("courses:changed", () => { if (accessGranted) renderAll(); });
   window.addEventListener("assessments:changed", () => { if (accessGranted) renderAssessmentBanks(); });

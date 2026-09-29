@@ -7,8 +7,8 @@
     <meta name="referrer" content="no-referrer" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=0.36.1" />
-    <link rel="stylesheet" href="professeur.css?v=0.36.1" />
+    <link rel="stylesheet" href="styles.css?v=0.36.2" />
+    <link rel="stylesheet" href="professeur.css?v=0.36.2" />
     <title>Espace professeur · Maths au collège</title>
   </head>
   <body class="admin-body">
@@ -28,7 +28,7 @@
           <div id="login-message" class="form-message" role="status"></div>
         </div>
         <a class="back-link" href="index.html">← Retour aux cours</a>
-        <span class="app-version login-version">v0.36.1</span>
+        <span class="app-version login-version">v0.36.2</span>
       </section>
 
       <section id="admin-app" class="admin-app" hidden>
@@ -48,7 +48,7 @@
           <div class="sidebar-bottom">
             <a href="index.html">Voir les cours ↗</a>
             <button id="logout" type="button">Se déconnecter</button>
-            <span class="app-version">v0.36.1</span>
+            <span class="app-version">v0.36.2</span>
           </div>
         </aside>
 
@@ -162,8 +162,24 @@
             </details>
             <section class="admin-panel">
               <h2>Banques installées</h2>
-              <p class="assessment-bank-help">Dépliez un chapitre pour voir les identifiants, les durées et supprimer un exercice isolé.</p>
+              <p class="assessment-bank-help">Chaque chapitre possède sa banque. L’import complète la banque et remplace les exercices portant un identifiant déjà présent.</p>
               <div id="assessment-bank-list" class="assessment-bank-list"></div>
+            </section>
+            <section class="admin-panel table-panel assessment-exercises-panel">
+              <div class="panel-heading">
+                <div><h2>Tous les exercices disponibles</h2><p>Consultez et gérez tous les modèles utilisables pour générer les feuilles.</p></div>
+              </div>
+              <div class="assessment-exercise-toolbar">
+                <label class="admin-search">Rechercher<input id="assessment-exercise-search" type="search" placeholder="ID, titre, chapitre ou énoncé" /></label>
+                <label>Filtrer par niveau<select id="assessment-exercise-level"><option value="all">Tous</option><option value="6">6e</option><option value="5">5e</option><option value="4">4e</option><option value="3">3e</option></select></label>
+              </div>
+              <div class="table-scroll">
+                <table class="assessment-exercise-table">
+                  <thead><tr><th scope="col">ID</th><th scope="col">Exercice</th><th scope="col">Niveau</th><th scope="col">Chapitre</th><th scope="col">Pages</th><th scope="col">Durée</th><th scope="col">Importance</th><th scope="col">Énoncé</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+                  <tbody id="assessment-exercise-table-body"></tbody>
+                </table>
+              </div>
+              <div id="assessment-exercise-empty" class="table-empty" hidden>Aucun exercice ne correspond aux filtres.</div>
             </section>
             <div data-assessment-generator data-level="all" data-mode="admin"></div>
           </section>
@@ -249,18 +265,18 @@
       </form>
     </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="vendor/jspdf.umd.min.js?v=0.36.1" defer></script>
-    <script src="course-content.js?v=0.36.1" defer></script>
-    <script src="firebase-config.js?v=0.36.1" defer></script>
-    <script src="firebase-bundle.js?v=0.36.1" defer></script>
-    <script src="course-store.js?v=0.36.1" defer></script>
-    <script src="pdf-export.js?v=0.36.1" defer></script>
-    <script src="course-package.js?v=0.36.1" defer></script>
-    <script src="assessment-bank.js?v=0.36.1" defer></script>
-    <script src="assessment-store.js?v=0.36.1" defer></script>
-    <script src="assessment-pdf.js?v=0.36.1" defer></script>
-    <script src="assessment-generator.js?v=0.36.1" defer></script>
-    <script src="class-journal.js?v=0.36.1" defer></script>
-    <script src="professeur.js?v=0.36.1" defer></script>
+    <script src="vendor/jspdf.umd.min.js?v=0.36.2" defer></script>
+    <script src="course-content.js?v=0.36.2" defer></script>
+    <script src="firebase-config.js?v=0.36.2" defer></script>
+    <script src="firebase-bundle.js?v=0.36.2" defer></script>
+    <script src="course-store.js?v=0.36.2" defer></script>
+    <script src="pdf-export.js?v=0.36.2" defer></script>
+    <script src="course-package.js?v=0.36.2" defer></script>
+    <script src="assessment-bank.js?v=0.36.2" defer></script>
+    <script src="assessment-store.js?v=0.36.2" defer></script>
+    <script src="assessment-pdf.js?v=0.36.2" defer></script>
+    <script src="assessment-generator.js?v=0.36.2" defer></script>
+    <script src="class-journal.js?v=0.36.2" defer></script>
+    <script src="professeur.js?v=0.36.2" defer></script>
   </body>
 </html>
