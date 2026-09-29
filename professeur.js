@@ -28,6 +28,7 @@
   let savedSelectionRange = null;
   let savedSelectionEditor = null;
   let blockVisibilityObserver = null;
+  let assessmentPreviewSelection = null;
 
   const escapeHtml = CourseContent.escapeHtml;
   const normalizeSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -150,10 +151,31 @@
         <td>${exercise.durationMinutes} min</td>
         <td>${exercise.importance}/10</td>
         <td><div class="assessment-exercise-statement">${escapeHtml(exercise.content).replace(/\n/g, "<br>")}</div></td>
-        <td><button class="assessment-exercise-delete" type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button></td>
+        <td><div class="assessment-exercise-actions"><button class="assessment-exercise-preview" type="button" data-preview-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Visualiser</button><button class="assessment-exercise-delete" type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button></div></td>
       </tr>
     `).join("");
     empty.hidden = Boolean(exercises.length);
+  }
+
+  function renderAssessmentExercisePreview() {
+    if (!assessmentPreviewSelection) return;
+    const { bank, exercise } = assessmentPreviewSelection;
+    const generated = AssessmentBank.instantiate(exercise);
+    document.querySelector("#assessment-preview-title").textContent = exercise.title;
+    document.querySelector("#assessment-preview-exercise-title").textContent = exercise.title;
+    document.querySelector("#assessment-preview-id").textContent = exercise.id;
+    document.querySelector("#assessment-preview-meta").textContent = `${bank.level}e · ${bank.chapterNumber ? `Chapitre ${bank.chapterNumber} · ` : ""}Page${exercise.pages.length > 1 ? "s" : ""} ${exercise.pages.join(", ")} · ${exercise.durationMinutes} min · importance ${exercise.importance}/10`;
+    document.querySelector("#assessment-preview-content").innerHTML = escapeHtml(generated.content).replace(/\n/g, "<br>");
+    document.querySelector("#assessment-preview-lines").innerHTML = Array.from({ length: exercise.answerLines }, () => "<span></span>").join("");
+  }
+
+  function openAssessmentExercisePreview(courseId, exerciseId) {
+    const bank = AssessmentStore.all().find((item) => item.courseId === courseId);
+    const exercise = bank?.exercises.find((item) => item.id === exerciseId);
+    if (!bank || !exercise) return;
+    assessmentPreviewSelection = { bank, exercise };
+    renderAssessmentExercisePreview();
+    document.querySelector("#assessment-preview-dialog").showModal();
   }
 
   async function importAssessmentBank(input) {
@@ -1164,6 +1186,7 @@
       toast("Toutes les consignes pour ChatGPT ont été copiées.");
     } catch { toast("La copie automatique est indisponible. Sélectionnez le message manuellement."); }
   });
+  document.querySelector("#assessment-preview-reroll").addEventListener("click", renderAssessmentExercisePreview);
   rollbackImportButton.addEventListener("click", async () => {
     const backup = await CourseStore.getReplacementBackup().catch(() => null);
     if (!backup || !window.confirm(`Restaurer la version précédente de « ${CourseContent.displayTitle(backup.course)} » ? La version actuelle sera supprimée.`)) return;
@@ -1489,6 +1512,7 @@
     const deleteImage = event.target.closest("[data-delete-library-image]");
     const deleteAssessment = event.target.closest("[data-delete-assessment-bank]");
     const deleteAssessmentExercise = event.target.closest("[data-delete-assessment-exercise]");
+    const previewAssessmentExercise = event.target.closest("[data-preview-assessment-exercise]");
     if (edit) openEditor(edit.dataset.editCourse);
     if (present) window.open(`presentation.html?course=${encodeURIComponent(present.dataset.presentCourse)}&mode=teacher`, "_blank");
     if (deleteImage) {
@@ -1512,6 +1536,7 @@
         toast("Exercice supprimé.");
       }
     }
+    if (previewAssessmentExercise) openAssessmentExercisePreview(previewAssessmentExercise.dataset.assessmentCourse, previewAssessmentExercise.dataset.previewAssessmentExercise);
     if (pdf) await runMutation(() => CoursePdf.download(CourseStore.get(pdf.dataset.pdfCourse)), "PDF généré.");
     if (exportButton) await exportCoursePackage(exportButton.dataset.exportCourse, exportButton);
     if (duplicate) await runMutation(() => CourseStore.duplicate(duplicate.dataset.duplicateCourse), "Copie créée en brouillon.");
