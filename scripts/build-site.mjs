@@ -21,6 +21,7 @@ const files = [
   "course-store.js",
   "course-release.mjs",
   "assessment-bank.js",
+  "assessment-render.js",
   "assessment-store.js",
   "assessment-pdf.js",
   "assessment-generator.js",

@@ -1,13 +1,13 @@
 {
   "name": "maths-au-college",
   "private": true,
-  "version": "0.36.3",
+  "version": "0.37.0",
   "description": "Application de ressources de mathématiques pour les élèves du collège.",
   "scripts": {
     "vendor": "node scripts/copy-vendor.mjs",
     "build:firebase": "esbuild firebase-source.js --bundle --format=iife --global-name=MathsFirebaseBundle --outfile=firebase-bundle.js --minify",
     "build:site": "node scripts/build-site.mjs",
-    "check": "node --check app.js && node --check professeur.js && node --check presentation.js && node --check class-journal.js && node --check course-content.js && node --check course-package.js && node --check course-store.js && node --check course-release.mjs && node --check assessment-bank.js && node --check assessment-store.js && node --check assessment-pdf.js && node --check assessment-generator.js && node --check pdf-export.js && node --check sw.js && node scripts/test-class-journal.mjs && node scripts/test-course-release.mjs && node scripts/test-assessment-bank.mjs"
+    "check": "node --check app.js && node --check professeur.js && node --check presentation.js && node --check class-journal.js && node --check course-content.js && node --check course-package.js && node --check course-store.js && node --check course-release.mjs && node --check assessment-bank.js && node --check assessment-render.js && node --check assessment-store.js && node --check assessment-pdf.js && node --check assessment-generator.js && node --check pdf-export.js && node --check sw.js && node scripts/test-class-journal.mjs && node scripts/test-course-release.mjs && node scripts/test-assessment-bank.mjs"
   },
   "dependencies": {
     "firebase": "12.16.0",

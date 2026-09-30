@@ -31,6 +31,7 @@
       <div class="assessment-fields">
         ${fixedLevel ? "" : `<label>Niveau<select data-assessment-level>${window.CourseContent.LEVELS.map((level) => `<option value="${level}">${level}e</option>`).join("")}</select></label>`}
         <label>Durée<input data-assessment-duration type="number" min="5" max="120" step="5" value="20" /><span>minutes</span></label>
+        <label>Calculatrice<select data-assessment-calculator><option value="">Choisir…</option><option value="forbidden">Non autorisée</option><option value="allowed">Autorisée</option></select></label>
         <fieldset><legend>Depuis</legend><select data-assessment-start-course aria-label="Cours de départ"></select><select data-assessment-start-page aria-label="Page de départ"></select></fieldset>
         <fieldset><legend>Jusqu’à</legend><select data-assessment-end-course aria-label="Cours de fin"></select><select data-assessment-end-page aria-label="Page de fin"></select></fieldset>
       </div>
@@ -120,6 +121,8 @@
       const level = currentLevel(state);
       const duration = Number(state.element.querySelector("[data-assessment-duration]").value);
       if (!Number.isFinite(duration) || duration < 5 || duration > 120) throw new Error("Choisissez une durée entre 5 et 120 minutes.");
+      const calculator = state.element.querySelector("[data-assessment-calculator]").value;
+      if (!calculator) throw new Error("Indiquez si la calculatrice est autorisée avant de générer la feuille.");
       const selection = scope(state);
       if (!selection.candidates.length) throw new Error("Aucun exercice ne correspond à ces pages.");
       const seed = `${level}|${selection.startCourseId}:${selection.startPage}|${selection.endCourseId}:${selection.endPage}|${duration}`;
@@ -127,8 +130,9 @@
       const exercises = result.exercises
         .sort((a, b) => a.courseIndex - b.courseIndex || Math.min(...a.matchedPages) - Math.min(...b.matchedPages) || a.id.localeCompare(b.id))
         .map(window.AssessmentBank.instantiate);
-      await window.AssessmentPdf.download({ level, estimatedMinutes: result.estimatedMinutes, exercises, practice: !state.adminMode });
-      status.textContent = `${exercises.length} exercice${exercises.length > 1 ? "s" : ""}, durée estimée : ${result.estimatedMinutes} min.`;
+      const fitted = window.AssessmentPdf.fitToSinglePage(exercises);
+      await window.AssessmentPdf.download({ level, exercises: fitted, calculator, practice: !state.adminMode });
+      status.textContent = `${fitted.length} exercice${fitted.length > 1 ? "s" : ""} généré${fitted.length > 1 ? "s" : ""} sur une feuille recto.`;
     } catch (error) {
       status.textContent = error.message || "La feuille n’a pas pu être générée.";
     } finally { button.disabled = false; }

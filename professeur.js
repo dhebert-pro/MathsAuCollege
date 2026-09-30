@@ -135,7 +135,7 @@
     const exercises = sourceBanks.flatMap((bank) => bank.exercises.map((exercise) => ({ bank, exercise })))
       .filter(({ bank, exercise }) => {
         if (selectedLevel !== "all" && bank.level !== selectedLevel) return false;
-        return !query || normalizeSearch([exercise.id, exercise.title, exercise.content, bank.chapterNumber, bank.courseTitle].join(" ")).includes(query);
+        return !query || normalizeSearch([exercise.id, exercise.title, exercise.content, ...(exercise.competencies || []), bank.chapterNumber, bank.courseTitle].join(" ")).includes(query);
       })
       .sort((a, b) => a.bank.level.localeCompare(b.bank.level)
         || String(a.bank.chapterNumber).localeCompare(String(b.bank.chapterNumber), "fr", { numeric: true })
@@ -150,7 +150,8 @@
         <td>${exercise.pages.join(", ")}</td>
         <td>${exercise.durationMinutes} min</td>
         <td>${exercise.importance}/10</td>
-        <td><div class="assessment-exercise-statement">${escapeHtml(exercise.content).replace(/\n/g, "<br>")}</div></td>
+        <td><div class="assessment-competency-list">${(exercise.competencies || []).map((competency) => `<span>${escapeHtml(competency)}</span>`).join("") || "-"}</div></td>
+        <td><div class="assessment-exercise-statement">${AssessmentRender.richText(exercise.content)}${exercise.repeat ? `<small>Série de ${exercise.repeat.count} questions</small>` : ""}${exercise.figures?.length ? `<small>${exercise.figures.length} figure${exercise.figures.length > 1 ? "s" : ""}</small>` : ""}</div></td>
         <td><div class="assessment-exercise-actions"><button class="assessment-exercise-preview" type="button" data-preview-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Visualiser</button><button class="assessment-exercise-delete" type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button></div></td>
       </tr>
     `).join("");
@@ -165,7 +166,8 @@
     document.querySelector("#assessment-preview-exercise-title").textContent = exercise.title;
     document.querySelector("#assessment-preview-id").textContent = exercise.id;
     document.querySelector("#assessment-preview-meta").textContent = `${bank.level}e · ${bank.chapterNumber ? `Chapitre ${bank.chapterNumber} · ` : ""}Page${exercise.pages.length > 1 ? "s" : ""} ${exercise.pages.join(", ")} · ${exercise.durationMinutes} min · importance ${exercise.importance}/10`;
-    document.querySelector("#assessment-preview-content").innerHTML = escapeHtml(generated.content).replace(/\n/g, "<br>");
+    document.querySelector("#assessment-preview-competencies").innerHTML = (exercise.competencies || []).map((competency) => `<span>${escapeHtml(competency)}</span>`).join("");
+    document.querySelector("#assessment-preview-content").innerHTML = AssessmentRender.exerciseHtml(generated);
     document.querySelector("#assessment-preview-lines").innerHTML = Array.from({ length: exercise.answerLines }, () => "<span></span>").join("");
   }
 
