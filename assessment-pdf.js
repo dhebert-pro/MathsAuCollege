@@ -105,17 +105,20 @@
     pdf.setFontSize(fontSize);
     lines.forEach((line) => {
       let cursor = x;
+      const containsFraction = line.tokens.some((token) => token.type === "fraction");
+      const baseline = y + (containsFraction ? 5.1 : 3.8);
+      const mathAxis = baseline - 1.15;
       line.tokens.forEach((token) => {
         if (token.type === "fraction") {
           const center = cursor + token.width / 2;
-          pdf.setFontSize(Math.max(6.8, fontSize - 1));
-          pdf.text(token.numerator, center, y + 2.2, { align: "center" });
+          pdf.setFontSize(Math.max(6.8, fontSize - 1.2));
+          pdf.text(token.numerator, center, mathAxis - .9, { align: "center" });
           pdf.setLineWidth(.25);
-          pdf.line(cursor, y + 3.2, cursor + token.width, y + 3.2);
-          pdf.text(token.denominator, center, y + 6.6, { align: "center" });
+          pdf.line(cursor, mathAxis, cursor + token.width, mathAxis);
+          pdf.text(token.denominator, center, mathAxis + 2.55, { align: "center" });
           pdf.setFontSize(fontSize);
         } else {
-          pdf.text(token.text, cursor, y + (line.height === 8 ? 5 : 3.8));
+          pdf.text(token.text, cursor, baseline);
         }
         cursor += token.width;
       });

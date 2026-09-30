@@ -129,7 +129,7 @@
 .assessment-preview-heading strong { color: var(--blue); font: 700 1.25rem/1.25 Georgia, serif; }
 .assessment-preview-heading code { color: var(--muted); font-size: .72rem; overflow-wrap: anywhere; }
 .assessment-preview-content { white-space: normal; font-size: 1rem; line-height: 1.7; }
-.math-fraction { display: inline-grid; grid-template-rows: auto auto; align-items: center; min-width: 1.45em; margin: 0 .12em; vertical-align: -.52em; text-align: center; line-height: 1.05; }
+.math-fraction { display: inline-grid; grid-template-rows: auto auto; align-items: center; min-width: 1.45em; margin: 0 .12em; vertical-align: middle; text-align: center; line-height: 1.02; transform: translateY(-.03em); }
 .math-fraction > span:first-child { padding: 0 .18em .08em; border-bottom: 1.5px solid currentColor; }
 .math-fraction > span:last-child { padding: .08em .18em 0; }
 .assessment-vector-figure { width: min(100%, 560px); margin: 20px auto; }
