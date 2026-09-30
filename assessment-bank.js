@@ -133,7 +133,7 @@
       const cleaned = {
         width: finite(figure.width ?? 600, 100, 1000, `La largeur de la figure ${number}`),
         height: finite(figure.height ?? 300, 80, 700, `La hauteur de la figure ${number}`),
-        description: text(figure.description, 180, `La description de la figure ${number}`),
+        description: text(figure.description, 180, `La description de la figure ${number}`, false),
         elements: elements.map((element, elementIndex) => cleanFigureElement(element, number, elementIndex + 1)),
       };
       cleaned.elements.forEach((element) => validatePlaceholders(element.label, variables, `la figure ${number} de l’exercice ${exerciseNumber}`));

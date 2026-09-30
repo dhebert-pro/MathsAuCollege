@@ -70,7 +70,7 @@ Le champ facultatif `repeat` demande à l’application de tirer indépendamment
 
 ## Figures vectorielles
 
-Le champ facultatif `figures` contient au maximum deux dessins. Une figure possède `width`, `height`, une `description` accessible et des `elements`.
+Le champ facultatif `figures` contient au maximum deux dessins. Une figure possède `width`, `height` et des `elements`. Le champ `description` est facultatif : utilise-le uniquement lorsqu’une courte légende apporte réellement une information utile, sinon omets-le.
 
 Les éléments autorisés sont :
 

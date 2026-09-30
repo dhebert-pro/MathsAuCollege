@@ -37,7 +37,8 @@
       }
       return labelSvg(element, element.x, element.y);
     }).join("");
-    return `<figure class="assessment-vector-figure" role="img" aria-label="${escapeHtml(figure.description)}"><svg viewBox="0 0 ${figure.width} ${figure.height}" xmlns="http://www.w3.org/2000/svg">${elements}</svg><figcaption>${escapeHtml(figure.description)}</figcaption></figure>`;
+    const caption = figure.description ? `<figcaption>${escapeHtml(figure.description)}</figcaption>` : "";
+    return `<figure class="assessment-vector-figure" role="img" aria-label="${escapeHtml(figure.description || "Figure de l’exercice")}"><svg viewBox="0 0 ${figure.width} ${figure.height}" xmlns="http://www.w3.org/2000/svg">${elements}</svg>${caption}</figure>`;
   }
 
   function exerciseHtml(exercise) {

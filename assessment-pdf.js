@@ -167,11 +167,13 @@
       } else label(element, element.x, element.y);
     });
     pdf.setLineDashPattern([], 0);
-    pdf.setFont(FAMILY, "normal");
-    pdf.setFontSize(6.5);
-    pdf.setTextColor(90, 108, 118);
-    pdf.text(figure.description, x + maximumWidth / 2, y + height + 4, { align: "center", maxWidth: maximumWidth });
-    return y + height + 7;
+    if (figure.description) {
+      pdf.setFont(FAMILY, "normal");
+      pdf.setFontSize(6.5);
+      pdf.setTextColor(90, 108, 118);
+      pdf.text(figure.description, x + maximumWidth / 2, y + height + 4, { align: "center", maxWidth: maximumWidth });
+    }
+    return y + height + (figure.description ? 7 : 3);
   }
 
   async function create(sheet) {
