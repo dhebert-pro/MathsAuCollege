@@ -94,6 +94,20 @@
 .chatgpt-guide-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
 .chatgpt-instructions { max-height: 520px; margin: 18px 0 0; padding: 16px; overflow: auto; white-space: pre-wrap; color: var(--ink); background: #f6f8f7; border: 1px solid var(--line); border-radius: 9px; font: .78rem/1.55 ui-monospace, Consolas, monospace; }
 .assessment-exercises-panel .panel-heading { margin: 0; padding: 26px 26px 20px; }
+.assessment-import-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.assessment-import-legend[hidden] { display: none; }
+.assessment-import-legend span[hidden] { display: none; }
+.assessment-import-legend span, .assessment-import-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; font-size: .68rem; font-weight: 800; }
+.assessment-import-legend span::before { width: 7px; height: 7px; border-radius: 50%; content: ""; }
+.assessment-import-legend .added, .assessment-import-badge.added { color: #226149; background: #dff2e8; }
+.assessment-import-legend .added::before { background: #3f8b68; }
+.assessment-import-legend .replaced, .assessment-import-badge.replaced { color: #805018; background: #fff0cf; }
+.assessment-import-legend .replaced::before { background: #d89435; }
+.assessment-import-badge { margin-top: 7px; }
+.assessment-exercise-table tr.assessment-import-added > td { background: #f1faf5; }
+.assessment-exercise-table tr.assessment-import-replaced > td { background: #fff8e8; }
+.assessment-exercise-table tr.assessment-import-added > td:first-child { box-shadow: inset 4px 0 #4c9b74; }
+.assessment-exercise-table tr.assessment-import-replaced > td:first-child { box-shadow: inset 4px 0 #dfa144; }
 .assessment-exercise-toolbar { display: grid; grid-template-columns: minmax(260px, 1fr) 180px; gap: 12px; align-items: end; margin: 0; padding: 0 26px 22px; }
 .assessment-exercise-toolbar label { display: grid; gap: 5px; color: var(--muted); font-size: .75rem; font-weight: 750; }
 .assessment-exercise-toolbar input, .assessment-exercise-toolbar select { width: 100%; }

@@ -29,6 +29,7 @@
   let savedSelectionEditor = null;
   let blockVisibilityObserver = null;
   let assessmentPreviewSelection = null;
+  let lastAssessmentImport = null;
 
   const escapeHtml = CourseContent.escapeHtml;
   const normalizeSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -130,7 +131,15 @@
   function renderAssessmentExerciseTable(sourceBanks = AssessmentStore.all()) {
     const body = document.querySelector("#assessment-exercise-table-body");
     const empty = document.querySelector("#assessment-exercise-empty");
+    const legend = document.querySelector("#assessment-import-legend");
     if (!body || !empty) return;
+    if (legend) {
+      const hasAdded = Boolean(lastAssessmentImport?.added.size);
+      const hasReplaced = Boolean(lastAssessmentImport?.replaced.size);
+      legend.hidden = !hasAdded && !hasReplaced;
+      legend.querySelector(".added").hidden = !hasAdded;
+      legend.querySelector(".replaced").hidden = !hasReplaced;
+    }
     const query = normalizeSearch(document.querySelector("#assessment-exercise-search")?.value || "");
     const selectedLevel = document.querySelector("#assessment-exercise-level")?.value || "all";
     const exercises = sourceBanks.flatMap((bank) => bank.exercises.map((exercise) => ({ bank, exercise })))
@@ -142,10 +151,14 @@
         || String(a.bank.chapterNumber).localeCompare(String(b.bank.chapterNumber), "fr", { numeric: true })
         || Math.min(...a.exercise.pages) - Math.min(...b.exercise.pages)
         || a.exercise.id.localeCompare(b.exercise.id, "fr"));
-    body.innerHTML = exercises.map(({ bank, exercise }) => `
-      <tr>
+    body.innerHTML = exercises.map(({ bank, exercise }) => {
+      const importedHere = lastAssessmentImport?.courseId === bank.courseId;
+      const importType = importedHere && lastAssessmentImport.added.has(exercise.id) ? "added" : importedHere && lastAssessmentImport.replaced.has(exercise.id) ? "replaced" : "";
+      const importBadge = importType === "added" ? '<span class="assessment-import-badge added">Ajouté</span>' : importType === "replaced" ? '<span class="assessment-import-badge replaced">Modifié</span>' : "";
+      return `
+      <tr${importType ? ` class="assessment-import-${importType}"` : ""}>
         <td><code class="assessment-exercise-id">${escapeHtml(exercise.id)}</code></td>
-        <td><strong>${escapeHtml(exercise.title)}</strong></td>
+        <td><strong>${escapeHtml(exercise.title)}</strong>${importBadge}</td>
         <td><span class="assessment-level-chip">${escapeHtml(bank.level)}e</span></td>
         <td>${escapeHtml(bank.chapterNumber ? `${bank.chapterNumber} - ${bank.courseTitle}` : bank.courseTitle)}</td>
         <td>${exercise.pages.join(", ")}</td>
@@ -155,7 +168,8 @@
         <td><div class="assessment-exercise-statement">${AssessmentRender.richText(exercise.content)}${exercise.repeat ? `<small>Série de ${exercise.repeat.count} questions</small>` : ""}${exercise.figures?.length ? `<small>${exercise.figures.length} figure${exercise.figures.length > 1 ? "s" : ""}</small>` : ""}</div></td>
         <td><div class="assessment-exercise-actions"><button class="assessment-exercise-preview" type="button" data-preview-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Visualiser</button><button class="assessment-exercise-delete" type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button></div></td>
       </tr>
-    `).join("");
+    `;
+    }).join("");
     empty.hidden = Boolean(exercises.length);
   }
 
@@ -197,6 +211,7 @@
       const course = exact || byChapter || byTitle;
       if (!course) throw new Error(`Aucun cours de ${imported.level}e ne correspond au chapitre ${imported.chapterNumber || imported.courseTitle}.`);
       const existing = AssessmentStore.all().find((item) => item.courseId === course.id);
+      const existingIds = new Set((existing?.exercises || []).map((exercise) => exercise.id));
       const merged = AssessmentBank.mergeExercises(existing?.exercises, imported.exercises);
       const bank = AssessmentBank.validate({
         format: imported.format,
@@ -205,6 +220,11 @@
         exercises: merged.exercises,
       });
       await AssessmentStore.save(bank);
+      lastAssessmentImport = {
+        courseId: course.id,
+        added: new Set(imported.exercises.filter((exercise) => !existingIds.has(exercise.id)).map((exercise) => exercise.id)),
+        replaced: new Set(imported.exercises.filter((exercise) => existingIds.has(exercise.id)).map((exercise) => exercise.id)),
+      };
       status.textContent = `${bank.exercises.length} exercices disponibles pour « ${CourseContent.displayTitle(course)} » : ${merged.additions} ajouté${merged.additions > 1 ? "s" : ""}, ${merged.replacements} remplacé${merged.replacements > 1 ? "s" : ""} grâce à leur identifiant.`;
       toast("Banque d’exercices importée.");
       renderAssessmentBanks();
