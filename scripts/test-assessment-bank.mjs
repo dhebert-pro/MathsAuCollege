@@ -18,12 +18,13 @@ const bank = api.validate({
   course: { id: "course-2", level: "6", chapterNumber: "2", title: "Fractions", slideCount: 5 },
   exercises: [
     { id: "direct", title: "Application", pages: [1], durationMinutes: 4, importance: 10, competencies: ["Calculer", "Communiquer"], content: "Calculer [[frac:{{a}}|{{b}}]].", variables: { a: { type: "range", min: 2, max: 8, step: 2 }, b: { type: "choice", values: [3, 5] } }, repeat: { count: 2, template: "{{x}} ÷ 2", variables: { x: { type: "choice", values: [12, 16] } } }, figures: [{ width: 200, height: 100, description: "Un segment", elements: [{ type: "segment", x1: 20, y1: 50, x2: 180, y2: 50, label: "{{a}} cm" }] }], answerLines: 3 },
-    { id: "tuple", title: "Problème", pages: [2, 3], durationMinutes: 6, importance: 7, content: "Côtés : {{a}}, {{b}}, {{c}}.", variables: { triangle: { type: "tuple", values: [{ a: 3, b: 4, c: 5 }, { a: 5, b: 5, c: 8 }] } }, figures: [{ width: 200, height: 100, elements: [{ type: "segment", x1: 20, y1: 50, x2: 180, y2: 50 }] }], answerLines: 5 },
+    { id: "tuple", title: "Problème", pages: [2, 3], durationMinutes: 6, importance: 7, content: "Côtés : {{a}}, {{b}}, {{c}}.", variables: { triangle: { type: "tuple", values: [{ a: 3, b: 4, c: 5 }, { a: 5, b: 5, c: 8 }] } }, figures: [{ width: 200, height: 100, elements: [{ type: "segment", x1: 20, y1: 50, x2: 180, y2: 50 }] }], separateSheet: true, answerLines: 0 },
     { id: "vocab", title: "Vocabulaire", pages: [4], durationMinutes: 2, importance: 4, content: "Donner la définition demandée.", variables: {}, answerLines: 2 },
   ],
 });
 assert.equal(bank.exercises.length, 3);
 assert.equal(bank.exercises[1].figures[0].description, "");
+assert.equal(bank.exercises[1].separateSheet, true);
 const one = api.selectExercises(bank.exercises, 10, "same-scope");
 const two = api.selectExercises(bank.exercises, 10, "same-scope");
 assert.deepEqual(one.exercises.map((item) => item.id), two.exercises.map((item) => item.id));
@@ -33,6 +34,7 @@ assert.doesNotMatch(generated.content, /\{\{/);
 assert.match(generated.content, /Calculer/);
 assert.match(generated.content, /\[\[frac:/);
 assert.equal(generated.repeatedItems.length, 2);
+assert.equal(new Set(generated.repeatedItems.map((item) => item.content)).size, 2);
 assert.doesNotMatch(generated.repeatedItems[0].content, /\{\{/);
 assert.doesNotMatch(generated.figures[0].elements[0].label, /\{\{/);
 assert.deepEqual([...bank.exercises[0].competencies], ["Calculer", "Communiquer"]);

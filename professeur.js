@@ -165,7 +165,7 @@
         <td>${exercise.durationMinutes} min</td>
         <td>${exercise.importance}/10</td>
         <td><div class="assessment-competency-list">${(exercise.competencies || []).map((competency) => `<span>${escapeHtml(competency)}</span>`).join("") || "-"}</div></td>
-        <td><div class="assessment-exercise-statement">${AssessmentRender.richText(exercise.content)}${exercise.repeat ? `<small>Série de ${exercise.repeat.count} questions</small>` : ""}${exercise.figures?.length ? `<small>${exercise.figures.length} figure${exercise.figures.length > 1 ? "s" : ""}</small>` : ""}</div></td>
+        <td><div class="assessment-exercise-statement">${AssessmentRender.richText(exercise.content)}${exercise.repeat ? `<small>Série de ${exercise.repeat.count} questions distinctes</small>` : ""}${exercise.figures?.length ? `<small>${exercise.figures.length} figure${exercise.figures.length > 1 ? "s" : ""}</small>` : ""}${exercise.separateSheet ? '<small class="separate-sheet-note">Copie séparée</small>' : ""}</div></td>
         <td><div class="assessment-exercise-actions"><button class="assessment-exercise-preview" type="button" data-preview-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Visualiser</button><button class="assessment-exercise-delete" type="button" data-delete-assessment-exercise="${escapeHtml(exercise.id)}" data-assessment-course="${escapeHtml(bank.courseId)}">Supprimer</button></div></td>
       </tr>
     `;
@@ -183,7 +183,7 @@
     document.querySelector("#assessment-preview-meta").textContent = `${bank.level}e · ${bank.chapterNumber ? `Chapitre ${bank.chapterNumber} · ` : ""}Page${exercise.pages.length > 1 ? "s" : ""} ${exercise.pages.join(", ")} · ${exercise.durationMinutes} min · importance ${exercise.importance}/10`;
     document.querySelector("#assessment-preview-competencies").innerHTML = (exercise.competencies || []).map((competency) => `<span>${escapeHtml(competency)}</span>`).join("");
     document.querySelector("#assessment-preview-content").innerHTML = AssessmentRender.exerciseHtml(generated);
-    document.querySelector("#assessment-preview-lines").innerHTML = Array.from({ length: exercise.answerLines }, () => "<span></span>").join("");
+    document.querySelector("#assessment-preview-lines").innerHTML = Array.from({ length: exercise.separateSheet ? 0 : exercise.answerLines }, () => "<span></span>").join("");
   }
 
   function openAssessmentExercisePreview(courseId, exerciseId) {

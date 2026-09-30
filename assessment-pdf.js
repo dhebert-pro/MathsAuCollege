@@ -44,7 +44,8 @@
     const textHeight = Math.max(5, Math.ceil(contentLength / 90) * 5);
     const repeatedHeight = (exercise.repeatedItems || []).reduce((sum, item) => sum + Math.max(5, Math.ceil(cleanText(item.content).length / 78) * 5), 0);
     const figureHeight = (exercise.figures || []).reduce((sum, figure) => sum + Math.min(43, (figure.height / figure.width) * 105) + 5, 0);
-    return 14 + textHeight + repeatedHeight + figureHeight + exercise.answerLines * 5.2;
+    const answerHeight = exercise.separateSheet ? 8 : exercise.answerLines * 5.2;
+    return 14 + textHeight + repeatedHeight + figureHeight + answerHeight;
   }
 
   function fitToSinglePage(source) {
@@ -262,10 +263,21 @@
         y = drawMathLines(pdf, mathLines(pdf, item.content, width - 12, bodyFontSize), left + 10, y, bodyFontSize);
       });
       y += 2;
+      if (exercise.separateSheet) {
+        pdf.setFillColor(249, 245, 235);
+        pdf.setDrawColor(205, 181, 128);
+        pdf.setLineWidth(.25);
+        pdf.roundedRect(left + 2, y, width - 4, 7, 1.4, 1.4, "FD");
+        pdf.setFont(FAMILY, "bold");
+        pdf.setFontSize(Math.max(8, bodyFontSize - .6));
+        pdf.setTextColor(104, 74, 31);
+        pdf.text("À faire sur une copie séparée et bien présentée.", left + 5, y + 4.6);
+        y += 9;
+      }
       pdf.setDrawColor(218, 225, 228);
       pdf.setLineWidth(.2);
       pdf.setLineDashPattern([.7, 1.2], 0);
-      for (let line = 0; line < exercise.answerLines; line += 1) {
+      for (let line = 0; line < (exercise.separateSheet ? 0 : exercise.answerLines); line += 1) {
         if (y + answerGap > bottom) nextPage();
         pdf.line(left + 2, y + answerGap - 1.5, 191, y + answerGap - 1.5);
         y += answerGap;

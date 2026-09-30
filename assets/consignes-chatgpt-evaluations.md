@@ -21,6 +21,9 @@ Crée une banque riche et variée d'exercices d'évaluation portant uniquement s
 - renseigne les compétences réellement mobilisées, parmi les six compétences mathématiques, dans cet ordre : `Chercher`, `Représenter`, `Modéliser`, `Raisonner`, `Calculer`, `Communiquer` ;
 - lorsqu’un dessin est plus clair qu’une description pour un collégien, fournis une figure vectorielle plutôt qu’un long texte ;
 - lorsqu’un exercice d’automatisation s’y prête, utilise une série de plusieurs questions similaires (par exemple six divisions différentes) plutôt que de créer six exercices séparés ;
+- dans une série, toutes les questions générées doivent avoir des valeurs différentes. Fournis un réservoir de possibilités très supérieur au nombre de questions demandé ;
+- les paramètres aléatoires doivent offrir énormément de combinaisons valides. Privilégie de larges intervalles ou au moins plusieurs dizaines de jeux cohérents ; ne te contente jamais de quatre ou cinq possibilités sauf impossibilité mathématique justifiée ;
+- marque avec `"separateSheet": true` les exercices à effectuer sur une copie séparée et bien présentée, notamment les raisonnements longs, les problèmes demandant beaucoup de rédaction et les tracés ou constructions nécessitant une grande surface ;
 - prévois assez de modèles pour que des interrogations de 10 à 45 minutes soient variées ;
 - ne fournis ni solution, ni réponse, ni barème dans le fichier : ce fichier sera partiellement accessible aux élèves.
 
@@ -67,6 +70,7 @@ Le champ facultatif `repeat` demande à l’application de tirer indépendamment
 ```
 
 `count` est compris entre 2 et 12. Chaque ligne effectue un nouveau tirage. Les variables de `repeat.variables` sont propres à la série.
+Toutes les lignes d’une même série doivent être différentes. Le nombre de combinaisons possibles doit être largement supérieur à `count` : vise au minimum cinq fois plus de possibilités, et de préférence plusieurs dizaines ou centaines.
 
 ## Figures vectorielles
 
@@ -121,6 +125,7 @@ Structure obligatoire :
       "durationMinutes": 6,
       "importance": 7,
       "competencies": ["Représenter", "Raisonner", "Communiquer"],
+      "separateSheet": true,
       "content": "On considère un triangle dont les côtés mesurent {{a}} cm, {{b}} cm et {{c}} cm. Répondre à la question demandée en justifiant.",
       "variables": {
         "dimensions": {
@@ -159,7 +164,8 @@ Structure obligatoire :
 - `durationMinutes` est un entier de 1 à 30.
 - `importance` est un entier de 0 à 10, selon l’échelle pédagogique décrite plus haut.
 - `competencies` est un tableau contenant uniquement les compétences réellement mobilisées, dans l’ordre `Chercher`, `Représenter`, `Modéliser`, `Raisonner`, `Calculer`, `Communiquer`.
-- `answerLines` est un entier de 0 à 20 et doit représenter honnêtement la place nécessaire à l’élève : `0` si la réponse est directement entourée, cochée ou portée sur une figure ; `1` pour un nombre, un mot ou une phrase très courte ; `2` à `4` pour quelques calculs ; `5` à `8` pour une justification ou un raisonnement rédigé ; davantage uniquement pour une résolution réellement longue. Pour une série de questions dont chaque réponse est écrite directement après la question, utilise `0`. Ne réserve pas mécaniquement le même nombre de lignes à tous les exercices.
+- `separateSheet` est un booléen facultatif. Mets-le à `true` lorsque l’exercice doit être réalisé sur une copie séparée et bien présentée, en particulier pour un tracé, une construction ou une réponse longue. Dans ce cas, mets `answerLines` à `0`.
+- `answerLines` est un entier de 0 à 20 et doit représenter honnêtement la place nécessaire à l’élève : `0` si la réponse est directement entourée, cochée, portée sur une figure ou rédigée sur une copie séparée ; `1` pour un nombre, un mot ou une phrase très courte ; `2` à `4` pour quelques calculs ; `5` à `8` pour une justification ou un raisonnement rédigé ; davantage uniquement pour une résolution réellement longue. Pour une série de questions dont chaque réponse est écrite directement après la question, utilise `0`. Ne réserve pas mécaniquement le même nombre de lignes à tous les exercices.
 - Chaque `id` est unique, stable, court et composé de lettres non accentuées, chiffres, tirets ou underscores.
 - Pour corriger ou faire évoluer un exercice déjà présent, conserve exactement son `id`. Pour ajouter un exercice réellement différent, crée un nouvel `id`.
 - Chaque variable utilisée dans `{{...}}` est définie dans `variables`.

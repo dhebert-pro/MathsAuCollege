@@ -45,7 +45,8 @@
     const repeated = exercise.repeatedItems?.length
       ? `<ol class="assessment-repeated-items">${exercise.repeatedItems.map((item) => `<li>${richText(item.content)}</li>`).join("")}</ol>`
       : "";
-    return `<div class="assessment-rich-text">${richText(exercise.content)}</div>${(exercise.figures || []).map(figureSvg).join("")}${repeated}`;
+    const separateSheet = exercise.separateSheet ? '<p class="assessment-separate-sheet">À faire sur une copie séparée et bien présentée.</p>' : "";
+    return `<div class="assessment-rich-text">${richText(exercise.content)}</div>${(exercise.figures || []).map(figureSvg).join("")}${repeated}${separateSheet}`;
   }
 
   window.AssessmentRender = { richText, figureSvg, exerciseHtml };

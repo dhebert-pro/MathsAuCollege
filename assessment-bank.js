@@ -97,6 +97,13 @@
     const template = text(source.template, 600, `Le modèle de question répétée de l’exercice ${exerciseNumber}`);
     const variables = cleanVariables(source.variables, exerciseNumber, "La série de l’exercice");
     validatePlaceholders(template, variables, `la série de l’exercice ${exerciseNumber}`);
+    const capacity = Object.values(variables).reduce((total, variable) => {
+      const possibilities = variable.type === "range"
+        ? Math.floor((variable.max - variable.min) / variable.step) + 1 - variable.exclude.filter((value) => value >= variable.min && value <= variable.max && Math.abs((value - variable.min) / variable.step - Math.round((value - variable.min) / variable.step)) < 1e-9).length
+        : variable.values.length;
+      return Math.min(1000000, total * Math.max(0, possibilities));
+    }, 1);
+    if (capacity < count) invalid(`La série de l’exercice ${exerciseNumber} ne contient pas assez de valeurs différentes pour produire ${count} questions distinctes.`);
     return { count, template, variables };
   }
 
@@ -166,6 +173,7 @@
       repeat,
       figures,
       competencies: COMPETENCIES.filter((competency) => competencies.includes(competency)),
+      separateSheet: Boolean(source.separateSheet),
       answerLines: Math.round(finite(source.answerLines ?? 4, 0, 20, `Le nombre de lignes de l’exercice ${number}`)),
     };
   }
@@ -285,10 +293,20 @@
 
   function instantiate(exercise) {
     const values = drawValues(exercise.variables);
-    const repeatedItems = exercise.repeat ? Array.from({ length: exercise.repeat.count }, () => {
-      const itemValues = drawValues(exercise.repeat.variables);
-      return { content: replaceValues(exercise.repeat.template, itemValues), generatedValues: itemValues };
-    }) : [];
+    const repeatedItems = [];
+    if (exercise.repeat) {
+      const contents = new Set();
+      let attempts = 0;
+      while (repeatedItems.length < exercise.repeat.count && attempts < 1000) {
+        attempts += 1;
+        const itemValues = drawValues(exercise.repeat.variables);
+        const content = replaceValues(exercise.repeat.template, itemValues);
+        if (contents.has(content)) continue;
+        contents.add(content);
+        repeatedItems.push({ content, generatedValues: itemValues });
+      }
+      if (repeatedItems.length < exercise.repeat.count) invalid(`La série de l’exercice « ${exercise.title} » ne permet pas de générer suffisamment de questions différentes.`);
+    }
     const figures = (exercise.figures || []).map((figure) => ({ ...figure, elements: figure.elements.map((element) => ({ ...element, label: replaceValues(element.label, values) })) }));
     return { ...exercise, content: replaceValues(exercise.content, values), figures, repeatedItems, generatedValues: values };
   }
