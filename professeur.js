@@ -80,6 +80,7 @@
     AssessmentStore.startAdmin((error) => toast(readableError(error)));
     renderAll();
     AssessmentGenerator.mountAll();
+    refreshJournalClasses();
     refreshRollbackButton();
     const releaseStatus = document.querySelector("#release-status");
     releaseStatus.textContent = "Synchronisation des cours élèves…";
@@ -239,6 +240,7 @@
     journalClasses.sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }))
       .forEach((item) => journalClass.add(new Option(`${item.name} · ${item.level}e`, item.id)));
     journalClass.value = selected && journalClasses.some((item) => item.id === selected) ? selected : "";
+    AssessmentGenerator.setClasses(journalClasses);
   }
 
   function renderJournalClassList() {

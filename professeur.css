@@ -113,7 +113,7 @@
 .admin-view[data-admin-page="assessments"] > .assessment-generator { width: 100%; margin-top: 0; }
 .admin-view[data-admin-page="assessments"] > .assessment-generator .assessment-intro { max-width: none; }
 @media (max-width: 1250px) and (min-width: 821px) {
-  .assessment-generator[data-mode="admin"] .assessment-fields { grid-template-areas: "level duration calculator calculator" "start start end end"; grid-template-columns: 100px 160px minmax(180px, 1fr) minmax(180px, 1fr); }
+  .assessment-generator[data-mode="admin"] .assessment-fields { grid-template-areas: "class duration calculator calculator" "start start end end"; grid-template-columns: minmax(180px, 1fr) 160px minmax(180px, 1fr) minmax(180px, 1fr); }
 }
 .admin-dialog { width: min(590px, calc(100% - 32px)); padding: 0; color: var(--ink); background: #fffdf9; border: 1px solid #cbd8da; border-radius: 18px; box-shadow: 0 24px 70px rgba(17, 50, 67, .25); }
 .admin-dialog::backdrop { background: rgba(12, 35, 48, .48); backdrop-filter: blur(3px); }
@@ -141,7 +141,7 @@
 .assessment-repeated-items { display: grid; gap: 9px; margin: 18px 0 0; padding-left: 28px; }
 .assessment-repeated-items li { padding-left: 6px; }
 .assessment-preview-lines { display: grid; gap: 13px; margin-top: 22px; }
-.assessment-preview-lines span { display: block; height: 1px; background: #d7e0e2; }
+.assessment-preview-lines span { display: block; height: 1px; border-top: 1px dotted #bdc9cd; }
 .panel-heading { display: flex; justify-content: space-between; align-items: start; gap: 20px; margin-bottom: 16px; }
 .panel-heading h2, .editor-options h2 { margin-bottom: 3px; font-size: 1.3rem; }
 .panel-heading p { margin: 0; color: var(--muted); font-size: .85rem; }

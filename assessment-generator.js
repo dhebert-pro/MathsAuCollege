@@ -2,6 +2,7 @@
   "use strict";
 
   const mounts = new Set();
+  let teacherClasses = [];
 
   function option(label, value) { return new Option(label, value); }
 
@@ -29,7 +30,9 @@
         ? "Choisissez les pages évaluées et la durée souhaitée. Les mêmes critères sélectionnent les mêmes types d’exercices, avec de nouvelles valeurs à chaque génération."
         : "Choisis les pages que tu souhaites travailler et le temps dont tu disposes. Une feuille d’exercices adaptée sera créée pour t’entraîner."}</p>
       <div class="assessment-fields">
-        ${fixedLevel ? "" : `<label class="assessment-level-field">Niveau<select data-assessment-level>${window.CourseContent.LEVELS.map((level) => `<option value="${level}">${level}e</option>`).join("")}</select></label>`}
+        ${adminMode
+          ? '<label class="assessment-class-field">Classe<select data-assessment-class><option value="">Choisir une classe…</option></select></label>'
+          : fixedLevel ? "" : `<label class="assessment-level-field">Niveau<select data-assessment-level>${window.CourseContent.LEVELS.map((level) => `<option value="${level}">${level}e</option>`).join("")}</select></label>`}
         <label class="assessment-duration-field">Durée<input data-assessment-duration type="number" min="5" max="120" step="5" value="20" /><span>minutes</span></label>
         <label class="assessment-calculator-field">Calculatrice<select data-assessment-calculator><option value="">Choisir…</option><option value="forbidden">Non autorisée</option><option value="allowed">Autorisée</option></select></label>
         <fieldset class="assessment-range-start"><legend>Depuis</legend><select data-assessment-start-course aria-label="Cours de départ"></select><select data-assessment-start-page aria-label="Page de départ"></select></fieldset>
@@ -39,8 +42,10 @@
     `;
     const state = { element, fixedLevel, adminMode };
     mounts.add(state);
+    fillClassSelect(state);
     const level = element.querySelector("[data-assessment-level]");
     level?.addEventListener("change", () => refresh(state));
+    element.querySelector("[data-assessment-class]")?.addEventListener("change", () => refresh(state));
     ["start", "end"].forEach((side) => {
       element.querySelector(`[data-assessment-${side}-course]`).addEventListener("change", () => refreshPages(state, side));
     });
@@ -48,7 +53,24 @@
     refresh(state);
   }
 
+  function fillClassSelect(state) {
+    const select = state.element.querySelector("[data-assessment-class]");
+    if (!select) return;
+    const selected = select.value;
+    select.replaceChildren(new Option("Choisir une classe…", ""));
+    teacherClasses
+      .sort((a, b) => a.level.localeCompare(b.level) || a.name.localeCompare(b.name, "fr", { numeric: true }))
+      .forEach((item) => {
+        const classOption = new Option(`${item.name} · ${item.level}e`, item.id);
+        classOption.dataset.level = item.level;
+        classOption.dataset.name = item.name;
+        select.add(classOption);
+      });
+    if (selected && teacherClasses.some((item) => item.id === selected)) select.value = selected;
+  }
+
   function currentLevel(state) {
+    if (state.adminMode) return state.element.querySelector("[data-assessment-class]")?.selectedOptions[0]?.dataset.level || "";
     return state.fixedLevel || state.element.querySelector("[data-assessment-level]").value;
   }
 
@@ -61,11 +83,29 @@
   }
 
   function refresh(state) {
+    const level = currentLevel(state);
+    if (!level) {
+      ["start", "end"].forEach((side) => {
+        const course = state.element.querySelector(`[data-assessment-${side}-course]`);
+        const page = state.element.querySelector(`[data-assessment-${side}-page]`);
+        course.replaceChildren(option("Choisissez d’abord une classe", ""));
+        page.replaceChildren(option("Page —", ""));
+        course.disabled = true;
+        page.disabled = true;
+      });
+      state.element.querySelector("[data-assessment-generate]").disabled = true;
+      state.element.querySelector("[data-assessment-status]").textContent = "Choisissez une classe pour afficher ses exercices.";
+      return;
+    }
     const { courses } = available(state);
     const start = state.element.querySelector("[data-assessment-start-course]");
     const end = state.element.querySelector("[data-assessment-end-course]");
     const previousStart = start.value;
     const previousEnd = end.value;
+    start.disabled = false;
+    end.disabled = false;
+    state.element.querySelector("[data-assessment-start-page]").disabled = false;
+    state.element.querySelector("[data-assessment-end-page]").disabled = false;
     const options = courses.map((course) => option(courseLabel(course), course.id));
     start.replaceChildren(...options.map((item) => item.cloneNode(true)));
     end.replaceChildren(...options);
@@ -118,6 +158,9 @@
     button.disabled = true;
     status.textContent = "Préparation de la feuille…";
     try {
+      const classSelect = state.element.querySelector("[data-assessment-class]");
+      const selectedClass = classSelect?.selectedOptions[0];
+      if (state.adminMode && !classSelect?.value) throw new Error("Choisissez la classe concernée avant de générer l’interrogation.");
       const level = currentLevel(state);
       const duration = Number(state.element.querySelector("[data-assessment-duration]").value);
       if (!Number.isFinite(duration) || duration < 5 || duration > 120) throw new Error("Choisissez une durée entre 5 et 120 minutes.");
@@ -131,7 +174,7 @@
         .sort((a, b) => a.courseIndex - b.courseIndex || Math.min(...a.matchedPages) - Math.min(...b.matchedPages) || a.id.localeCompare(b.id))
         .map(window.AssessmentBank.instantiate);
       const fitted = window.AssessmentPdf.fitToSinglePage(exercises);
-      await window.AssessmentPdf.download({ level, exercises: fitted, calculator, practice: !state.adminMode });
+      await window.AssessmentPdf.download({ level, className: selectedClass?.dataset.name || "", exercises: fitted, calculator, practice: !state.adminMode });
       status.textContent = `${fitted.length} exercice${fitted.length > 1 ? "s" : ""} généré${fitted.length > 1 ? "s" : ""} sur une feuille recto.`;
     } catch (error) {
       status.textContent = error.message || "La feuille n’a pas pu être générée.";
@@ -139,7 +182,11 @@
   }
 
   function mountAll() { document.querySelectorAll("[data-assessment-generator]").forEach(mount); }
+  function setClasses(items) {
+    teacherClasses = (Array.isArray(items) ? items : []).map((item) => ({ id: String(item.id || ""), name: String(item.name || ""), level: String(item.level || "") }));
+    mounts.forEach((state) => { fillClassSelect(state); refresh(state); });
+  }
   window.addEventListener("courses:changed", () => mounts.forEach(refresh));
   window.addEventListener("assessments:changed", () => mounts.forEach(refresh));
-  window.AssessmentGenerator = { mountAll };
+  window.AssessmentGenerator = { mountAll, setClasses };
 })();

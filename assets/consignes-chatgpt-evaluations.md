@@ -159,7 +159,7 @@ Structure obligatoire :
 - `durationMinutes` est un entier de 1 à 30.
 - `importance` est un entier de 0 à 10, selon l’échelle pédagogique décrite plus haut.
 - `competencies` est un tableau contenant uniquement les compétences réellement mobilisées, dans l’ordre `Chercher`, `Représenter`, `Modéliser`, `Raisonner`, `Calculer`, `Communiquer`.
-- `answerLines` est un entier de 0 à 20.
+- `answerLines` est un entier de 0 à 20 et doit représenter honnêtement la place nécessaire à l’élève : `0` si la réponse est directement entourée, cochée ou portée sur une figure ; `1` pour un nombre, un mot ou une phrase très courte ; `2` à `4` pour quelques calculs ; `5` à `8` pour une justification ou un raisonnement rédigé ; davantage uniquement pour une résolution réellement longue. Pour une série de questions dont chaque réponse est écrite directement après la question, utilise `0`. Ne réserve pas mécaniquement le même nombre de lignes à tous les exercices.
 - Chaque `id` est unique, stable, court et composé de lettres non accentuées, chiffres, tirets ou underscores.
 - Pour corriger ou faire évoluer un exercice déjà présent, conserve exactement son `id`. Pour ajouter un exercice réellement différent, crée un nouvel `id`.
 - Chaque variable utilisée dans `{{...}}` est définie dans `variables`.

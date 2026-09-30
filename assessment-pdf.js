@@ -215,8 +215,8 @@
     pdf.text(`Calculatrice : ${sheet.calculator === "allowed" ? "autorisée" : "non autorisée"}`, 193, y + 7, { align: "right" });
     pdf.text("Nom et prénom :", left, y + 16);
     pdf.line(left + 29, y + 16.5, 113, y + 16.5);
-    pdf.text("Date :", 127, y + 16);
-    pdf.line(139, y + 16.5, 193, y + 16.5);
+    pdf.text(`Classe :${sheet.className ? ` ${sheet.className}` : ""}`, 127, y + 16);
+    if (!sheet.className) pdf.line(143, y + 16.5, 193, y + 16.5);
     const usedCompetencies = window.AssessmentBank.COMPETENCIES.filter((competency) => exercises.some((exercise) => exercise.competencies.includes(competency)));
     let competencyX = left;
     pdf.setFontSize(6.6);
@@ -259,12 +259,14 @@
       y += 2;
       pdf.setDrawColor(218, 225, 228);
       pdf.setLineWidth(.2);
+      pdf.setLineDashPattern([.7, 1.2], 0);
       for (let line = 0; line < exercise.answerLines; line += 1) {
         if (y + answerGap > bottom) nextPage();
         pdf.line(left + 2, y + answerGap - 1.5, 191, y + answerGap - 1.5);
         y += answerGap;
       }
-      y += 4;
+      pdf.setLineDashPattern([], 0);
+      y += 7;
     });
     footer();
     pdf.setProperties({ title: `${sheet.practice ? "Entraînement" : "Interrogation"} ${sheet.level}e`, subject: "Mathématiques" });
