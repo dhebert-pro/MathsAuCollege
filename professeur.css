@@ -110,7 +110,11 @@
 .assessment-exercise-actions { display: grid; gap: 7px; min-width: 94px; }
 .assessment-exercise-preview { padding: 7px 9px; color: white; background: var(--blue); border: 1px solid var(--blue); border-radius: 7px; font-weight: 750; cursor: pointer; }
 .assessment-exercise-delete { padding: 7px 9px; color: #963e32; background: #fff7f5; border: 1px solid #e4c2bd; border-radius: 7px; font-weight: 750; cursor: pointer; }
-.admin-view[data-admin-page="assessments"] > .assessment-generator { max-width: 1100px; }
+.admin-view[data-admin-page="assessments"] > .assessment-generator { width: 100%; margin-top: 0; }
+.admin-view[data-admin-page="assessments"] > .assessment-generator .assessment-intro { max-width: none; }
+@media (max-width: 1250px) and (min-width: 821px) {
+  .assessment-generator[data-mode="admin"] .assessment-fields { grid-template-areas: "level duration calculator calculator" "start start end end"; grid-template-columns: 100px 160px minmax(180px, 1fr) minmax(180px, 1fr); }
+}
 .admin-dialog { width: min(590px, calc(100% - 32px)); padding: 0; color: var(--ink); background: #fffdf9; border: 1px solid #cbd8da; border-radius: 18px; box-shadow: 0 24px 70px rgba(17, 50, 67, .25); }
 .admin-dialog::backdrop { background: rgba(12, 35, 48, .48); backdrop-filter: blur(3px); }
 .admin-dialog form { padding: 28px; }

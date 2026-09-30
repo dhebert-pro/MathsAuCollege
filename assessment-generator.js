@@ -29,11 +29,11 @@
         ? "Choisissez les pages évaluées et la durée souhaitée. Les mêmes critères sélectionnent les mêmes types d’exercices, avec de nouvelles valeurs à chaque génération."
         : "Choisis les pages que tu souhaites travailler et le temps dont tu disposes. Une feuille d’exercices adaptée sera créée pour t’entraîner."}</p>
       <div class="assessment-fields">
-        ${fixedLevel ? "" : `<label>Niveau<select data-assessment-level>${window.CourseContent.LEVELS.map((level) => `<option value="${level}">${level}e</option>`).join("")}</select></label>`}
-        <label>Durée<input data-assessment-duration type="number" min="5" max="120" step="5" value="20" /><span>minutes</span></label>
-        <label>Calculatrice<select data-assessment-calculator><option value="">Choisir…</option><option value="forbidden">Non autorisée</option><option value="allowed">Autorisée</option></select></label>
-        <fieldset><legend>Depuis</legend><select data-assessment-start-course aria-label="Cours de départ"></select><select data-assessment-start-page aria-label="Page de départ"></select></fieldset>
-        <fieldset><legend>Jusqu’à</legend><select data-assessment-end-course aria-label="Cours de fin"></select><select data-assessment-end-page aria-label="Page de fin"></select></fieldset>
+        ${fixedLevel ? "" : `<label class="assessment-level-field">Niveau<select data-assessment-level>${window.CourseContent.LEVELS.map((level) => `<option value="${level}">${level}e</option>`).join("")}</select></label>`}
+        <label class="assessment-duration-field">Durée<input data-assessment-duration type="number" min="5" max="120" step="5" value="20" /><span>minutes</span></label>
+        <label class="assessment-calculator-field">Calculatrice<select data-assessment-calculator><option value="">Choisir…</option><option value="forbidden">Non autorisée</option><option value="allowed">Autorisée</option></select></label>
+        <fieldset class="assessment-range-start"><legend>Depuis</legend><select data-assessment-start-course aria-label="Cours de départ"></select><select data-assessment-start-page aria-label="Page de départ"></select></fieldset>
+        <fieldset class="assessment-range-end"><legend>Jusqu’à</legend><select data-assessment-end-course aria-label="Cours de fin"></select><select data-assessment-end-page aria-label="Page de fin"></select></fieldset>
       </div>
       <div class="assessment-actions"><button type="button" data-assessment-generate>${adminMode ? "Générer l’interrogation" : "Créer ma feuille d’exercices"}</button><span data-assessment-status role="status" aria-live="polite"></span></div>
     `;
