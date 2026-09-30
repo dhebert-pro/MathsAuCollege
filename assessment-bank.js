@@ -233,11 +233,22 @@
   function mergeExercises(current, incoming) {
     const merged = new Map((Array.isArray(current) ? current : []).map((exercise) => [exercise.id, exercise]));
     let replacements = 0;
+    let unchanged = 0;
+    const addedIds = [];
+    const replacedIds = [];
+    const unchangedIds = [];
     (Array.isArray(incoming) ? incoming : []).forEach((exercise) => {
-      if (merged.has(exercise.id)) replacements += 1;
+      if (!merged.has(exercise.id)) addedIds.push(exercise.id);
+      else if (JSON.stringify(merged.get(exercise.id)) === JSON.stringify(exercise)) {
+        unchanged += 1;
+        unchangedIds.push(exercise.id);
+      } else {
+        replacements += 1;
+        replacedIds.push(exercise.id);
+      }
       merged.set(exercise.id, exercise);
     });
-    return { exercises: [...merged.values()], replacements, additions: (Array.isArray(incoming) ? incoming.length : 0) - replacements };
+    return { exercises: [...merged.values()], replacements, additions: addedIds.length, unchanged, addedIds, replacedIds, unchangedIds };
   }
 
   function secureIndex(length) {

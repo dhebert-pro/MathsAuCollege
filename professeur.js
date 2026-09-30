@@ -211,7 +211,6 @@
       const course = exact || byChapter || byTitle;
       if (!course) throw new Error(`Aucun cours de ${imported.level}e ne correspond au chapitre ${imported.chapterNumber || imported.courseTitle}.`);
       const existing = AssessmentStore.all().find((item) => item.courseId === course.id);
-      const existingIds = new Set((existing?.exercises || []).map((exercise) => exercise.id));
       const merged = AssessmentBank.mergeExercises(existing?.exercises, imported.exercises);
       const bank = AssessmentBank.validate({
         format: imported.format,
@@ -222,10 +221,10 @@
       await AssessmentStore.save(bank);
       lastAssessmentImport = {
         courseId: course.id,
-        added: new Set(imported.exercises.filter((exercise) => !existingIds.has(exercise.id)).map((exercise) => exercise.id)),
-        replaced: new Set(imported.exercises.filter((exercise) => existingIds.has(exercise.id)).map((exercise) => exercise.id)),
+        added: new Set(merged.addedIds),
+        replaced: new Set(merged.replacedIds),
       };
-      status.textContent = `${bank.exercises.length} exercices disponibles pour « ${CourseContent.displayTitle(course)} » : ${merged.additions} ajouté${merged.additions > 1 ? "s" : ""}, ${merged.replacements} remplacé${merged.replacements > 1 ? "s" : ""} grâce à leur identifiant.`;
+      status.textContent = `${bank.exercises.length} exercices disponibles pour « ${CourseContent.displayTitle(course)} » : ${merged.additions} ajouté${merged.additions > 1 ? "s" : ""}, ${merged.replacements} modifié${merged.replacements > 1 ? "s" : ""}, ${merged.unchanged} inchangé${merged.unchanged > 1 ? "s" : ""}.`;
       toast("Banque d’exercices importée.");
       renderAssessmentBanks();
     } catch (error) {
